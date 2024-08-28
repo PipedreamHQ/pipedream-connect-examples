@@ -1,15 +1,14 @@
 "use server";
 
-import { promises as fs } from "fs";
 import { createStreamableValue } from "ai/rsc";
 import { CoreMessage, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 
 export async function continueConversation(messages: CoreMessage[]) {
-  const file = await fs.readFile(
-    process.cwd() + "/src/components/chat/connect-docs.md",
-    "utf8"
-  );
+  const quickStartDocsRes = await fetch('https://raw.githubusercontent.com/PipedreamHQ/pipedream/master/docs-v2/pages/connect/quickstart.mdx', {next: {
+  }})
+  const quickStartDocs = await quickStartDocsRes.text()
+
   const result = await streamText({
     model: openai("gpt-4-turbo"),
     messages: [
@@ -20,7 +19,7 @@ You are an expert at developing React and Next.js applications that utilize Pipe
 
 Here is the quickstart guide for Pipedream Connect:
 <quickstart>
-${file}
+${quickStartDocs}
 </quickstart>
 
 Use this information to generate a component that uses Pipedream Connect.
