@@ -16,6 +16,7 @@ export default function Home() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [app, setApp] = useState<string | null>(null)
   const [apn, setAuthProvisionId] = useState<string | null>(null)
+  const [missingEnvVar, setMissingEnvVar] = useState<string | null>(null)
 
     
   const connectApp = (app: string) => {
@@ -67,19 +68,25 @@ export default function Home() {
     }
   }, [externalUserId])
 
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_PIPEDREAM_APP_SLUG) setMissingEnvVar("NEXT_PUBLIC_PIPEDREAM_APP_SLUG")
+    else if (!process.env.NEXT_PUBLIC_PIPEDREAM_APP_ID) setMissingEnvVar("NEXT_PUBLIC_PIPEDREAM_APP_ID")
+    else setMissingEnvVar(null)
+  }, []);
+
 
   return (
-    <main className="p-5 flex flex-col gap-2 max-w-5xl">
-      {
-        (!appSlug) &&
-        <div className="flex flex-col gap-2 text-slate-800 pb-4">
-          <div>
-            <p>
-              The <code>NEXT_PUBLIC_PIPEDREAM_APP_ID</code> variable is not set in your environment. Copy the <code>.env.example</code> file in this directory and fill in the appropriate environment variables.
-            </p>
-            <CodePanel
-              language="plaintext"
-              code={`# Config for the Next.js app
+      <main className="p-5 flex flex-col gap-2 max-w-5xl">
+        {
+            (missingEnvVar) &&
+            <div className="flex flex-col gap-2 text-slate-800 pb-4">
+              <div>
+                <p>
+                  The <code>{missingEnvVar}</code> variable is not set in your environment. Copy the <code>.env.example</code> file in this directory and fill in the appropriate environment variables.
+                </p>
+                <CodePanel
+                    language="plaintext"
+                    code={`# Config for the Next.js app
 # Key based apps only require the app_slug value. OAuth apps require both.
 NEXT_PUBLIC_PIPEDREAM_APP_SLUG=github
 NEXT_PUBLIC_PIPEDREAM_APP_ID=oa_abc123
@@ -88,54 +95,54 @@ NEXT_PUBLIC_PIPEDREAM_APP_ID=oa_abc123
 # These are scoped to the server-side only.
 PIPEDREAM_PROJECT_PUBLIC_KEY=pub_abc123
 PIPEDREAM_PROJECT_SECRET_KEY=sec_abc123`}
-            />
-          </div>
-        </div>
-      }
-      {
-        appSlug && externalUserId && 
-        <div className="mb-48">
-          <h1 className="text-2xl font-bold mb-8">Pipedream Connect Example App</h1>
-          <div className="mb-8">
-            <p>Refer to the <a href="https://pipedream.com/docs/connect" target="_blank nofollow" className="hover:underline text-blue-600">Pipedream Connect docs</a> for a full walkthrough of how to configure Connect for your site. This example app implements Connect in a Next.js (React) app.</p>
-          </div>
-          <div className="mb-8">
-            <p>When your customers connect accounts with Pipedream, you&apos;ll pass their unique user ID in your system — whatever you use to identify them. In this example, we generate a random external user ID for you.</p>
-          </div>
-          <div className="mb-8">
-            <span className="font-semibold">External User ID:</span>
-            <span className="font-mono"> {externalUserId}</span>
-          </div>
-          <div className="mb-8">
-            <p>In <code>server.ts</code>, the app calls <code>serverConnectTokenCreate</code> to create a short-lived token for the user. You&apos;ll use that token to initiate app connection requests from your site securely. SEE THE DOCS.</p>
-          </div>
-          <div className="mb-8">
-            <CodePanel
-              language="typescript"
-              code={`import { connectTokenCreate } from "@pipedream/sdk";
+                />
+              </div>
+            </div>
+        }
+        {
+            appSlug && externalUserId &&
+            <div className="mb-48">
+              <h1 className="text-2xl font-bold mb-8">Pipedream Connect Example App</h1>
+              <div className="mb-8">
+                <p>Refer to the <a href="https://pipedream.com/docs/connect" target="_blank nofollow" className="hover:underline text-blue-600">Pipedream Connect docs</a> for a full walkthrough of how to configure Connect for your site. This example app implements Connect in a Next.js (React) app.</p>
+              </div>
+              <div className="mb-8">
+                <p>When your customers connect accounts with Pipedream, you&apos;ll pass their unique user ID in your system — whatever you use to identify them. In this example, we generate a random external user ID for you.</p>
+              </div>
+              <div className="mb-8">
+                <span className="font-semibold">External User ID:</span>
+                <span className="font-mono"> {externalUserId}</span>
+              </div>
+              <div className="mb-8">
+                <p>In <code>server.ts</code>, the app calls <code>serverConnectTokenCreate</code> to create a short-lived token for the user. You&apos;ll use that token to initiate app connection requests from your site securely. SEE THE DOCS.</p>
+              </div>
+              <div className="mb-8">
+                <CodePanel
+                    language="typescript"
+                    code={`import { connectTokenCreate } from "@pipedream/sdk";
 
 const { token, expires_at } = await serverConnectTokenCreate({
   app_slug: "github",
   oauth_app_id: "oa_abc123",  // Only required for OAuth apps
   external_user_id: "${externalUserId}",
 })`}
-            />
-          </div>
-          <div className="mb-2">
-            <span className="font-semibold">Connect Token:</span>
-            <span className="font-mono"> {token}</span>
-          </div>
-          <div className="mb-8">
-            <span className="font-semibold">Expires at:</span>
-            <span className="font-mono"> {expiresAt}</span>
-          </div>
-          <p className="mb-8">
-            When a user wants to connect an app from your frontend, you&apos;ll call <code>pd.connectAccount</code> with the token and the OAuth App ID of the app you&apos;d like to connect.
-          </p>
-          <div className="mb-8">
-            <CodePanel
-              language="typescript"
-              code={`import { createClient } from "@pipedream/sdk/browser";
+                />
+              </div>
+              <div className="mb-2">
+                <span className="font-semibold">Connect Token:</span>
+                <span className="font-mono"> {token}</span>
+              </div>
+              <div className="mb-8">
+                <span className="font-semibold">Expires at:</span>
+                <span className="font-mono"> {expiresAt}</span>
+              </div>
+              <p className="mb-8">
+                When a user wants to connect an app from your frontend, you&apos;ll call <code>pd.connectAccount</code> with the token and the OAuth App ID of the app you&apos;d like to connect.
+              </p>
+              <div className="mb-8">
+                <CodePanel
+                    language="typescript"
+                    code={`import { createClient } from "@pipedream/sdk/browser";
 
 const pd = createClient();
 pd.connectAccount({
@@ -145,23 +152,23 @@ pd.connectAccount({
     console.log("Connected!")
   }
 })`}
-            />
-          </div>
-          {apn ?
-            <div>
-              <p>
-                <span className="font-semibold">Pipedream Account ID:</span>
-                <span className="font-mono"> {apn}</span>
-              </p>
+                />
+              </div>
+              {apn ?
+                  <div>
+                    <p>
+                      <span className="font-semibold">Pipedream Account ID:</span>
+                      <span className="font-mono"> {apn}</span>
+                    </p>
+                  </div>
+                  : <div>
+                    <p className="mb-8">
+                    </p>
+                    <button className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {app} account</button>
+                  </div>
+              }
             </div>
-            : <div>
-              <p className="mb-8">
-              </p>
-              <button className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {app} account</button>
-            </div>
-          }
-        </div>
-      }
-    </main>
+        }
+      </main>
   );
 }
