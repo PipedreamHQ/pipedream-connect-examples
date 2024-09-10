@@ -18,7 +18,7 @@ export default function Home() {
   const [apn, setAuthProvisionId] = useState<string | null>(null)
   const [missingEnvVar, setMissingEnvVar] = useState<string | null>(null)
 
-    
+
   const connectApp = (app: string) => {
     if (!externalUserId) {
       throw new Error("External user ID is required.");
