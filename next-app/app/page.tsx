@@ -14,7 +14,7 @@ export default function Home() {
   const [externalUserId, setExternalUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
-  const [app, setApp] = useState<string | null>(null)
+  const [app, setApp] = useState<string | null>(appSlug ?? null)
   const [apn, setAuthProvisionId] = useState<string | null>(null)
   const [missingEnvVar, setMissingEnvVar] = useState<string | null>(null)
 
