@@ -2,7 +2,7 @@
 
 import {
   createClient,
-  type ConnectTokenCreateOpts, 
+  type ConnectTokenCreateOpts,
   type ConnectTokenResponse,
 } from "@pipedream/sdk";
 
@@ -32,6 +32,6 @@ export async function getUserAccounts(externalId: string, include_credentials: n
     include_credentials, // set to 1 to include credentials
   })
 
-  // Parse and return the data you need. These may contain credentials, 
+  // Parse and return the data you need. These may contain credentials,
   // which you should never return to the client
 }
