@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { serverConnectTokenCreate, serverConnectGetApps } from "./server"
 import { createClient } from "@pipedream/sdk/browser"
+import {AppInfo} from "@pipedream/sdk";
 
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
 
@@ -16,7 +17,7 @@ export default function Home() {
   const [app, setApp] = useState<string | null>(null)
   const [apn, setAuthProvisionId] = useState<string | null>(null)
   const [apps, setApps] = useState<object[] | null>(null)
-  const [selectedApp, setSelectedApp] = useState<string | null>("")
+  const [selectedApp, setSelectedApp] = useState<AppInfo | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<string | null>("")
 
   const searchParams = useSearchParams()
@@ -26,7 +27,7 @@ export default function Home() {
     "https://pipedream.com/docs/connect/quickstart#connect-to-the-pipedream-api-from-your-server-and-create-a-token"
 
     
-  const connectApp = (app: string) => {
+  const connectApp = (appSlug: string, appId: string | undefined) => {
     if (!externalUserId) {
       throw new Error("External user ID is required.");
     }
@@ -35,7 +36,8 @@ export default function Home() {
     }
     setApp(app)
     pd.connectAccount({
-      app,
+      app: appSlug,
+      oauthAppId: appId,
       token,
       onSuccess: ({ id: authProvisionId }) => {
         setAuthProvisionId(authProvisionId as string)
@@ -45,7 +47,7 @@ export default function Home() {
 
   const connectAccount = async () => {
     if (!selectedApp) return
-    await connectApp(selectedApp.name_slug)
+    await connectApp(selectedApp.name_slug, selectedApp?.id)
   }
 
   useEffect(() => {
