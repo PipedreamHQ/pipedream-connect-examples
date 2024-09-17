@@ -7,7 +7,6 @@ import { serverConnectTokenCreate, serverConnectGetApps } from "./server"
 import { createClient } from "@pipedream/sdk/browser"
 
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
-//const appSlug = process.env.NEXT_PUBLIC_PIPEDREAM_APP_SLUG // required
 
 export default function Home() {
   const pd = createClient({ frontendHost })
@@ -74,8 +73,6 @@ export default function Home() {
       if (!selectedApp) return
       (async () => {
         try {
-          //const linkedApps = await serverConnectGetApps()
-          //setApps(linkedApps.apps)
           const { token, expires_at } = await serverConnectTokenCreate({
             app_slug: selectedApp.name_slug,
             oauth_app_id: selectedApp.id,
@@ -136,11 +133,6 @@ PIPEDREAM_PROJECT_SECRET_KEY=sec_abc123`}
               <span className="font-mono font-bold"> {externalUserId}</span>
             </p>
           </div>
-          {/* <div className="mb-8">
-            <span className="font-semibold">External User ID:</span>
-            <span className="font-mono"> {externalUserId}</span>
-            <span className="ml-2"><a href={`/accounts?uuid=${externalUserId}`}>accounts</a></span>
-            </div> */}
           <div className="border border-b mb-4"></div>
           <div className="mb-8">
             <p>In <code>server.ts</code>, the app calls <code>serverConnectTokenCreate</code> to create a short-lived token for the user. You&apos;ll use that token to initiate app connection requests from your site securely. <a href={docsTokenCreate} target="_blank nofollow" className="hover:underline text-blue-600">See docs</a>.</p>
