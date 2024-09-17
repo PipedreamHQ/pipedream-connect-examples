@@ -17,7 +17,6 @@ export default function Home() {
   // request stuff
   const [method, setMethod] = useState("GET");
   const [url, setUrl] = useState("");
-  //const [headers, setHeaders] = useState("");
   const [body, setBody] = useState("");
   const [responseBody, setResponseBody] = useState("");
   const [headersArray, setHeadersArray] = useState([])
@@ -97,7 +96,6 @@ export default function Home() {
   }
 
   const addHeader = () => {
-    //headersArray.push({})
     setHeadersArray([...headersArray, {}])
   }
 
@@ -108,7 +106,6 @@ export default function Home() {
   }
 
   const onChangeHeaderName = (e) => {
-    //debugger
     headersArray[e.target.id].name = e.target.value
     setHeadersArray([...headersArray])
   }

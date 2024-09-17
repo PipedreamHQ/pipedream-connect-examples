@@ -3,7 +3,7 @@
 import {
   createClient,
   type ConnectTokenCreateOpts,
-  type ConnectTokenResponse,
+  type ConnectTokenResponse, ProjectInfoResponse,
 } from "@pipedream/sdk";
 
 const {
@@ -11,10 +11,6 @@ const {
   PIPEDREAM_PROJECT_PUBLIC_KEY,
   PIPEDREAM_PROJECT_SECRET_KEY,
 } = process.env;
-
-//import apps from "./apps.json"
-//console.log("hello world")
-//console.log("apps", apps)
 
 if (!PIPEDREAM_PROJECT_PUBLIC_KEY)
   throw new Error("PIPEDREAM_PROJECT_PUBLIC_KEY not set in environment");
@@ -59,7 +55,6 @@ export async function getTestRequest(nameSlug) {
       const user = userMatch ? userMatch[1] : ""
       const pass = passMatch ? passMatch[1] : ""
 
-//      const value = `\${Buffer.from(\`${user}:${pass}\`).toString("base64")}`
       const value = `Basic Base64(${user}:${pass}) // use the given values for basic auth`
 
       headers.authorization = value
@@ -117,7 +112,7 @@ export async function makeAppRequest(accountId: string, endpoint: string, nameSl
   return result
 }
 
-export async function serverConnectGetApps(): Promise {
+export async function serverConnectGetApps(): Promise<ProjectInfoResponse> {
     const apps = await pd.getProjectInfo()
     return apps
 }
