@@ -161,7 +161,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
               <option value="">-- select an app --</option>
               {apps.map((app, index) => (
                 <option key={index} value={index}>
-                  {app.name_slug}
+                  {app.id ? `${app.name_slug} (${app.id})` : app.name_slug}
                 </option>
               ))}
             </select>
