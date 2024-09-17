@@ -2,10 +2,9 @@
 
 import {
   createClient,
-  type ConnectTokenCreateOpts, 
+  type ConnectTokenCreateOpts,
   type ConnectTokenResponse,
 } from "@pipedream/sdk";
-//} from "../../../src/server/index"//"@pipedream/sdk";
 
 const {
   PIPEDREAM_API_HOST,
@@ -119,8 +118,7 @@ export async function makeAppRequest(accountId: string, endpoint: string, nameSl
 }
 
 export async function serverConnectGetApps(): Promise {
-  //const apps = await pd.getLinkedApps()
-  const apps = await pd._makeConnectRequest("/projects/info")
-  return apps
+    const apps = await pd.getProjectInfo()
+    return apps
 }
 
