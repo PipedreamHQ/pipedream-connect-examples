@@ -100,7 +100,7 @@ export default function Home() {
 
 
   return (
-    <main className="p-5 flex flex-col gap-2 max-w-5xl">
+    <main className="p-5 flex flex-col gap-2 max-w-5xl mb-48">
       {
         (false) &&
         <div className="flex flex-col gap-2 text-slate-800 pb-4">
@@ -125,7 +125,7 @@ PIPEDREAM_PROJECT_SECRET_KEY=sec_abc123`}
       }
       {
         externalUserId && apps && 
-        <div className="mb-48">
+        <div>
           <h1 className="text-2xl font-bold mb-8">Pipedream Connect Example App</h1>
           <div className="mb-4">
             <p>Refer to the <a href={docsConnect} target="_blank nofollow" className="hover:underline text-blue-600">Pipedream Connect docs</a> for a full walkthrough of how to configure Connect for your site. This example app implements Connect in a Next.js (React) app.</p>
@@ -145,11 +145,11 @@ PIPEDREAM_PROJECT_SECRET_KEY=sec_abc123`}
               code={`import { connectTokenCreate } from "@pipedream/sdk";
 
 const { token, expires_at } = await serverConnectTokenCreate({
-  app_slug: "${selectedApp?.name_slug || "github"}",
-  oauth_app_id: "oa_abc123",  // Only required for OAuth apps
+  app_slug: ${selectedApp?.name_slug ? `"${selectedApp.name_slug}"` : '// select an app below'},${selectedApp?.id ? `
+  oauth_app_id: "${selectedApp.id}",  // Only required for OAuth apps` : ''}
   external_user_id: "${externalUserId}",
 })`}
-            />
+/>
           </div>
           <div className="border border-b mb-6"></div>
           <div className="pb-4">
@@ -173,14 +173,28 @@ const { token, expires_at } = await serverConnectTokenCreate({
             <span className="font-semibold">Connect Token:</span>
             <span className="font-mono"> {token}</span>
           </div>
-          <div className="mb-6">
+          <div className="mb-4">
             <span className="font-semibold">Token expiry:</span>
             <span className="font-mono"> {expiresAt}</span>
           </div>
+          {apn ?
+            <div className="mb-4">
+              <p>
+                <span className="font-semibold">Pipedream Account ID:</span>
+                <span className="font-mono"> {apn}</span>
+              </p>
+            </div>
+            : 
+            <div className="mb-2">
+              <button hidden={!selectedApp} className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {selectedApp?.name_slug} account</button>
+            </div>
+          }
+          </div>
+          }
           <div className="border border-b mb-6"></div>
-          <p className="mb-8">
-            When a user wants to connect an app from your frontend, you&apos;ll call <code>pd.connectAccount</code> with the token and the <code>app_slug</code> of the app you&apos;d like to connect.
-          </p>
+            <p className="mb-8">
+              When a user wants to connect an app from your frontend, you&apos;ll call <code>pd.connectAccount</code> with the token and the <code>app_slug</code> of the app you&apos;d like to connect.
+            </p>
           <div className="mb-8">
             <CodePanel
               language="typescript"
@@ -196,22 +210,6 @@ pd.connectAccount({
 })`}
             />
           </div>
-          {apn ?
-            <div>
-              <p>
-                <span className="font-semibold">Pipedream Account ID:</span>
-                <span className="font-mono"> {apn}</span>
-              </p>
-            </div>
-            : 
-              <div>
-              <p className="mb-8">
-              </p>
-              <button hidden={!selectedApp} className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {selectedApp?.name_slug} account</button>
-            </div>
-          }
-        </div>
-      }
     </main>
   );
 }
