@@ -26,7 +26,7 @@ export default function Home() {
   const docsTokenCreate =
     "https://pipedream.com/docs/connect/quickstart#connect-to-the-pipedream-api-from-your-server-and-create-a-token"
 
-    
+
   const connectApp = (appSlug: string, appId: string | undefined) => {
     if (!externalUserId) {
       throw new Error("External user ID is required.");
@@ -78,7 +78,9 @@ export default function Home() {
           const { token, expires_at } = await serverConnectTokenCreate({
             app_slug: selectedApp.name_slug,
             oauth_app_id: selectedApp.id,
-            external_user_id: externalUserId
+            external_user_id: externalUserId,
+            success_redirect_uri: 'https://johnaaronnelson.com',
+            error_redirect_uri: 'https://johnaaronnelson.com',
           })
           setToken(token)
           setExpiresAt(expires_at)
@@ -124,7 +126,7 @@ PIPEDREAM_PROJECT_SECRET_KEY=sec_abc123`}
         </div>
       }
       {
-        externalUserId && apps && 
+        externalUserId && apps &&
         <div>
           <h1 className="text-2xl font-bold mb-8">Pipedream Connect Example App</h1>
           <div className="mb-4">
@@ -184,7 +186,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
                 <span className="font-mono"> {apn}</span>
               </p>
             </div>
-            : 
+            :
             <div className="mb-2">
               <button hidden={!selectedApp} className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {selectedApp?.name_slug} account</button>
             </div>
