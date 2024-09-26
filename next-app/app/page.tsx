@@ -13,6 +13,7 @@ export default function Home() {
   const pd = createClient({ frontendHost })
   const [externalUserId, setExternalUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null)
+  const [hostedLink, setHostedLink] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [app, setApp] = useState<string | null>(null)
   const [apn, setAuthProvisionId] = useState<string | null>(null)
@@ -70,20 +71,23 @@ export default function Home() {
   useEffect(() => {
     if (!externalUserId) {
       setToken(null)
+      setHostedLink(null)
       setAuthProvisionId(null)
     } else {
       if (!selectedApp) return
       (async () => {
         try {
-          const { token, expires_at } = await serverConnectTokenCreate({
+          const next = {
             app_slug: selectedApp.name_slug,
             oauth_app_id: selectedApp.id,
             external_user_id: externalUserId,
-            success_redirect_uri: 'https://johnaaronnelson.com',
-            error_redirect_uri: 'https://johnaaronnelson.com',
-          })
-          setToken(token)
-          setExpiresAt(expires_at)
+            // success_redirect_uri: 'https://example.com',
+            // error_redirect_uri: 'https://example.com',
+          }
+          const res = await serverConnectTokenCreate(next)
+          setToken(res.token)
+          setHostedLink(res.connect_link_url)
+          setExpiresAt(res.expires_at)
         } catch (error) {
           console.error("Error fetching data:", error)
           // Handle error appropriately
@@ -178,6 +182,16 @@ const { token, expires_at } = await serverConnectTokenCreate({
           <div className="mb-4">
             <span className="font-semibold">Token expiry:</span>
             <span className="font-mono"> {expiresAt}</span>
+          </div>
+          <div className="mb-4" >
+            <div className="font-semibold">Hosted Link:</div>
+            <div>
+            {
+            hostedLink ?
+              <a href={`${hostedLink}&app=${selectedApp?.name_slug}&oauthAppId=${selectedApp?.id}`} className="font-mono">{hostedLink}&app={selectedApp?.name_slug}&oauthAppId={selectedApp?.id}</a>
+              : null
+            }
+            </div>
           </div>
           {apn ?
             <div className="mb-4">
