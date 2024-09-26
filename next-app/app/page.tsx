@@ -13,7 +13,7 @@ export default function Home() {
   const pd = createClient({ frontendHost })
   const [externalUserId, setExternalUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null)
-  const [hostedLink, setHostedLink] = useState<string | null>(null)
+  const [connectLink, setConnectLink] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [app, setApp] = useState<string | null>(null)
   const [apn, setAuthProvisionId] = useState<string | null>(null)
@@ -71,7 +71,7 @@ export default function Home() {
   useEffect(() => {
     if (!externalUserId) {
       setToken(null)
-      setHostedLink(null)
+      setConnectLink(null)
       setAuthProvisionId(null)
     } else {
       if (!selectedApp) return
@@ -85,7 +85,7 @@ export default function Home() {
             // error_redirect_uri: 'https://example.com',
           })
           setToken(token)
-          setHostedLink(connect_link_url)
+          setConnectLink(connect_link_url)
           setExpiresAt(expires_at)
         } catch (error) {
           console.error("Error fetching data:", error)
@@ -183,11 +183,11 @@ const { token, expires_at } = await serverConnectTokenCreate({
             <span className="font-mono"> {expiresAt}</span>
           </div>
           <div className="mb-4" >
-            <div className="font-semibold">Hosted Link:</div>
+            <div className="font-semibold">Connect Link:</div>
             <div>
               {
-                hostedLink ?
-                  <a href={`${hostedLink}&app=${selectedApp?.name_slug}&oauthAppId=${selectedApp?.id}`} className="font-mono">{hostedLink}&app={selectedApp?.name_slug}&oauthAppId={selectedApp?.id}</a>
+                connectLink ?
+                  <a href={`${connectLink}&app=${selectedApp?.name_slug}&oauthAppId=${selectedApp?.id}`} className="font-mono">{connectLink}&app={selectedApp?.name_slug}&oauthAppId={selectedApp?.id}</a>
                   : null
               }
             </div>
