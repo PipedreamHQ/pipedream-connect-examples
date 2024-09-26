@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { serverConnectTokenCreate, serverConnectGetApps } from "./server"
 import { createClient } from "@pipedream/sdk/browser"
-import {AppInfo} from "@pipedream/sdk";
+import { AppInfo } from "@pipedream/sdk";
 
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
 
@@ -77,17 +77,16 @@ export default function Home() {
       if (!selectedApp) return
       (async () => {
         try {
-          const next = {
+          const { token, connect_link_url, expires_at } = await serverConnectTokenCreate({
             app_slug: selectedApp.name_slug,
             oauth_app_id: selectedApp.id,
             external_user_id: externalUserId,
             // success_redirect_uri: 'https://example.com',
             // error_redirect_uri: 'https://example.com',
-          }
-          const res = await serverConnectTokenCreate(next)
-          setToken(res.token)
-          setHostedLink(res.connect_link_url)
-          setExpiresAt(res.expires_at)
+          })
+          setToken(token)
+          setHostedLink(connect_link_url)
+          setExpiresAt(expires_at)
         } catch (error) {
           console.error("Error fetching data:", error)
           // Handle error appropriately
@@ -155,7 +154,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
   oauth_app_id: "${selectedApp.id}",  // Only required for OAuth apps` : ''}
   external_user_id: "${externalUserId}",
 })`}
-/>
+            />
           </div>
           <div className="border border-b mb-6"></div>
           <div className="pb-4">
@@ -186,11 +185,11 @@ const { token, expires_at } = await serverConnectTokenCreate({
           <div className="mb-4" >
             <div className="font-semibold">Hosted Link:</div>
             <div>
-            {
-            hostedLink ?
-              <a href={`${hostedLink}&app=${selectedApp?.name_slug}&oauthAppId=${selectedApp?.id}`} className="font-mono">{hostedLink}&app={selectedApp?.name_slug}&oauthAppId={selectedApp?.id}</a>
-              : null
-            }
+              {
+                hostedLink ?
+                  <a href={`${hostedLink}&app=${selectedApp?.name_slug}&oauthAppId=${selectedApp?.id}`} className="font-mono">{hostedLink}&app={selectedApp?.name_slug}&oauthAppId={selectedApp?.id}</a>
+                  : null
+              }
             </div>
           </div>
           {apn ?
@@ -205,16 +204,16 @@ const { token, expires_at } = await serverConnectTokenCreate({
               <button hidden={!selectedApp} className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {selectedApp?.name_slug} account</button>
             </div>
           }
-          </div>
-          }
-          <div className="border border-b mb-6"></div>
-            <p className="mb-8">
-              When a user wants to connect an app from your frontend, you&apos;ll call <code>pd.connectAccount</code> with the token and the <code>app_slug</code> of the app you&apos;d like to connect.
-            </p>
-          <div className="mb-8">
-            <CodePanel
-              language="typescript"
-              code={`import { createClient } from "@pipedream/sdk/browser";
+        </div>
+      }
+      <div className="border border-b mb-6"></div>
+      <p className="mb-8">
+        When a user wants to connect an app from your frontend, you&apos;ll call <code>pd.connectAccount</code> with the token and the <code>app_slug</code> of the app you&apos;d like to connect.
+      </p>
+      <div className="mb-8">
+        <CodePanel
+          language="typescript"
+          code={`import { createClient } from "@pipedream/sdk/browser";
 
 const pd = createClient();
 pd.connectAccount({
@@ -224,8 +223,8 @@ pd.connectAccount({
     console.log("Connected!")
   }
 })`}
-            />
-          </div>
+        />
+      </div>
     </main>
   );
 }
