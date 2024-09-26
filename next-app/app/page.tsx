@@ -168,7 +168,8 @@ const { token, expires_at } = await serverConnectTokenCreate({
               {selectedApp && (
                 <>
                   <div className="mb-2 text-gray-600">
-                    <span className="font-semibold">Connect Token:</span>
+                    <span className="font-semibold">Connect Token</span>
+                    <span> (can only be used once):</span>
                     <span className="font-mono"> {token}</span>
                   </div>
                   <div className="mb-2 text-gray-600">
@@ -180,7 +181,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
                     <span className="font-semibold text-xl">Next, connect your account</span>
                     <div className="my-2">
                       <p className="text-lg font-medium">Option 1: Directly from your frontend</p>
-                      <p>Use the JavaScript SDK to open an iFrame directly from your site (<a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href={frontendSDKDocs}>see docs</a>).</p>
+                      <p className="text-gray-600">Use the JavaScript SDK to open an iFrame directly from your site (<a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href={frontendSDKDocs}>see docs</a>).</p>
                       <br />
                       <button className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {selectedApp.name_slug} account</button>
                     </div>
@@ -204,7 +205,10 @@ pd.connectAccount({
                   </div>
                   <div className="my-4">
                       <p className="text-lg font-medium">Option 2: Connect Link</p>
-                      <p>Provide an URL to your users to connect their account in a browser. This is useful if you can't execute JavaScript or open an iFrame from your site:</p>
+                      <p className="text-gray-600">
+                        <span>Provide an URL to your users to connect their account in a browser. This is useful if you can't execute JavaScript or open an iFrame from your site. </span>
+                        <span className="text-gray-600 font-semibold">Note that this URL can only be used once.</span>
+                      </p>
                     <div>
                       {connectLink && (
                         <a target="_blank" rel="noopener noreferrer" className="font-mono hover:underline text-blue-600" href={`${connectLink}&app=${selectedApp.name_slug}&oauthAppId=${selectedApp.id}`}>
