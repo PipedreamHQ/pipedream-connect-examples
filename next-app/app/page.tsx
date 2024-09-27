@@ -78,9 +78,7 @@ export default function Home() {
       (async () => {
         try {
           const { token, connect_link_url, expires_at } = await serverConnectTokenCreate({
-            app_slug: selectedApp.name_slug,
-            oauth_app_id: selectedApp.id,
-            external_user_id: externalUserId,
+            external_id: externalUserId,
             // success_redirect_uri: 'https://dannyroosevelt.com?success=true',
             // error_redirect_uri: 'https://dannyroosevelt.com?success=false',
           })
@@ -212,7 +210,7 @@ pd.connectAccount({
                     <div>
                       {connectLink && (
                         <a target="_blank" rel="noopener noreferrer" className="font-mono hover:underline text-blue-600" href={`${connectLink}&app=${selectedApp.name_slug}&oauthAppId=${selectedApp.id}`}>
-                          {connectLink}&app={selectedApp.name_slug}&oauthAppId={selectedApp.id}
+                          {connectLink}&app={selectedApp.name_slug}
                         </a>
                       )}
                     </div>
