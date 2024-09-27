@@ -79,8 +79,8 @@ export default function Home() {
         try {
           const { token, connect_link_url, expires_at } = await serverConnectTokenCreate({
             external_id: externalUserId,
-            // success_redirect_uri: 'https://dannyroosevelt.com?success=true',
-            // error_redirect_uri: 'https://dannyroosevelt.com?success=false',
+            // success_redirect_uri: 'https://example.com/success',
+            // error_redirect_uri: 'https://example.com/success',
           })
           setToken(token)
           setConnectLink(connect_link_url)
