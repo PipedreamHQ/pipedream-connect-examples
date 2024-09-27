@@ -202,10 +202,11 @@ pd.connectAccount({
                   </div>
                   <div className="my-4">
                       <p className="text-lg font-medium">Option 2: Connect Link</p>
-                      <p className="text-gray-600">
-                        <span>Provide an URL to your users to connect their account in a browser. This is useful if you can't execute JavaScript or open an iFrame from your site. </span>
-                        <span className="text-gray-600 font-semibold">Note that this URL can only be used once.</span>
-                      </p>
+                      <div className="text-gray-600 mb-4">
+                        <span>Provide a hosted page via URL to your users to connect their account. This is useful if you aren't able to execute JavaScript or open an iFrame from your site. </span>
+                        <span className="font-semibold">Note that this URL can only be used once. </span>
+                        <span><a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href="https://pipedream.com/docs/connect/quickstart#use-connect-link">See the docs</a> for more info.</span>
+                      </div>
                     <div>
                       {connectLink && (
                         <a target="_blank" rel="noopener noreferrer" className="font-mono hover:underline text-blue-600" href={`${connectLink}&app=${selectedApp.name_slug}&oauthAppId=${selectedApp.id}`}>
