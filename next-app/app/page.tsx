@@ -179,8 +179,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
                     <span className="font-semibold text-xl">Next, connect your account</span>
                     <div className="my-2">
                       <p className="text-lg font-medium">Option 1: Directly from your frontend</p>
-                      <p className="text-gray-600">Use the JavaScript SDK to open an iFrame directly from your site (<a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href={frontendSDKDocs}>see docs</a>).</p>
-                      <br />
+                      <p className="text-gray-600 mb-2">Use the SDK to open a Pipedream iFrame directly from your site (<a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href={frontendSDKDocs}>see docs</a>).</p>
                       <button className="bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 rounded" onClick={connectAccount}>Connect your {selectedApp.name_slug} account</button>
                     </div>
                     <p className="my-4">
