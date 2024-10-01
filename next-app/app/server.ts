@@ -4,7 +4,8 @@ import {
   createClient,
   type ConnectTokenCreateOpts,
   type ConnectTokenResponse, ProjectInfoResponse,
-} from "@pipedream/sdk";
+//} from "@pipedream/sdk";
+} from "../../../pipedream/packages/sdk/src/server";
 
 const {
   PIPEDREAM_API_HOST,
@@ -24,6 +25,8 @@ const pd = createClient({
 });
 
 export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
+  console.log("Creating connect token with opts")
+  console.log("opts", opts)
   return pd.connectTokenCreate(opts);
 }
 

@@ -8,6 +8,7 @@ import { createClient } from "@pipedream/sdk/browser"
 import { AppInfo } from "@pipedream/sdk";
 
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
+const env = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT || "development"
 
 export default function Home() {
   const pd = createClient({ frontendHost })
@@ -48,7 +49,8 @@ export default function Home() {
 
   const connectAccount = async () => {
     if (!selectedApp) return
-    await connectApp(selectedApp.name_slug, selectedApp?.id)
+    //await connectApp(selectedApp.name_slug, selectedApp?.id)
+    await connectApp(selectedApp.name_slug, "oa_G1MiYG")
   }
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function Home() {
         try {
           const { token, connect_link_url, expires_at } = await serverConnectTokenCreate({
             external_id: externalUserId,
+            project_environment: env,
             // success_redirect_uri: 'https://example.com/success',
             // error_redirect_uri: 'https://example.com/success',
           })
