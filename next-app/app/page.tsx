@@ -49,8 +49,7 @@ export default function Home() {
 
   const connectAccount = async () => {
     if (!selectedApp) return
-    //await connectApp(selectedApp.name_slug, selectedApp?.id)
-    await connectApp(selectedApp.name_slug, "oa_G1MiYG")
+    await connectApp(selectedApp.name_slug, selectedApp?.id)
   }
 
   useEffect(() => {
@@ -80,10 +79,7 @@ export default function Home() {
       (async () => {
         try {
           const { token, connect_link_url, expires_at } = await serverConnectTokenCreate({
-            external_id: externalUserId,
-            project_environment: env,
-            // success_redirect_uri: 'https://example.com/success',
-            // error_redirect_uri: 'https://example.com/success',
+            external_user_id: externalUserId,
           })
           setToken(token)
           setConnectLink(connect_link_url)

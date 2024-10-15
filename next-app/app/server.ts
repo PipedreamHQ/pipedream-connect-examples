@@ -4,13 +4,13 @@ import {
   createClient,
   type ConnectTokenCreateOpts,
   type ConnectTokenResponse, ProjectInfoResponse,
-//} from "@pipedream/sdk";
-} from "../../../pipedream/packages/sdk/src/server";
+} from "@pipedream/sdk";
 
 const {
   PIPEDREAM_API_HOST,
   PIPEDREAM_PROJECT_PUBLIC_KEY,
   PIPEDREAM_PROJECT_SECRET_KEY,
+  PIPEDREAM_PROJECT_ENVIRONMENT = "production",
 } = process.env;
 
 if (!PIPEDREAM_PROJECT_PUBLIC_KEY)
@@ -25,9 +25,10 @@ const pd = createClient({
 });
 
 export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
-  console.log("Creating connect token with opts")
-  console.log("opts", opts)
-  return pd.connectTokenCreate(opts);
+  return pd.connectTokenCreate({
+    environment_name: PIPEDREAM_PROJECT_ENVIRONMENT,
+    ...opts
+  });
 }
 
 export async function getUserAccounts(externalId: string, include_credentials: number = 0): Promise<void> {
