@@ -8,7 +8,6 @@ import { createClient } from "@pipedream/sdk/browser"
 import { AppInfo } from "@pipedream/sdk";
 
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
-const env = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT || "development"
 
 export default function Home() {
   const pd = createClient({ frontendHost })
