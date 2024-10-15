@@ -10,6 +10,7 @@ const {
   PIPEDREAM_API_HOST,
   PIPEDREAM_PROJECT_PUBLIC_KEY,
   PIPEDREAM_PROJECT_SECRET_KEY,
+  PIPEDREAM_PROJECT_ENVIRONMENT = "production",
 } = process.env;
 
 if (!PIPEDREAM_PROJECT_PUBLIC_KEY)
@@ -24,7 +25,10 @@ const pd = createClient({
 });
 
 export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
-  return pd.connectTokenCreate(opts);
+  return pd.connectTokenCreate({
+    environment_name: PIPEDREAM_PROJECT_ENVIRONMENT,
+    ...opts
+  });
 }
 
 export async function getUserAccounts(externalId: string, include_credentials: number = 0): Promise<void> {
