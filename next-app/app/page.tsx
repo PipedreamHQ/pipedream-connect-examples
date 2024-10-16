@@ -79,8 +79,9 @@ export default function Home() {
         try {
           const { token, connect_link_url, expires_at } = await serverConnectTokenCreate({
             external_user_id: externalUserId,
-            // success_redirect_uri: 'https://example.com/success',
-            // error_redirect_uri: 'https://example.com/error',
+            // webhook_uri: 'https://example.com/connect-webhook', // Optionally define a webhook URI to receive connection events
+            // success_redirect_uri: 'https://example.com/success', // Optionally define a success redirect for Connect Link
+            // error_redirect_uri: 'https://example.com/error', // Optionally define an error redirect for Connect Link
           })
           setToken(token)
           setConnectLink(connect_link_url)
