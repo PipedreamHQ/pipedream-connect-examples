@@ -79,6 +79,7 @@ export default function Home() {
         try {
           const { token, connect_link_url, expires_at } = await serverConnectTokenCreate({
             external_user_id: externalUserId,
+            app_slug: "github",
             // webhook_uri: 'https://example.com/connect-webhook', // Optionally define a webhook URI to receive connection events
             // success_redirect_uri: 'https://example.com/success', // Optionally define a success redirect for Connect Link
             // error_redirect_uri: 'https://example.com/error', // Optionally define an error redirect for Connect Link
@@ -117,7 +118,7 @@ export default function Home() {
             </p>
           </div>
           <div className="border border-b mb-4"></div>
-          
+
           <div className="mb-8">
             <p>In <code>server.ts</code>, the app calls <code>serverConnectTokenCreate</code> to create a short-lived token for the user. You&apos;ll use that token to initiate app connection requests from your site securely. <a href={docsTokenCreate} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">See docs</a>.</p>
           </div>
@@ -132,7 +133,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
             />
           </div>
           <div className="border border-b mb-6"></div>
-          
+
           {apn ? (
             <div className="my-4">
               <p>Successfully connected your account! Refresh the page to connect another one.</p>
@@ -190,7 +191,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
                       <CodePanel
                         language="typescript"
                         code={`import { createClient } from "@pipedream/sdk/browser";
-        
+
 const pd = createClient();
 pd.connectAccount({
   app: ${selectedApp?.name_slug ? `"${selectedApp.name_slug}"` : '// select an app above'},
