@@ -17,7 +17,7 @@ export default function Home() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [app, setApp] = useState<string | null>(null)
   const [apn, setAuthProvisionId] = useState<string | null>(null)
-  const [apps, setApps] = useState<object[] | null>(null)
+  const [apps, setApps] = useState<AppInfo[] | null>(null)
   const [selectedApp, setSelectedApp] = useState<AppInfo | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<string | null>("")
 
@@ -98,9 +98,11 @@ export default function Home() {
   const onSelectApp = (event) => {
     //debugger
     const idx = event.target.value
-    const app = apps[idx]
-    setSelectedIdx(idx)
-    setSelectedApp(apps[idx])
+    const app = apps?.[idx]
+    if (app) {
+      setSelectedIdx(idx)
+      setSelectedApp(app)
+    }
   }
 
 
@@ -203,12 +205,12 @@ pd.connectAccount({
                     </div>
                   </div>
                   <div className="my-4">
-                      <p className="text-lg font-medium">Option 2: Connect Link</p>
-                      <div className="text-gray-600 mb-4">
-                        <span>Provide a hosted page via URL to your users to connect their account. This is useful if you aren't able to execute JavaScript or open an iFrame from your site. </span>
-                        <span className="font-semibold">Note that this URL can only be used once. </span>
-                        <span><a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href="https://pipedream.com/docs/connect/quickstart#use-connect-link">See the docs</a> for more info.</span>
-                      </div>
+                    <p className="text-lg font-medium">Option 2: Connect Link</p>
+                    <div className="text-gray-600 mb-4">
+                      <span>Provide a hosted page via URL to your users to connect their account. This is useful if you aren't able to execute JavaScript or open an iFrame from your site. </span>
+                      <span className="font-semibold">Note that this URL can only be used once. </span>
+                      <span><a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href="https://pipedream.com/docs/connect/quickstart#use-connect-link">See the docs</a> for more info.</span>
+                    </div>
                     <div>
                       {connectLink && (
                         <a target="_blank" rel="noopener noreferrer" className="font-mono hover:underline text-blue-600" href={`${connectLink}&app=${selectedApp.name_slug}&oauthAppId=${selectedApp.id}`}>
