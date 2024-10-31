@@ -8,7 +8,7 @@ import {
 } from "@pipedream/sdk";
 
 const {
-  // PIPEDREAM_API_HOST,
+  PIPEDREAM_API_HOST,
   PIPEDREAM_PROJECT_PUBLIC_KEY,
   PIPEDREAM_PROJECT_SECRET_KEY,
   PIPEDREAM_PROJECT_ENVIRONMENT = "production",
@@ -22,7 +22,7 @@ if (!PIPEDREAM_PROJECT_SECRET_KEY)
 const pd = createClient({
   publicKey: PIPEDREAM_PROJECT_PUBLIC_KEY,
   secretKey: PIPEDREAM_PROJECT_SECRET_KEY,
-  // apiHost: PIPEDREAM_API_HOST,
+  apiHost: PIPEDREAM_API_HOST,
 });
 
 export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
