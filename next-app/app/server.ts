@@ -4,10 +4,11 @@ import {
   createClient,
   type ConnectTokenCreateOpts,
   type ConnectTokenResponse, ProjectInfoResponse,
+  Account,
 } from "@pipedream/sdk";
 
 const {
-  PIPEDREAM_API_HOST,
+  // PIPEDREAM_API_HOST,
   PIPEDREAM_PROJECT_PUBLIC_KEY,
   PIPEDREAM_PROJECT_SECRET_KEY,
   PIPEDREAM_PROJECT_ENVIRONMENT = "production",
@@ -21,7 +22,7 @@ if (!PIPEDREAM_PROJECT_SECRET_KEY)
 const pd = createClient({
   publicKey: PIPEDREAM_PROJECT_PUBLIC_KEY,
   secretKey: PIPEDREAM_PROJECT_SECRET_KEY,
-  apiHost: PIPEDREAM_API_HOST,
+  // apiHost: PIPEDREAM_API_HOST,
 });
 
 export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
@@ -31,12 +32,12 @@ export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Pr
   });
 }
 
-export async function getUserAccounts(externalId: string, include_credentials: number = 0): Promise<void> {
+export async function getUserAccounts(externalId: string, include_credentials: number = 0): Promise<Account[]> {
   return pd.getAccountsByExternalId(externalId, {
     include_credentials, // set to 1 to include credentials
   })
 
-  // Parse and return the data you need. These may contain credentials, 
+  // Parse and return the data you need. These may contain credentials,
   // which you should never return to the client
 }
 
@@ -78,7 +79,7 @@ export async function getTestRequest(nameSlug) {
   }
 }
 
-export async function makeAppRequest(accountId: string, endpoint: string, nameSlug: string, opts: Object): Promise {
+export async function makeAppRequest(accountId: string, endpoint: string, nameSlug: string, opts: object): Promise {
   const oauthToken = await pd.getAccount(accountId, {include_credentials: 1})
   const appData = apps[nameSlug]
   const headers = {
