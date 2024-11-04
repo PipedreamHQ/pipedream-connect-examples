@@ -3,7 +3,7 @@
 import CodePanel from "./CodePanel";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { serverConnectTokenCreate, serverConnectGetApps } from "./server"
+import { serverConnectTokenCreate } from "./server"
 import { AppInfo } from "@pipedream/sdk";
 
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
@@ -13,7 +13,7 @@ export default function Home() {
   const [token, setToken] = useState<string | null>(null)
   const [connectLink, setConnectLink] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
-  const [app, setApp] = useState<string | null>(null)
+  const [setApp] = useState<string | null>(null)
   const [apn, setAuthProvisionId] = useState<string | null>(null)
   const [selectedApp, setSelectedApp] = useState<AppInfo | null>(null)
   const [appSlug, setAppSlug] = useState<string>("");
@@ -35,8 +35,8 @@ export default function Home() {
 
   const docsConnect = "https://pipedream.com/docs/connect/"
   const docsTokenCreate =
-    "https://pipedream.com/docs/connect/quickstart#connect-to-the-pipedream-api-from-your-server-and-create-a-token"
-  const frontendSDKDocs = "https://pipedream.com/docs/connect/quickstart#connect-your-account-from-the-frontend"
+    "https://pipedream.com/docs/connect/quickstart#generate-a-short-lived-token"
+  const frontendSDKDocs = "https://pipedream.com/docs/connect/quickstart#use-the-pipedream-sdk-in-your-frontend"
 
   const connectApp = (appSlug: string, appId: string | undefined) => {
     if (!externalUserId) {
@@ -124,18 +124,22 @@ export default function Home() {
           <div className="mb-8">
             <CodePanel
               language="typescript"
-              code={`import { connectTokenCreate } from "@pipedream/sdk";
+              code={`import { serverConnectTokenCreate } from "@pipedream/sdk";
 
 const { token, expires_at } = await serverConnectTokenCreate({
-  external_user_id: "${externalUserId}",
+  external_user_id: "${externalUserId}", // The end user's ID in your system, this is an example
 })`}
             />
           </div>
 
           {token && (
             <div className="mb-4 text-gray-600">
-              <p><span className="font-semibold">Connect Token:</span> <span className="font-mono">{token}</span></p>
-              <p><span className="font-semibold">Token expiry:</span> <span className="font-mono">{expiresAt}</span></p>
+              <p>
+                <span className="font-semibold">Connect Token:</span>
+                <span className="font-mono"> {token}; </span>
+                <span className="font-semibold"> expiry: </span>
+                <span className="font-mono">{expiresAt}</span>
+                </p>
             </div>
           )}
           
@@ -190,11 +194,12 @@ const { token, expires_at } = await serverConnectTokenCreate({
                 <div className="mb-8">
                   <CodePanel
                     language="typescript"
-                    code={`import { createClient } from "@pipedream/sdk/browser";
+                    code={`import { createFrontendClient } from "@pipedream/sdk"
         
-const pd = createClient();
+const pd = createFrontendClient();
 pd.connectAccount({
-  app: "${selectedApp.name_slug}",
+  app: "${selectedApp.name_slug}", // The app name to connect to
+  oauthAppId: oauthAppId, // Defaults to Pipedream's OAuth client if omitted; refer to the docs to use your own
   token: "${token || '[TOKEN]'}",
   onSuccess: ({ id: accountId }) => {
     console.log('Account successfully connected: ${apn || '{accountId}'}');
@@ -207,7 +212,7 @@ pd.connectAccount({
                   <p className="text-lg font-medium">Option 2: Connect Link</p>
                   <div className="text-gray-600 mb-4">
                     <span>Provide a hosted page via URL to your users to connect their account. This is useful if you aren't able to execute JavaScript or open an iFrame from your site. </span>
-                    <span className="font-semibold">Note that this URL can only be used once. </span>
+                    <span className="font-semibold">Note that this URL can only be used once, since Connect tokens are one-time use. </span>
                     <span><a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href="https://pipedream.com/docs/connect/connect-link">See the docs</a> for more info.</span>
                   </div>
                   {connectLink && (

@@ -123,8 +123,3 @@ export async function makeAppRequest(accountId: string, endpoint: string, nameSl
   return result
 }
 
-export async function serverConnectGetApps(): Promise<ProjectInfoResponse> {
-    const apps = await pd.getProjectInfo()
-    return apps
-}
-
