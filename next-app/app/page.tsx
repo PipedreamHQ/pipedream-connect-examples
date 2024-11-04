@@ -10,7 +10,6 @@ import { AppInfo } from "@pipedream/sdk";
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
 
 export default function Home() {
-  const pd = createFrontendClient({ frontendHost })
   const [externalUserId, setExternalUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null)
   const [connectLink, setConnectLink] = useState<string | null>(null)
@@ -20,6 +19,13 @@ export default function Home() {
   const [apps, setApps] = useState<object[] | null>(null)
   const [selectedApp, setSelectedApp] = useState<AppInfo | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<string | null>("")
+  const [pd, setPd] = useState(null);
+
+  useEffect(() => {
+    // Only runs in the browser
+    const client = createFrontendClient({ frontendHost });
+    setPd(client);
+  }, []);
 
   const searchParams = useSearchParams()
 
