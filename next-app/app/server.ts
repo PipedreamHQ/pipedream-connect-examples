@@ -1,31 +1,38 @@
 "use server";
 
 import {
-  createClient,
+  createBackendClient,
+  type BackendClientOpts,
   type ConnectTokenCreateOpts,
   type ConnectTokenResponse, ProjectInfoResponse,
 } from "@pipedream/sdk";
 
 const {
   PIPEDREAM_API_HOST,
-  PIPEDREAM_PROJECT_PUBLIC_KEY,
-  PIPEDREAM_PROJECT_SECRET_KEY,
+  PIPEDREAM_PROJECT_ID,
+  PIPEDREAM_CLIENT_ID,
+  PIPEDREAM_CLIENT_SECRET,
   PIPEDREAM_PROJECT_ENVIRONMENT = "production",
 } = process.env;
 
-if (!PIPEDREAM_PROJECT_PUBLIC_KEY)
-  throw new Error("PIPEDREAM_PROJECT_PUBLIC_KEY not set in environment");
-if (!PIPEDREAM_PROJECT_SECRET_KEY)
-  throw new Error("PIPEDREAM_PROJECT_SECRET_KEY not set in environment");
+if (!PIPEDREAM_CLIENT_ID)
+  throw new Error("PIPEDREAM_CLIENT_ID not set in environment");
+if (!PIPEDREAM_CLIENT_SECRET)
+  throw new Error("PIPEDREAM_CLIENT_SECRET not set in environment");
+if (!PIPEDREAM_PROJECT_ID)
+  throw new Error("PIPEDREAM_PROJECT_ID not set in environment");
 
-const pd = createClient({
-  publicKey: PIPEDREAM_PROJECT_PUBLIC_KEY,
-  secretKey: PIPEDREAM_PROJECT_SECRET_KEY,
+const pd = createBackendClient({
+  projectId: PIPEDREAM_PROJECT_ID,
+  credentials: {
+    clientId: PIPEDREAM_CLIENT_ID,
+    clientSecret: PIPEDREAM_CLIENT_SECRET,
+  },
   apiHost: PIPEDREAM_API_HOST,
 });
 
 export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
-  return pd.connectTokenCreate({
+  return pd.createConnectToken({
     environment_name: PIPEDREAM_PROJECT_ENVIRONMENT,
     ...opts
   });

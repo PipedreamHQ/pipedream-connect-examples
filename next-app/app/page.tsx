@@ -4,13 +4,11 @@ import CodePanel from "./CodePanel";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { serverConnectTokenCreate, serverConnectGetApps } from "./server"
-import { createClient } from "@pipedream/sdk/browser"
 import { AppInfo } from "@pipedream/sdk";
 
 const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
 
 export default function Home() {
-  const pd = createClient({ frontendHost })
   const [externalUserId, setExternalUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null)
   const [connectLink, setConnectLink] = useState<string | null>(null)
@@ -20,6 +18,18 @@ export default function Home() {
   const [apps, setApps] = useState<object[] | null>(null)
   const [selectedApp, setSelectedApp] = useState<AppInfo | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<string | null>("")
+  const [pd, setPd] = useState(null);
+
+  useEffect(() => {
+    // This code only runs in the browser
+    async function loadClient() {
+      const { createFrontendClient } = await import('@pipedream/sdk');
+      const client = createFrontendClient({ frontendHost });
+      setPd(client);
+    }
+
+    loadClient();
+  }, []);
 
   const searchParams = useSearchParams()
 
