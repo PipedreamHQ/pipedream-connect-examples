@@ -3,14 +3,12 @@
 import {
   createBackendClient,
   type BackendClientOpts,
-  //type ConnectTokenCreateOpts,
-  //type ConnectTokenResponse, ProjectInfoResponse,
+  type ConnectTokenCreateOpts,
+  type ConnectTokenResponse, ProjectInfoResponse,
 } from "@pipedream/sdk";
 
 const {
   PIPEDREAM_API_HOST,
-  //PIPEDREAM_PROJECT_PUBLIC_KEY,
-  //PIPEDREAM_PROJECT_SECRET_KEY,
   PIPEDREAM_PROJECT_ID,
   PIPEDREAM_CLIENT_ID,
   PIPEDREAM_CLIENT_SECRET,
