@@ -45,7 +45,7 @@ export default function Home() {
     if (!token) {
       throw new Error("Token is required.");
     }
-    setApp(appSlug)
+    setAppSlug(appSlug)
     pd.connectAccount({
       app: appSlug,
       oauthAppId: appId,
