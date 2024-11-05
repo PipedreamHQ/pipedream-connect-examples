@@ -96,7 +96,6 @@ export default function Home() {
   }, [externalUserId, selectedApp])
 
   const onSelectApp = (event) => {
-    //debugger
     const idx = event.target.value
     const app = apps?.[idx]
     if (app) {
