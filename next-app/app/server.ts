@@ -1,10 +1,10 @@
 "use server";
 
 import {
+  Account,
   createBackendClient,
-  type BackendClientOpts,
-  type ConnectTokenCreateOpts,
-  type ConnectTokenResponse, ProjectInfoResponse,
+  type ConnectTokenOpts,
+  type ConnectTokenResponse,
 } from "@pipedream/sdk";
 
 const {
@@ -24,6 +24,7 @@ if (!PIPEDREAM_PROJECT_ID)
 
 const pd = createBackendClient({
   projectId: PIPEDREAM_PROJECT_ID,
+  environment: PIPEDREAM_PROJECT_ENVIRONMENT,
   credentials: {
     clientId: PIPEDREAM_CLIENT_ID,
     clientSecret: PIPEDREAM_CLIENT_SECRET,
@@ -31,23 +32,24 @@ const pd = createBackendClient({
   apiHost: PIPEDREAM_API_HOST,
 });
 
-export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
-  return pd.createConnectToken({
-    environment_name: PIPEDREAM_PROJECT_ENVIRONMENT,
-    ...opts
-  });
+export async function serverConnectTokenCreate(opts: ConnectTokenOpts): Promise<ConnectTokenResponse> {
+  return pd.createConnectToken(opts);
 }
 
-export async function getUserAccounts(externalId: string, include_credentials: number = 0): Promise<void> {
-  return pd.getAccountsByExternalId(externalId, {
-    include_credentials, // set to 1 to include credentials
+export async function getUserAccounts(
+  externalId: string,
+  includeCredentials: boolean = false,
+): Promise<Account[]> {
+  return pd.getAccounts({
+    external_user_id: externalId,
+    include_credentials: !!includeCredentials,
   })
 
-  // Parse and return the data you need. These may contain credentials, 
+  // Parse and return the data you need. These may contain credentials,
   // which you should never return to the client
 }
 
-export async function getTestRequest(nameSlug) {
+export async function getTestRequest(nameSlug: string) {
   const appData = apps[nameSlug]
   if (appData) {
     const headers = appData.header_params.reduce((acc, header) => {
@@ -85,8 +87,13 @@ export async function getTestRequest(nameSlug) {
   }
 }
 
-export async function makeAppRequest(accountId: string, endpoint: string, nameSlug: string, opts: Object): Promise {
-  const oauthToken = await pd.getAccount(accountId, {include_credentials: 1})
+export async function makeAppRequest<T>(
+  accountId: string,
+  endpoint: string,
+  nameSlug: string,
+  opts: RequestInit,
+): Promise<T> {
+  const oauthToken = await pd.getAccountById(accountId, {include_credentials: true})
   const appData = apps[nameSlug]
   const headers = {
     authorization: `Bearer ${oauthToken.credentials?.oauth_access_token}`,
@@ -100,12 +107,12 @@ export async function makeAppRequest(accountId: string, endpoint: string, nameSl
     const user = userMatch ? userMatch[1] : null
     const pass = passMatch ? passMatch[1] : null
 
-    const username = user ? oauthToken.credentials[user] : ""
-    const password = pass ? oauthToken.credentials[pass] : ""
+    const username = user ? oauthToken.credentials?.[user] : ""
+    const password = pass ? oauthToken.credentials?.[pass] : ""
     const buffer = `${username}:${password}`
     headers.authorization = `Basic ${Buffer.from(buffer).toString("base64")}`
   }
-  const config = {
+  const config: RequestInit = {
     method: opts.method || "GET",
     headers: {
       ...headers,
