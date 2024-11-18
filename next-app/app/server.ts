@@ -12,7 +12,7 @@ const {
   PIPEDREAM_PROJECT_ID,
   PIPEDREAM_CLIENT_ID,
   PIPEDREAM_CLIENT_SECRET,
-  PIPEDREAM_PROJECT_ENVIRONMENT = "production",
+  PIPEDREAM_PROJECT_ENVIRONMENT
 } = process.env;
 
 if (!PIPEDREAM_CLIENT_ID)
@@ -21,6 +21,8 @@ if (!PIPEDREAM_CLIENT_SECRET)
   throw new Error("PIPEDREAM_CLIENT_SECRET not set in environment");
 if (!PIPEDREAM_PROJECT_ID)
   throw new Error("PIPEDREAM_PROJECT_ID not set in environment");
+if (!PIPEDREAM_PROJECT_ENVIRONMENT || !["development", "production"].includes(PIPEDREAM_PROJECT_ENVIRONMENT))
+  throw new Error("PIPEDREAM_PROJECT_ENVIRONMENT not set in environment");
 
 const pd = createBackendClient({
   projectId: PIPEDREAM_PROJECT_ID,
