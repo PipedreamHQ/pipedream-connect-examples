@@ -19,6 +19,8 @@ export default function Home() {
   const [appSlug, setAppSlug] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [pd, setPd] = useState(null);
+  const [oauthAppId, setOauthAppId] = useState<string>("");
+  const [isOAuthConfirmed, setIsOAuthConfirmed] = useState(false);
 
   useEffect(() => {
     // This code only runs in the browser
@@ -112,17 +114,12 @@ export default function Home() {
     }
   }
 
-  // Add new state for OAuth App ID
-  const [oauthAppId, setOauthAppId] = useState<string>("");
-
   // Add handler for OAuth App ID input
   const handleOAuthAppIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
     setOauthAppId(e.target.value);
     setError("");
   };
-
-  // Add state to track if OAuth app ID has been confirmed
-  const [isOAuthConfirmed, setIsOAuthConfirmed] = useState(false);
 
   // Add handler for OAuth app ID submission
   const handleOAuthSubmit = (e: React.FormEvent) => {
@@ -133,7 +130,7 @@ export default function Home() {
   // Reset OAuth confirmed state when app changes
   useEffect(() => {
     setIsOAuthConfirmed(false);
-    setOauthAppId('');
+    setOauthAppId("");
   }, [selectedApp]);
   
   return (
