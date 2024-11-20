@@ -41,7 +41,7 @@ export default function Home() {
   const frontendSDKDocs = "https://pipedream.com/docs/connect/quickstart#use-the-pipedream-sdk-in-your-frontend"
   const connectOauthDocs = "https://pipedream.com/docs/connect/oauth-clients"
 
-  const connectApp = (appSlug: string, appId: string | undefined) => {
+  const connectApp = (appSlug: string) => {
     if (!externalUserId) {
       throw new Error("External user ID is required.");
     }
@@ -49,19 +49,27 @@ export default function Home() {
       throw new Error("Token is required.");
     }
     setAppSlug(appSlug)
-    pd.connectAccount({
+    
+    // Only include oauthAppId if it's actually provided
+    const connectConfig = {
       app: appSlug,
-      oauthAppId: oauthAppId || appId, // Use oauthAppId if provided
       token,
       onSuccess: ({ id: authProvisionId }) => {
         setAuthProvisionId(authProvisionId as string)
       }
-    })
+    }
+
+    // Add oauthAppId to config only if it exists
+    if (oauthAppId) {
+      connectConfig.oauthAppId = oauthAppId;
+    }
+
+    pd.connectAccount(connectConfig)
   }
 
   const connectAccount = async () => {
     if (!selectedApp) return
-    await connectApp(selectedApp.name_slug, selectedApp?.id)
+    await connectApp(selectedApp.name_slug)
   }
 
   useEffect(() => {
@@ -203,7 +211,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
                   className="shadow appearance-none border rounded w-64 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                   id="oauth-app-id"
                   type="text"
-                  placeholder="OAuth App ID"
+                  placeholder="oa_xxxxxx"
                   value={oauthAppId}
                   onChange={handleOAuthAppIdChange}
                 />
