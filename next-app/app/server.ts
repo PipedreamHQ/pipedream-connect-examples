@@ -38,6 +38,27 @@ export async function serverConnectTokenCreate(opts: ConnectTokenOpts): Promise<
   return pd.createConnectToken(opts);
 }
 
+export async function getAppInfo(nameSlug: string, token: string): Promise<AppResponse> {
+  if (!nameSlug) {
+    throw new Error("Name slug is required");
+  }
+  if (!token) {
+    throw new Error("Token is required");
+  }
+
+  try {
+    return await pd.makeRequest(`/apps/${nameSlug}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching app info:", err);
+    throw err;
+  }
+}
+
 export async function getUserAccounts(
   externalId: string,
   includeCredentials: boolean = false,

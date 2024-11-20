@@ -2,12 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer components {
+  .text-title {
+    @apply text-2xl font-bold text-gray-800;
   }
-}
-
-:not(pre,h1,h2,h3,h4,h5,h6,td) > code::before, :not(pre,h1,h2,h3,h4,h5,h6,td) > code::after {
-  content: '`';
+  
+  .text-subtitle {
+    @apply text-lg font-semibold text-gray-800;
+  }
+  
+  .text-body {
+    @apply font-normal text-base text-gray-600;
+  }
+  
+  .text-small {
+    @apply font-normal text-sm text-gray-600;
+  }
+  
+  .text-code {
+    @apply font-mono text-sm;
+  }
+  
+  .text-error {
+    @apply text-red-500;
+  }
+  
+  .text-link {
+    @apply text-blue-600 hover:underline;
+  }
 }
