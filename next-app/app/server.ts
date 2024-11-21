@@ -1,11 +1,13 @@
 "use server";
 
 import {
-  Account,
   createBackendClient,
-  type ConnectTokenOpts,
+  type ConnectTokenCreateOpts,
   type ConnectTokenResponse,
-} from "@pipedream/sdk";
+  type ProjectEnvironment,
+  type AccountsRequestResponse,
+  type AppResponse
+} from "@pipedream/sdk/server";
 
 const {
   PIPEDREAM_API_HOST,
@@ -26,7 +28,7 @@ if (!PIPEDREAM_PROJECT_ENVIRONMENT || !["development", "production"].includes(PI
 
 const pd = createBackendClient({
   projectId: PIPEDREAM_PROJECT_ID,
-  environment: PIPEDREAM_PROJECT_ENVIRONMENT,
+  environment: PIPEDREAM_PROJECT_ENVIRONMENT as ProjectEnvironment,
   credentials: {
     clientId: PIPEDREAM_CLIENT_ID,
     clientSecret: PIPEDREAM_CLIENT_SECRET,
@@ -34,7 +36,7 @@ const pd = createBackendClient({
   apiHost: PIPEDREAM_API_HOST,
 });
 
-export async function serverConnectTokenCreate(opts: ConnectTokenOpts): Promise<ConnectTokenResponse> {
+export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
   return pd.createConnectToken(opts);
 }
 
@@ -62,7 +64,7 @@ export async function getAppInfo(nameSlug: string, token: string): Promise<AppRe
 export async function getUserAccounts(
   externalId: string,
   includeCredentials: boolean = false,
-): Promise<Account[]> {
+): Promise<AccountsRequestResponse> {
   return pd.getAccounts({
     external_user_id: externalId,
     include_credentials: !!includeCredentials,
