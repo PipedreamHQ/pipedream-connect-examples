@@ -1,5 +1,3 @@
-# clone submodule + npm link
-# later delete history again, etc.
 default:
 	pnpm install
 	pnpm dev
