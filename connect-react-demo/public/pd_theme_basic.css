@@ -1,0 +1,55 @@
+/* TODO this needs to be part of the browser sdk web-components */
+.pd-form {
+  gap: 10px;
+}
+.pd-field {
+}
+.pd-field input {
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+.pd-label {
+  color: rgb(78, 85, 94);
+  font-weight: bold;
+}
+[data-required] .pd-label::after {
+  content: " *";
+  color: red;
+  font-size: 12px;
+  vertical-align: top;
+}
+.pd-description {
+  color: #888;
+  font-size: 0.9em;
+  margin: 0;
+}
+.pd-field input[type=checkbox] {
+  width: 16px;
+  height: 16px;
+}
+.pd-optionals button {
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: white;
+  color: #888;
+  font-weight: bold;
+}
+.pd-optionals button:hover {
+  color: #444;
+  border: 1px solid #444;
+  box-shadow: 2px 2px 2px #ddd;
+}
+.pd-optional-hide {
+  background: transparent;
+  border: 0;
+  font-weight: bold;
+  color: #aaa;
+}
+.pd-optional-hide:hover {
+  background: transparent;
+  border: 0;
+  font-weight: bold;
+  color: #444;
+}
