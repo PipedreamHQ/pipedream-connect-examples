@@ -3,8 +3,14 @@
 ## Clone this Next.js demo app
 
 ```sh
-% git clone https://github.com/PipedreamHQ/connect-react-demo
+% git clone https://github.com/PipedreamHQ/pipedream-connect-examples.git
 % cd connect-react-demo
+```
+
+## Install dependencies
+
+```sh
+% pnpm install
 ```
 
 ## Create necessary Pipedream resources
@@ -23,4 +29,6 @@ cp .env.example .env.local
 
 ## Run the app
 
-Run `make` to install dependencies and start the dev server.
+```sh
+% pnpm dev
+```
