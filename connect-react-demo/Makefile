@@ -4,6 +4,3 @@ default:
 
 clean:
 	rm -rf node_modules
-
-vercel-install:
-	pnpm install
