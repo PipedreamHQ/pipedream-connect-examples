@@ -19,7 +19,7 @@ export default function Demo() {
             defaultSize={25}
             minSize={25}
             maxSize={40}
-            className="min-w-[400px] min-h-0 bg-zinc-50"
+            className="min-w-[775px] min-h-0 bg-zinc-50"
           >
             <div className="flex flex-col min-h-0 h-full">
               <ConfigPanel />
