@@ -16,10 +16,10 @@ export default function Demo() {
       <div className="flex-1 min-h-0">
         <ResizablePanelGroup direction="horizontal" className="min-h-0">
           <ResizablePanel
-            defaultSize={25}
+            defaultSize={42}
             minSize={25}
-            maxSize={40}
-            className="min-w-[775px] min-h-0 bg-zinc-50"
+            maxSize={60}
+            className="min-h-0 bg-zinc-50"
           >
             <div className="flex flex-col min-h-0 h-full">
               <ConfigPanel />
@@ -28,7 +28,7 @@ export default function Demo() {
 
           <ResizableHandle className="w-px bg-border" />
 
-          <ResizablePanel defaultSize={75} className="min-h-0">
+          <ResizablePanel defaultSize={58} className="min-h-0">
             <div className="flex flex-col min-h-0 h-full">
               <DemoPanel />
             </div>
