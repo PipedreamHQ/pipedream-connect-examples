@@ -55,7 +55,7 @@ const useAppStateProviderValue = () => {
 
   const selectedApp = { name_slug: selectedAppSlug }
 
-  const selectedComponentKey = queryParams.component || "slack-send-message"
+  const selectedComponentKey = queryParams.component || "slack-send-message-to-channel"
   const setSelectedComponentKey = (value: string) => {
     setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
     setConfiguredProps({})
