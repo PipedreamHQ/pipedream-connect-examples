@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@pipedream/connect-react':
-        specifier: 1.0.0-preview.7
-        version: 1.0.0-preview.7(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
+        specifier: 1.0.0-preview.8
+        version: 1.0.0-preview.8(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
       '@pipedream/sdk':
-        specifier: ^1.0.10
-        version: 1.0.10
+        specifier: ^1.0.12
+        version: 1.0.12
       '@radix-ui/react-collapsible':
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
@@ -814,13 +814,13 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  /@pipedream/connect-react@1.0.0-preview.7(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-/PI9+9rjxjcPRio7skW0KLx9njQU94XCvrwpNB+xC5zl8u00hM6MeF6MAAKraMOpF9BRFCX2w/ZUY1h0h+g2Qw==}
+  /@pipedream/connect-react@1.0.0-preview.8(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-yUf/z91pXU92mDrDAVZcRMeWiyT66ztKNre5wYnhaXTZ3bcIi3Kp9m6UST+h8AgraMq+u2nBZUdTt1rDi8RCEg==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@pipedream/sdk': 1.0.10
+      '@pipedream/sdk': 1.0.12
       '@tanstack/react-query': 5.62.2(react@18.0.0)
       lodash.isequal: 4.5.0
       react: 18.0.0
@@ -834,8 +834,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@pipedream/sdk@1.0.10:
-    resolution: {integrity: sha512-4JC1s1fMK9rcLGBhLFanwdhF9qZV1A9hLJITsjz3/Um/yCtthXitIbVLAX0NAhD7HsDHbo+zT3j+YP06nNM29A==}
+  /@pipedream/sdk@1.0.12:
+    resolution: {integrity: sha512-IUwcxl7dFryA9A7subciRmgm62P862HlMrV3WTvZGUeljhWul2gEvkOvkQ57/iILX/cUwAQwJ1Cc3oHBnBboRw==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@rails/actioncable': 8.0.0
@@ -2289,7 +2289,7 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
     dependencies:
-      caniuse-lite: 1.0.30001686
+      caniuse-lite: 1.0.30001687
       electron-to-chromium: 1.5.71
       node-releases: 2.0.18
       update-browserslist-db: 1.1.1(browserslist@4.24.2)
@@ -2319,8 +2319,8 @@ packages:
     resolution: {integrity: sha512-rPQy70G6AGUMnbwS1z6Xg+RkHYPAi18ihs47GH0jcxIG7wArmPgY3XbS2sRdBbxJljp3thdT8BIqv9ccCypiPA==}
     dev: false
 
-  /caniuse-lite@1.0.30001686:
-    resolution: {integrity: sha512-Y7deg0Aergpa24M3qLC5xjNklnKnhsmSyR/V89dLZ1n0ucJIFNs7PgR2Yfa/Zf6W79SbBicgtGxZr2juHkEUIA==}
+  /caniuse-lite@1.0.30001687:
+    resolution: {integrity: sha512-0S/FDhf4ZiqrTUiQ39dKeUjYRjkv7lOZU1Dgif2rIqrTzX/1wV2hfKu9TOm1IHkdSijfLswxTFzl/cvir+SLSQ==}
     dev: true
 
   /ccount@2.0.1:
