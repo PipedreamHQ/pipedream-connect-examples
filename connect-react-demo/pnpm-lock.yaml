@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@pipedream/connect-react':
-        specifier: 1.0.0-preview.8
-        version: 1.0.0-preview.8(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
+        specifier: 1.0.0-preview.9
+        version: 1.0.0-preview.9(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
       '@pipedream/sdk':
-        specifier: ^1.0.12
-        version: 1.0.12
+        specifier: ^1.1.0
+        version: 1.1.0
       '@radix-ui/react-collapsible':
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
@@ -814,13 +814,13 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  /@pipedream/connect-react@1.0.0-preview.8(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-yUf/z91pXU92mDrDAVZcRMeWiyT66ztKNre5wYnhaXTZ3bcIi3Kp9m6UST+h8AgraMq+u2nBZUdTt1rDi8RCEg==}
+  /@pipedream/connect-react@1.0.0-preview.9(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-vAl74NinK71QS2BzdBJcNOzHQc0UXVAB/izRk+19aVNDyFFXtjFlhIwkiO1tshs3dhcwspFeOfB/MeFQXSqW+Q==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@pipedream/sdk': 1.0.12
+      '@pipedream/sdk': 1.1.0
       '@tanstack/react-query': 5.62.2(react@18.0.0)
       lodash.isequal: 4.5.0
       react: 18.0.0
@@ -834,8 +834,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@pipedream/sdk@1.0.12:
-    resolution: {integrity: sha512-IUwcxl7dFryA9A7subciRmgm62P862HlMrV3WTvZGUeljhWul2gEvkOvkQ57/iILX/cUwAQwJ1Cc3oHBnBboRw==}
+  /@pipedream/sdk@1.0.6:
+    resolution: {integrity: sha512-SIhe8JOA47Uypa2OfhEpyDpyCNi2oYpavnUVVwLuqe4jLbYQEiOWjnSdJ6wfDxKwA8QT3MRbEEJ/+uVxYHMeGA==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@rails/actioncable': 8.0.0
@@ -848,8 +848,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@pipedream/sdk@1.0.6:
-    resolution: {integrity: sha512-SIhe8JOA47Uypa2OfhEpyDpyCNi2oYpavnUVVwLuqe4jLbYQEiOWjnSdJ6wfDxKwA8QT3MRbEEJ/+uVxYHMeGA==}
+  /@pipedream/sdk@1.1.0:
+    resolution: {integrity: sha512-JsnBFPfvc05WPBeICyVsaiHlyG7WpZs/Jne1ND8gJokaWcZqtfdaA5RKi+qDUhsQwTxaFaVMPydhoYD23cHLKQ==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@rails/actioncable': 8.0.0
