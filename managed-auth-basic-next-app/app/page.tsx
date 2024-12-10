@@ -131,9 +131,9 @@ export default function Home() {
     
     const normalizedSlug = normalizeAppSlug(appSlug);
     try {
-      const response = await getAppInfo(normalizedSlug, token);
-      console.log('App Info:', response);
-      setSelectedApp(response.data); // This is the key change - access the data property
+      const response = await getAppInfo(normalizedSlug);
+      // console.log('App Info:', response);
+      setSelectedApp(response); // This is the key change - access the data property
     } catch (err) {
       console.error("Error:", err);
       setError(`Couldn't find the app slug, ${normalizedSlug}`);
@@ -166,7 +166,7 @@ export default function Home() {
           <h1 className="text-title mb-8">Pipedream Connect Example App</h1>
           <div className="mb-4 text-body">
             <p className="mb-4">Refer to the <a href={docsConnect} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">Pipedream Connect docs</a> for a full walkthrough of how to configure Connect for your site.</p>
-            <p>When your customers connect accounts with Pipedream, you&aposll pass their unique user ID in your system — whatever you use to identify them. In this example, we generate a random external user ID for you:
+            <p>When your customers connect accounts with Pipedream, you'll pass their unique user ID in your system — whatever you use to identify them. In this example, we generate a random external user ID for you:
               <span className="text-code font-bold"> {externalUserId}.</span>
             </p>
           </div>

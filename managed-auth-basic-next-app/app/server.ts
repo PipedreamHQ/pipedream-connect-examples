@@ -40,21 +40,15 @@ export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Pr
   return pd.createConnectToken(opts);
 }
 
-export async function getAppInfo(nameSlug: string, token: string): Promise<AppResponse> {
+export async function getAppInfo(nameSlug: string): Promise<AppResponse> {
   if (!nameSlug) {
     throw new Error("Name slug is required");
   }
-  if (!token) {
-    throw new Error("Token is required");
-  }
 
   try {
-    return await pd.makeRequest(`/apps/${nameSlug}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    // Use the SDK's app() method which handles auth and path construction
+    const response = await pd.app(nameSlug);
+    return response.data;
   } catch (err) {
     console.error("Error fetching app info:", err);
     throw err;
