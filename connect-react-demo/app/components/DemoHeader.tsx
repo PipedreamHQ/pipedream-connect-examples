@@ -64,7 +64,7 @@ export const DemoHeader = () => {
                   <h3 className="text-sm font-semibold text-neutral-800 leading-relaxed text-balance">
                     One SDK, thousands of API integrations for your app
                   </h3>
-                  <p className="text-sm text-neutral-700 leading-relaxed text-balance">
+                  <p className="text-sm text-neutral-700 leading-relaxed">
                     Pipedream Connect provides a TypeScript SDK and REST API to
                     let your users securely connect their accounts and integrate
                     with their favorite tools. Common use cases include:
@@ -72,7 +72,17 @@ export const DemoHeader = () => {
                   <ul className="space-y-2">
                     <li className="flex gap-x-2 text-sm">
                       <span className="text-neutral-500">▸</span>
-                      <span className="text-neutral-700 leading-relaxed text-balance">
+                      <span className="text-neutral-700 leading-relaxed">
+                        <strong className="font-medium text-neutral-800">
+                          Managed authentication:
+                        </strong>{" "}
+                        Securely manage user credentials and API tokens with
+                        built-in OAuth token refresh
+                      </span>
+                    </li>
+                    <li className="flex gap-x-2 text-sm">
+                      <span className="text-neutral-500">▸</span>
+                      <span className="text-neutral-700 leading-relaxed">
                         <strong className="font-medium text-neutral-800">
                           Actions:
                         </strong>{" "}
@@ -82,32 +92,21 @@ export const DemoHeader = () => {
                     </li>
                     <li className="flex gap-x-2 text-sm">
                       <span className="text-neutral-500">▸</span>
-                      <span className="text-neutral-700 leading-relaxed text-balance">
-                        <strong className="font-medium text-neutral-800">
-                          OAuth & Key Auth:
-                        </strong>{" "}
-                        Securely manage user credentials and API tokens with
-                        built-in OAuth support
-                      </span>
-                    </li>
-                    <li className="flex gap-x-2 text-sm">
-                      <span className="text-neutral-500">▸</span>
-                      <span className="text-neutral-700 leading-relaxed text-balance">
+                      <span className="text-neutral-700 leading-relaxed">
                         <strong className="font-medium text-neutral-800">
                           Workflow Invocation:
                         </strong>{" "}
-                        Write one workflow and run it for all your users with
-                        automatic token refresh
+                        Write one workflow and run it for all your users
                       </span>
                     </li>
                     <li className="flex gap-x-2 text-sm">
                       <span className="text-neutral-500">▸</span>
-                      <span className="text-neutral-700 leading-relaxed text-balance">
+                      <span className="text-neutral-700 leading-relaxed">
                         <strong className="font-medium text-neutral-800">
-                          Account Management:
+                          AI agents:
                         </strong>{" "}
-                        List, retrieve and manage connected accounts with
-                        comprehensive APIs
+                        Connect your AI agent to all the tools your customers
+                        use and enable it to take actions on their behalf
                       </span>
                     </li>
                   </ul>
