@@ -45,7 +45,7 @@ export const DemoHeader = () => {
         <PipedreamLogo className="text-neutral-600 h-[18px] w-auto" />
         <Badge
           variant="outline"
-          className="h-6 gap-1.5 px-2 py-0 bg-neutral-50/90 backdrop-blur-xl border-neutral-200/50 text-xs font-medium text-neutral-600"
+          className="h-6 gap-1.5 px-2 py-0 bg-neutral-50/90 backdrop-blur-xl border-neutral-200/50 text-sm font-medium text-neutral-600"
         >
           connect-demo
           <TooltipProvider delayDuration={0}>
@@ -58,19 +58,19 @@ export const DemoHeader = () => {
               <TooltipContent
                 side="bottom"
                 align="start"
-                className="w-[440px] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 bg-neutral-50/95 backdrop-blur-xl border border-neutral-200/50 p-4 shadow-sm"
+                className="w-[480px] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 bg-neutral-100/95 backdrop-blur-xl border border-neutral-200/50 p-4 shadow-sm"
               >
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-neutral-800 leading-relaxed text-balance">
                     One SDK, thousands of API integrations for your app
                   </h3>
-                  <p className="text-xs text-neutral-700 leading-relaxed text-balance">
+                  <p className="text-sm text-neutral-700 leading-relaxed text-balance">
                     Pipedream Connect provides a TypeScript SDK and REST API to
                     let your users securely connect their accounts and integrate
                     with their favorite tools. Common use cases include:
                   </p>
                   <ul className="space-y-2">
-                    <li className="flex gap-x-2 text-xs">
+                    <li className="flex gap-x-2 text-sm">
                       <span className="text-neutral-500">▸</span>
                       <span className="text-neutral-700 leading-relaxed text-balance">
                         <strong className="font-medium text-neutral-800">
@@ -80,7 +80,7 @@ export const DemoHeader = () => {
                         messages or syncing data
                       </span>
                     </li>
-                    <li className="flex gap-x-2 text-xs">
+                    <li className="flex gap-x-2 text-sm">
                       <span className="text-neutral-500">▸</span>
                       <span className="text-neutral-700 leading-relaxed text-balance">
                         <strong className="font-medium text-neutral-800">
@@ -90,7 +90,7 @@ export const DemoHeader = () => {
                         built-in OAuth support
                       </span>
                     </li>
-                    <li className="flex gap-x-2 text-xs">
+                    <li className="flex gap-x-2 text-sm">
                       <span className="text-neutral-500">▸</span>
                       <span className="text-neutral-700 leading-relaxed text-balance">
                         <strong className="font-medium text-neutral-800">
@@ -100,7 +100,7 @@ export const DemoHeader = () => {
                         automatic token refresh
                       </span>
                     </li>
-                    <li className="flex gap-x-2 text-xs">
+                    <li className="flex gap-x-2 text-sm">
                       <span className="text-neutral-500">▸</span>
                       <span className="text-neutral-700 leading-relaxed text-balance">
                         <strong className="font-medium text-neutral-800">
@@ -168,7 +168,14 @@ export const DemoHeader = () => {
           className="flex items-center gap-x-2 text-neutral-600 hover:text-neutral-800 border-neutral-200 hover:bg-neutral-50"
           onClick={() => window.open("https://pipedream.com/support", "_blank")}
         >
-          Contact Us
+          Contact us
+        </Button>
+        <Button
+          variant="outline"
+          className="flex items-center gap-x-2 text-neutral-600 hover:text-neutral-800 border-neutral-200 hover:bg-neutral-50"
+          onClick={() => window.open("https://pipedream.com/docs/connect/components", "_blank")}
+        >
+          Read the docs
         </Button>
         <Button variant="default" className="gap-2" asChild>
           <a
