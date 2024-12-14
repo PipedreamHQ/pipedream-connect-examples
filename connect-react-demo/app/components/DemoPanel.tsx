@@ -16,7 +16,16 @@ export const DemoPanel = () => {
     setConfiguredProps,
     setActionRunOutput,
     actionRunOutput,
+    selectedComponentType,
+    webhookUrl,
   } = useAppState()
+
+  //console.log("configuredProps", configuredProps)
+
+/*  const webhookTrigger = {
+    name: "webhookTrigger",
+    type: "string",
+  }*/
 
   return (
     <div className="flex flex-col min-h-0 h-full bg-neutral-50/50 overflow-hidden">
@@ -137,12 +146,24 @@ export const DemoPanel = () => {
                           onUpdateConfiguredProps={setConfiguredProps}
                           onSubmit={async () => {
                             setActionRunOutput(undefined)
-                            const data = await frontendClient.actionRun({
-                              userId,
-                              actionId: component.key,
-                              configuredProps,
-                            })
-                            setActionRunOutput(data)
+                            if (selectedComponentType === "action") {
+                              const data = await frontendClient.actionRun({
+                                userId,
+                                actionId: component.key,
+                                configuredProps,
+                              })
+                              setActionRunOutput(data)
+                            } else if (selectedComponentType === "trigger") {
+                              console.log("configuredProps: ", configuredProps)
+                              /*
+                              const data = await frontendClient.deployTrigger({
+                                userId,
+                                triggerId: component.key,
+                                configuredProps,
+                                webhookUrl,
+                              })
+                              setActionRunOutput(data)*/
+                            }
                           }}
                         />
                       )}

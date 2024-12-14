@@ -207,7 +207,10 @@ export const ConfigPanel = () => {
     selectedApp,
     setSelectedAppSlug,
     removeSelectedAppSlug,
+    selectedComponentType,
     selectedComponent,
+    webhookUrl,
+    setWebhookUrl,
     setSelectedComponentKey,
     removeSelectedComponentKey,
     setPropNames,
@@ -255,7 +258,7 @@ export const ConfigPanel = () => {
           />
           <SelectComponent
             app={selectedApp}
-            componentType="action"
+            componentType={selectedComponentType}
             value={selectedComponent}
             onChange={(comp) => {
               comp
@@ -266,7 +269,23 @@ export const ConfigPanel = () => {
           />
         </div>
       </PropertyItem>
-
+      {selectedComponentType === "trigger" && (
+        <PropertyItem
+          name="webhookUrl"
+          type="string"
+          description="Webhook for trigger"
+          required={true}
+        >
+          <input
+            value={webhookUrl}
+            onChange={(e) => {
+              setWebhookUrl(e.target.value)
+            }}
+            placeholder="Enter a webhook URL to receive emitted events from the trigger."
+            className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
+          />
+        </PropertyItem>
+      )}
       <PropertyItem
         name="hideOptionalProps"
         type="boolean"

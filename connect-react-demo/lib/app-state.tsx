@@ -33,7 +33,7 @@ const customizationOptions = [
 
 const useAppStateProviderValue = () => {
   const client = useFrontendClient()
-  const userId = client.externalUserId || ""
+  const userId = client.externalUserId || "demo-21f43257-9b87-46a8-ac40-d9d0bbcc80fd"
 
   const [customizationOption, setCustomizationOption] = useState(
     customizationOptions[0]
@@ -54,6 +54,12 @@ const useAppStateProviderValue = () => {
   const removeSelectedAppSlug = () => setQueryParam("app", undefined)
 
   const selectedApp = { name_slug: selectedAppSlug }
+
+  const selectedComponentType = queryParams.type || "action"
+  const setSelectedComponentType = (value: string) => setQueryParam("type", value)
+  const removeSelectedComponentType = () => setQueryParam("type", undefined)
+
+  const [webhookUrl, setWebhookUrl] = useState<string>("")
 
   const selectedComponentKey = queryParams.component || "slack-send-message-to-channel"
   const setSelectedComponentKey = (value: string) => {
@@ -150,6 +156,13 @@ export function MyPage() {
     selectedAppSlug,
     setSelectedAppSlug,
     removeSelectedAppSlug,
+
+    selectedComponentType,
+    setSelectedComponentType,
+    removeSelectedComponentType,
+
+    webhookUrl,
+    setWebhookUrl,
 
     selectedComponentKey,
     setSelectedComponentKey,
