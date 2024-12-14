@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@pipedream/connect-react':
-        specifier: 1.0.0-preview.11
-        version: 1.0.0-preview.11(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
+        specifier: 1.0.0-preview.12
+        version: 1.0.0-preview.12(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
       '@pipedream/sdk':
         specifier: ^1.1.3
         version: 1.1.3
@@ -823,8 +823,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  /@pipedream/connect-react@1.0.0-preview.11(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-hZQjoW0D7CoZATat5ZXxscpWzpuzdPyyJuS346AE5igiWTYWneaxRbg/YiSq+HEeVZVmusoWv3xfL+/6vaYi+Q==}
+  /@pipedream/connect-react@1.0.0-preview.12(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-yL0cI09OTN+iitHOHmcxydQxA3otqbbUmQ/a3KiOQ/Vtj2MbDgCOxl8Vzvpf9Hj+thW+hjM3BAtuCRi8vDh6kw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
