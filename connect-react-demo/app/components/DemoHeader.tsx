@@ -127,8 +127,11 @@ export const DemoHeader = () => {
           <NavigationMenuList>
             <NavigationMenuItem>
               <NavigationMenuTrigger className="h-7 text-sm gap-1.5 px-2.5 text-neutral-600 hover:text-neutral-800">
-                <IoCubeSharp className="h-4 w-4 text-neutral-600" />
-                Actions
+                {selectedComponentType === "trigger" ?
+                  <IoFlashOutline className="h-4 w-4 text-neutral-600" /> :
+                  <IoCubeSharp className="h-4 w-4 text-neutral-600" />
+                }
+                {selectedComponentType}
               </NavigationMenuTrigger>
               <NavigationMenuContent className="min-w-[240px] p-1.5">
                 {typeOptions.map((option) => (
