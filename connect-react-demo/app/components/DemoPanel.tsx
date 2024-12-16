@@ -155,14 +155,13 @@ export const DemoPanel = () => {
                               setActionRunOutput(data)
                             } else if (selectedComponentType === "trigger") {
                               console.log("configuredProps: ", configuredProps)
-                              /*
                               const data = await frontendClient.deployTrigger({
                                 userId,
                                 triggerId: component.key,
                                 configuredProps,
                                 webhookUrl,
                               })
-                              setActionRunOutput(data)*/
+                              setActionRunOutput(data)
                             }
                           }}
                         />
