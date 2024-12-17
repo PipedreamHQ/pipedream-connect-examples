@@ -35,7 +35,6 @@ const typeOptions = [
     value: "trigger",
     icon: <IoFlashOutline className="h-4 w-4 text-neutral-600" />,
     description: "React to events and webhooks",
-    //disabled: true,
   },
 ]
 

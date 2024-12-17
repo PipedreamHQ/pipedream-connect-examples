@@ -20,13 +20,6 @@ export const DemoPanel = () => {
     webhookUrl,
   } = useAppState()
 
-  //console.log("configuredProps", configuredProps)
-
-/*  const webhookTrigger = {
-    name: "webhookTrigger",
-    type: "string",
-  }*/
-
   return (
     <div className="flex flex-col min-h-0 h-full bg-neutral-50/50 overflow-hidden">
       <ScrollArea className="flex-1 min-h-0">
@@ -154,7 +147,9 @@ export const DemoPanel = () => {
                               })
                               setActionRunOutput(data)
                             } else if (selectedComponentType === "trigger") {
-                              console.log("configuredProps: ", configuredProps)
+                              if (!webhookUrl) {
+                                throw new Error("webhookUrl is required")
+                              }
                               const data = await frontendClient.deployTrigger({
                                 userId,
                                 triggerId: component.key,

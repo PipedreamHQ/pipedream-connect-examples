@@ -34,7 +34,7 @@ const customizationOptions = [
 
 const useAppStateProviderValue = () => {
   const client = useFrontendClient()
-  const userId = client.externalUserId || "demo-21f43257-9b87-46a8-ac40-d9d0bbcc80fd"
+  const userId = client.externalUserId || ""
 
   const [customizationOption, setCustomizationOption] = useState(
     customizationOptions[0]
