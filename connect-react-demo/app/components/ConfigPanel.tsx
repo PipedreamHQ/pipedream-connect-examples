@@ -379,14 +379,14 @@ export const ConfigPanel = () => {
               {/* <BsInfoCircleFill className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-1" /> */}
               <span>
                 When you deploy a trigger via the Pipedream components API, we'll emit events to a{' '}
-                <code className="font-mono mx-1">webhookUrl</code>. To test your trigger:
+                <code className="font-mono mx-1">webhookUrl</code> that you define. To test your trigger:
               </span>
             </p>
             <ol className="list-decimal list-outside ml-6 space-y-2">
               <li className="pl-2">
                 Configure the trigger and define a <code className="font-mono text-sm">webhookUrl</code> to receive events (use a{' '}
                 <a 
-                  href="https://requestbin.new/" 
+                  href="https://pipedream.com/new?h=tch_BXfkaA" 
                   target="_blank"
                   rel="noopener noreferrer" 
                   className="font-medium text-sky-800 hover:text-sky-900 hover:underline transition-colors"
