@@ -82,7 +82,7 @@ export const CodeSection = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 relative z-10 text-neutral-500 hover:text-neutral-600 -mt-1 -mr-1"
+          className="h-7 w-7 relative text-neutral-500 hover:text-neutral-600 -mt-1 -mr-1"
           onClick={handleCopy}
         >
           <div className="relative">

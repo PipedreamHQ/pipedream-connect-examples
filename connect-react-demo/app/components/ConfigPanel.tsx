@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { BsInfoCircleFill } from "react-icons/bs"
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
@@ -281,7 +282,7 @@ export const ConfigPanel = () => {
             onChange={(e) => {
               setWebhookUrl(e.target.value)
             }}
-            placeholder="Enter a webhook URL to receive emitted events from the trigger."
+            placeholder="Enter a webhook URL to receive emitted events"
             className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
           />
         </PropertyItem>
@@ -372,6 +373,39 @@ export const ConfigPanel = () => {
           }}
         />
       </PropertyItem>
+      {selectedComponentType === "trigger" && (
+        <div className="bg-sky-100/50 backdrop-blur-xl border rounded border-neutral-200/50 px-4 py-2 mb-10 m-4 shadow-sm">
+          <div className="text-sm text-neutral-700 leading-relaxed">
+            <p className="py-2 flex gap-2">
+              {/* <BsInfoCircleFill className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-1" /> */}
+              <span>
+                When you deploy a trigger via the Pipedream components API, we'll emit events to a{' '}
+                <code className="font-mono mx-1">webhookUrl</code>. To test your trigger:
+              </span>
+            </p>
+            <ol className="list-decimal list-outside ml-6 space-y-2">
+              <li className="pl-2">
+                Configure the trigger and define a <code className="font-mono text-sm">webhookUrl</code> to receive events (use a{' '}
+                <a 
+                  href="https://requestbin.new/" 
+                  target="_blank"
+                  rel="noopener noreferrer" 
+                  className="font-medium text-sky-800 hover:text-sky-900 hover:underline transition-colors"
+                >
+                  RequestBin
+                </a>
+                {' '}for example)
+              </li>
+              <li className="pl-2">
+                Click <span className="font-semibold">Deploy</span> on the right (may take up to a minute, but can happen asynchronously in your app)
+              </li>
+              <li className="pl-2">
+                Generate some actual events in the relevant app and check your webhook for emitted events.
+              </li>
+            </ol>
+          </div>
+        </div>
+      )}
     </div>
   )
 
