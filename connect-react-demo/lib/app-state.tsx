@@ -1,5 +1,6 @@
 import blueTheme from "@/app/components/customization-select/blue-theme"
 import darkTheme from "@/app/components/customization-select/dark-theme"
+import defaultTheme from "@/app/components/customization-select/default-unstyled"
 import { createContext, useContext, useState } from "react"
 // @ts-ignore
 import blueThemeCode from "raw-loader!@/app/components/customization-select/blue-theme.ts"
@@ -13,7 +14,7 @@ const customizationOptions = [
   {
     name: "default",
     label: "Default Styles",
-    customization: undefined,
+    customization: defaultTheme,
     file: undefined,
   },
   {
