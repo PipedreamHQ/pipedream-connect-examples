@@ -16,6 +16,8 @@ export const DemoPanel = () => {
     setConfiguredProps,
     setActionRunOutput,
     actionRunOutput,
+    selectedComponentType,
+    webhookUrl,
   } = useAppState()
 
   return (
@@ -137,12 +139,25 @@ export const DemoPanel = () => {
                           onUpdateConfiguredProps={setConfiguredProps}
                           onSubmit={async () => {
                             setActionRunOutput(undefined)
-                            const data = await frontendClient.actionRun({
-                              userId,
-                              actionId: component.key,
-                              configuredProps,
-                            })
-                            setActionRunOutput(data)
+                            if (selectedComponentType === "action") {
+                              const data = await frontendClient.actionRun({
+                                userId,
+                                actionId: component.key,
+                                configuredProps,
+                              })
+                              setActionRunOutput(data)
+                            } else if (selectedComponentType === "trigger") {
+                              if (!webhookUrl) {
+                                throw new Error("webhookUrl is required")
+                              }
+                              const data = await frontendClient.deployTrigger({
+                                userId,
+                                triggerId: component.key,
+                                configuredProps,
+                                webhookUrl,
+                              })
+                              setActionRunOutput(data)
+                            }
                           }}
                         />
                       )}

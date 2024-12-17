@@ -21,6 +21,7 @@ import {
 } from "react-icons/io5"
 import { PipedreamLogo } from "./PipedreamLogo"
 import { SiGithub } from "react-icons/si"
+import { useAppState } from "@/lib/app-state"
 
 const typeOptions = [
   {
@@ -34,11 +35,15 @@ const typeOptions = [
     value: "trigger",
     icon: <IoFlashOutline className="h-4 w-4 text-neutral-600" />,
     description: "React to events and webhooks",
-    disabled: true,
   },
 ]
 
 export const DemoHeader = () => {
+  const {
+    selectedComponentType,
+    setSelectedComponentType,
+    removeSelectedComponentType,
+  } = useAppState()
   return (
     <div className="flex items-center justify-between px-6 py-3 border-b border-neutral-200">
       <div className="flex items-center gap-x-3">
@@ -120,8 +125,11 @@ export const DemoHeader = () => {
           <NavigationMenuList>
             <NavigationMenuItem>
               <NavigationMenuTrigger className="h-7 text-sm gap-1.5 px-2.5 text-neutral-600 hover:text-neutral-800">
-                <IoCubeSharp className="h-4 w-4 text-neutral-600" />
-                Actions
+                {selectedComponentType === "trigger" ?
+                  <IoFlashOutline className="h-4 w-4 text-neutral-600" /> :
+                  <IoCubeSharp className="h-4 w-4 text-neutral-600" />
+                }
+                {selectedComponentType}
               </NavigationMenuTrigger>
               <NavigationMenuContent className="min-w-[240px] p-1.5">
                 {typeOptions.map((option) => (
@@ -133,6 +141,10 @@ export const DemoHeader = () => {
                         ? "opacity-50 cursor-not-allowed"
                         : "cursor-pointer hover:bg-neutral-50"
                     )}
+                    value={selectedComponentType}
+                    onClick={(type) => {
+                      type ? setSelectedComponentType(option.value) : removeSelectedComponentType()
+                    }}
                   >
                     {option.icon}
                     <div className="flex-1 min-w-0">

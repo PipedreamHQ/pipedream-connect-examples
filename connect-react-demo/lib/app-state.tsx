@@ -56,6 +56,12 @@ const useAppStateProviderValue = () => {
 
   const selectedApp = { name_slug: selectedAppSlug }
 
+  const selectedComponentType = queryParams.type || "action"
+  const setSelectedComponentType = (value: string) => setQueryParam("type", value)
+  const removeSelectedComponentType = () => setQueryParam("type", undefined)
+
+  const [webhookUrl, setWebhookUrl] = useState<string>("")
+
   const selectedComponentKey = queryParams.component || "slack-send-message-to-channel"
   const setSelectedComponentKey = (value: string) => {
     setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
@@ -151,6 +157,13 @@ export function MyPage() {
     selectedAppSlug,
     setSelectedAppSlug,
     removeSelectedAppSlug,
+
+    selectedComponentType,
+    setSelectedComponentType,
+    removeSelectedComponentType,
+
+    webhookUrl,
+    setWebhookUrl,
 
     selectedComponentKey,
     setSelectedComponentKey,
