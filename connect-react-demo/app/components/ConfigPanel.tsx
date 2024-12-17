@@ -8,7 +8,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { BsInfoCircleFill } from "react-icons/bs"
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
