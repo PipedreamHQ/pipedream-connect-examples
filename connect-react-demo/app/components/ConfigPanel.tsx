@@ -395,7 +395,7 @@ export const ConfigPanel = () => {
                 {' '}for example)
               </li>
               <li className="pl-2">
-                Click <span className="font-semibold">Deploy</span> on the right (may take up to a minute, but can happen asynchronously in your app)
+                Click <span className="font-semibold">Submit</span> on the right (may take up to a minute, but can happen asynchronously in your app)
               </li>
               <li className="pl-2">
                 Generate some actual events in the relevant app and check your webhook for emitted events.
