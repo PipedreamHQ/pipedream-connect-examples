@@ -62,7 +62,7 @@ const useAppStateProviderValue = () => {
 
   const [webhookUrl, setWebhookUrl] = useState<string>("")
 
-  const selectedComponentKey = queryParams.component || "slack-send-message-to-channel"
+  const selectedComponentKey = queryParams.component || "github-star-repo"
   const setSelectedComponentKey = (value: string) => {
     setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
     setConfiguredProps({})
