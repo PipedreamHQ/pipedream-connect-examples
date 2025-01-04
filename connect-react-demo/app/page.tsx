@@ -28,7 +28,7 @@ export async function generateMetadata(
 export default function Home({searchParams: _searchParams}: {searchParams: unknown}) {
   return (
     <Suspense>
-      <ClientWrapper/ >
+      <ClientWrapper/>
     </Suspense>
   )
 }
