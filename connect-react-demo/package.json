@@ -1,6 +1,6 @@
 {
   "name": "connect-react-demo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@pipedream/connect-react": "1.0.0-preview.13",
+    "@pipedream/connect-react": "^1.0.0-preview.15",
     "@pipedream/sdk": "^1.1.3",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-label": "^2.1.0",
