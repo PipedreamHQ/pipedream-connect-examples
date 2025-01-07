@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@pipedream/connect-react':
-    specifier: 1.0.0-preview.13
-    version: 1.0.0-preview.13(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
+    specifier: ^1.0.0-preview.16
+    version: 1.0.0-preview.16(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
   '@pipedream/sdk':
     specifier: ^1.1.3
     version: 1.1.3
@@ -505,18 +505,18 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  /@pipedream/connect-react@1.0.0-preview.13(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-FwR2x7TYxfNsfb2ILokTXU4hseXDqSHQ1r5o+Lg/jd8flYT1HMwPfefJ25V0iMJA3Bty6SPxtYQAVvs4bzWr+w==}
+  /@pipedream/connect-react@1.0.0-preview.16(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-OmISOk46BaZJRBw31GS1Lc63f3cmtlxN5kQcth9W8xNqBodJONwTgkEtx7Awt0LbC1js0IbzOsTT746M9vRS0Q==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
       '@pipedream/sdk': 1.1.3
-      '@tanstack/react-query': 5.62.7(react@18.0.0)
+      '@tanstack/react-query': 5.62.16(react@18.0.0)
       lodash.isequal: 4.5.0
       react: 18.0.0
       react-dom: 18.0.0(react@18.0.0)
-      react-markdown: 9.0.1(@types/react@18.0.0)(react@18.0.0)
+      react-markdown: 9.0.3(@types/react@18.0.0)(react@18.0.0)
       react-select: 5.8.2(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -1268,16 +1268,16 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@tanstack/query-core@5.62.7:
-    resolution: {integrity: sha512-fgpfmwatsrUal6V+8EC2cxZIQVl9xvL7qYa03gsdsCy985UTUlS4N+/3hCzwR0PclYDqisca2AqR1BVgJGpUDA==}
+  /@tanstack/query-core@5.62.16:
+    resolution: {integrity: sha512-9Sgft7Qavcd+sN0V25xVyo0nfmcZXBuODy3FVG7BMWTg1HMLm8wwG5tNlLlmSic1u7l1v786oavn+STiFaPH2g==}
     dev: false
 
-  /@tanstack/react-query@5.62.7(react@18.0.0):
-    resolution: {integrity: sha512-+xCtP4UAFDTlRTYyEjLx0sRtWyr5GIk7TZjZwBu4YaNahi3Rt2oMyRqfpfVrtwsqY2sayP4iXVCwmC+ZqqFmuw==}
+  /@tanstack/react-query@5.62.16(react@18.0.0):
+    resolution: {integrity: sha512-XJIZNj65d2IdvU8VBESmrPakfIm6FSdHDzrS1dPrAwmq3ZX+9riMh/ZfbNQHAWnhrgmq7KoXpgZSRyXnqMYT9A==}
     peerDependencies:
       react: ^18 || ^19
     dependencies:
-      '@tanstack/query-core': 5.62.7
+      '@tanstack/query-core': 5.62.16
       react: 18.0.0
     dev: false
 
@@ -1319,7 +1319,7 @@ packages:
   /@types/hast@3.0.4:
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
     dependencies:
-      '@types/unist': 3.0.3
+      '@types/unist': 2.0.11
     dev: false
 
   /@types/json-schema@7.0.15:
@@ -1329,7 +1329,7 @@ packages:
   /@types/mdast@4.0.4:
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
     dependencies:
-      '@types/unist': 3.0.3
+      '@types/unist': 2.0.11
     dev: false
 
   /@types/ms@0.7.34:
@@ -2371,7 +2371,7 @@ packages:
       devlop: 1.1.0
       mdast-util-from-markdown: 2.0.2
       mdast-util-to-markdown: 2.1.2
-      parse-entities: 4.0.1
+      parse-entities: 4.0.2
       stringify-entities: 4.0.4
       unist-util-stringify-position: 4.0.0
       vfile-message: 4.0.2
@@ -2748,11 +2748,10 @@ packages:
       is-hexadecimal: 1.0.4
     dev: false
 
-  /parse-entities@4.0.1:
-    resolution: {integrity: sha512-SWzvYcSJh4d/SGLIOQfZ/CoNv6BTlI6YEQ7Nj82oDVnRpwe/Z/F1EMx42x3JAOwGBlCjeCH0BRJQbQ/opHL17w==}
+  /parse-entities@4.0.2:
+    resolution: {integrity: sha512-GG2AQYWoLgL877gQIKeRPGO1xF9+eG1ujIb5soS5gPvLQ1y2o8FL90w2QWNdf9I361Mpp7726c+lj3U0qK1uGw==}
     dependencies:
       '@types/unist': 2.0.11
-      character-entities: 2.0.2
       character-entities-legacy: 3.0.0
       character-reference-invalid: 2.0.1
       decode-named-character-reference: 1.0.2
@@ -2962,8 +2961,8 @@ packages:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
     dev: false
 
-  /react-markdown@9.0.1(@types/react@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-186Gw/vF1uRkydbsOIkcGXw7aHq0sZOCRFFjGrr7b9+nVZg4UfA4enXCaxm4fUzecU38sWfrNDitGhshuU7rdg==}
+  /react-markdown@9.0.3(@types/react@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-Yk7Z94dbgYTOrdk41Z74GoKA7rThnsbbqBTRYuxoe08qvfQ9tJVhmAKw6BJS/ZORG7kTy/s1QvYzSuaoBA1qfw==}
     peerDependencies:
       '@types/react': '>=18'
       react: '>=18'
