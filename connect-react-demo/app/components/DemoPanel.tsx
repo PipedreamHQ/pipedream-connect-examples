@@ -22,9 +22,13 @@ export const DemoPanel = () => {
   } = useAppState()
 
   const [
-    dynamicProps,
-    setDynamicProps,
-  ] = useState<DynamicProps<any>>();
+    dynamicPropsId,
+    setDynamicPropsId,
+  ] = useState<string | undefined>();
+
+  const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
+    setDynamicPropsId(dynamicProps.id)
+  }
 
   return (
     <div className="flex flex-col min-h-0 h-full bg-neutral-50/50 overflow-hidden">
@@ -143,7 +147,7 @@ export const DemoPanel = () => {
                           hideOptionalProps={hideOptionalProps}
                           configuredProps={configuredProps}
                           onUpdateConfiguredProps={setConfiguredProps}
-                          onUpdateDynamicProps={setDynamicProps}
+                          onUpdateDynamicProps={handleDynamicProps}
                           onSubmit={async () => {
                             setActionRunOutput(undefined)
                             if (selectedComponentType === "action") {
@@ -151,7 +155,7 @@ export const DemoPanel = () => {
                                 userId,
                                 actionId: component.key,
                                 configuredProps,
-                                dynamicPropsId: dynamicProps?.id
+                                dynamicPropsId
                               })
                               setActionRunOutput(data)
                             } else if (selectedComponentType === "trigger") {
