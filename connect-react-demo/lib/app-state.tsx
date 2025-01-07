@@ -50,7 +50,7 @@ const useAppStateProviderValue = () => {
   const setPropNames = (value: string[]) => setQueryParam("propNames", value?.length ? value.join(",") : undefined)
 
   // XXX Selected* -> Select* (to differentiate from actual selected component (on the left)) ?
-  const selectedAppSlug = queryParams.app || "slack"
+  const selectedAppSlug = queryParams.app || "github"
   const setSelectedAppSlug = (value: string) => setQueryParam("app", value)
   const removeSelectedAppSlug = () => setQueryParam("app", undefined)
 
