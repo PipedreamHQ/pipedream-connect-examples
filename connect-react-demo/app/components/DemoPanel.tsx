@@ -1,8 +1,9 @@
-import { ComponentForm, CustomizeProvider, useFrontendClient } from "@pipedream/connect-react"
+import {ComponentForm, CustomizeProvider, useFrontendClient} from "@pipedream/connect-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
+import {useState} from "react";
 
 export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
@@ -19,6 +20,15 @@ export const DemoPanel = () => {
     selectedComponentType,
     webhookUrl,
   } = useAppState()
+
+  const [
+    dynamicPropsId,
+    setDynamicPropsId,
+  ] = useState<string | undefined>();
+
+  const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
+    setDynamicPropsId(dynamicProps.id)
+  }
 
   return (
     <div className="flex flex-col min-h-0 h-full bg-neutral-50/50 overflow-hidden">
@@ -137,6 +147,7 @@ export const DemoPanel = () => {
                           hideOptionalProps={hideOptionalProps}
                           configuredProps={configuredProps}
                           onUpdateConfiguredProps={setConfiguredProps}
+                          onUpdateDynamicProps={handleDynamicProps}
                           onSubmit={async () => {
                             setActionRunOutput(undefined)
                             if (selectedComponentType === "action") {
@@ -144,6 +155,7 @@ export const DemoPanel = () => {
                                 userId,
                                 actionId: component.key,
                                 configuredProps,
+                                dynamicPropsId
                               })
                               setActionRunOutput(data)
                             } else if (selectedComponentType === "trigger") {
