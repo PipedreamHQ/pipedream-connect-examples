@@ -1,4 +1,4 @@
-import {ComponentForm, CustomizeProvider, DynamicProps, useFrontendClient} from "@pipedream/connect-react"
+import {ComponentForm, CustomizeProvider, useFrontendClient} from "@pipedream/connect-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
