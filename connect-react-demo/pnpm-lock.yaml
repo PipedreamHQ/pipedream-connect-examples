@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@pipedream/connect-react':
-    specifier: ^1.0.0-preview.16
-    version: 1.0.0-preview.16(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
+    specifier: ^1.0.0-preview.17
+    version: 1.0.0-preview.17(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
   '@pipedream/sdk':
     specifier: ^1.1.3
     version: 1.1.3
@@ -505,8 +505,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  /@pipedream/connect-react@1.0.0-preview.16(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-OmISOk46BaZJRBw31GS1Lc63f3cmtlxN5kQcth9W8xNqBodJONwTgkEtx7Awt0LbC1js0IbzOsTT746M9vRS0Q==}
+  /@pipedream/connect-react@1.0.0-preview.17(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-qNyOOj52x2cojRCCZEx7kSUhOfBCNo4VN3M0yGvteisWi8paH7c8HndfS+pAXSVhQSB9dLbb5PeURR2WX+Y32w==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
@@ -1319,7 +1319,7 @@ packages:
   /@types/hast@3.0.4:
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
     dependencies:
-      '@types/unist': 2.0.11
+      '@types/unist': 3.0.3
     dev: false
 
   /@types/json-schema@7.0.15:
@@ -1329,7 +1329,7 @@ packages:
   /@types/mdast@4.0.4:
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
     dependencies:
-      '@types/unist': 2.0.11
+      '@types/unist': 3.0.3
     dev: false
 
   /@types/ms@0.7.34:
