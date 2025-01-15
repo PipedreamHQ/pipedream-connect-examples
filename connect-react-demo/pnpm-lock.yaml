@@ -6,11 +6,11 @@ settings:
 
 dependencies:
   '@pipedream/connect-react':
-    specifier: ^1.0.0-preview.17
-    version: 1.0.0-preview.17(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
+    specifier: ^1.0.0-preview.19
+    version: 1.0.0-preview.19(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
   '@pipedream/sdk':
-    specifier: ^1.1.3
-    version: 1.1.3
+    specifier: ^1.1.5
+    version: 1.1.5
   '@radix-ui/react-collapsible':
     specifier: ^1.1.1
     version: 1.1.1(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
@@ -505,13 +505,13 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  /@pipedream/connect-react@1.0.0-preview.17(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-qNyOOj52x2cojRCCZEx7kSUhOfBCNo4VN3M0yGvteisWi8paH7c8HndfS+pAXSVhQSB9dLbb5PeURR2WX+Y32w==}
+  /@pipedream/connect-react@1.0.0-preview.19(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-cgjAip9NcGMukdmWHftvaphUxgj4XVJZv1oJeYZkYCL9klBeYqjXX2roIQDw/Dj+7wPtp4vhVkQJuBEfXBpvtg==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@pipedream/sdk': 1.1.3
+      '@pipedream/sdk': 1.1.5
       '@tanstack/react-query': 5.62.16(react@18.0.0)
       lodash.isequal: 4.5.0
       react: 18.0.0
@@ -525,8 +525,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@pipedream/sdk@1.1.3:
-    resolution: {integrity: sha512-iLD+EJS/EVv6qZckJLLwS6ALGGLKp88uEm6nH+YMSjyE5NJDwUpSJCzzV51SPHfivNjnI1Xemv9Q3p5J+engNw==}
+  /@pipedream/sdk@1.1.5:
+    resolution: {integrity: sha512-q+dGMsNSvIcDCi6JZES7pwNBW8Ms318WMNavO71Cye0bCtloeDSj5TiFbScy64/2FHja9keKAZ9ev8yVSsM+ew==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@rails/actioncable': 8.0.0
