@@ -226,6 +226,16 @@ export const ConfigPanel = () => {
   const id1 = useId();
   const id2 = useId();
 
+  const isValidWebhookUrl = () => {
+    try {
+      new URL(webhookUrl);
+    } catch {
+      return false
+    }
+    return true
+  }
+
+
   const formControls = (
     <div className="divide-y">
       <PropertyItem
@@ -253,7 +263,7 @@ export const ConfigPanel = () => {
               setWebhookUrl(e.target.value)
             }}
             placeholder="Enter a webhook URL to receive emitted events"
-            className="w-full px-3 py-1.5 text-sm font-mono border-2 border-red-500 rounded bg-zinc-50/50"
+            className={`w-full px-3 py-1.5 text-sm font-mono ${isValidWebhookUrl() ? "" : "border-2 border-red-500"}  rounded bg-zinc-50/50`}
           />
         </PropertyItem>
       )}
