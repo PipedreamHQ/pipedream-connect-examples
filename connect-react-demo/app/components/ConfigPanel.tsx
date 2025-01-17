@@ -253,7 +253,7 @@ export const ConfigPanel = () => {
               setWebhookUrl(e.target.value)
             }}
             placeholder="Enter a webhook URL to receive emitted events"
-            className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
+            className="w-full px-3 py-1.5 text-sm font-mono border-2 border-red-500 rounded bg-zinc-50/50"
           />
         </PropertyItem>
       )}
