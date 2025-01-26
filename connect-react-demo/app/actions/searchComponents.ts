@@ -11,6 +11,7 @@ export const searchComponentsAction = async (query: string) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        // obviously a hack -- need to add access token request function to the server
         "Authorization": `Bearer ${process.env.PIPEDREAM_OAUTH_JWT}`,
       }
     }
