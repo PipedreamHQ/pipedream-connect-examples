@@ -18,25 +18,11 @@ import {
   IoCubeSharp,
   IoFlashOutline,
   IoHelpCircleOutline,
+  IoLanguageOutline,
 } from "react-icons/io5"
 import { PipedreamLogo } from "./PipedreamLogo"
 import { SiGithub } from "react-icons/si"
 import { useAppState } from "@/lib/app-state"
-
-const typeOptions = [
-  {
-    label: "Actions",
-    value: "action",
-    icon: <IoCubeSharp className="h-4 w-4 text-neutral-600" />,
-    description: "Connect to APIs and perform operations",
-  },
-  {
-    label: "Triggers",
-    value: "trigger",
-    icon: <IoFlashOutline className="h-4 w-4 text-neutral-600" />,
-    description: "React to events and webhooks",
-  },
-]
 
 export const DemoHeader = () => {
   const {
@@ -121,56 +107,6 @@ export const DemoHeader = () => {
           </TooltipProvider>
         </Badge>
         <div className="h-4 w-px bg-neutral-200" />
-        <NavigationMenu delayDuration={0}>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger className="h-7 text-sm gap-1.5 px-2.5 text-neutral-600 hover:text-neutral-800">
-                {selectedComponentType === "trigger" ?
-                  <IoFlashOutline className="h-4 w-4 text-neutral-600" /> :
-                  <IoCubeSharp className="h-4 w-4 text-neutral-600" />
-                }
-                {selectedComponentType}
-              </NavigationMenuTrigger>
-              <NavigationMenuContent className="min-w-[240px] p-1.5">
-                {typeOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className={cn(
-                      "flex items-center gap-2.5 p-2.5 rounded-sm",
-                      option.disabled
-                        ? "opacity-50 cursor-not-allowed"
-                        : "cursor-pointer hover:bg-neutral-50"
-                    )}
-                    value={selectedComponentType}
-                    onClick={(type) => {
-                      type ? setSelectedComponentType(option.value) : removeSelectedComponentType()
-                    }}
-                  >
-                    {option.icon}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-neutral-700">
-                          {option.label}
-                        </span>
-                        {option.disabled && (
-                          <Badge
-                            variant="secondary"
-                            className="h-5 text-[11px] font-medium bg-neutral-100 text-neutral-500 px-1.5"
-                          >
-                            Soon
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-neutral-500 truncate">
-                        {option.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
       </div>
 
       <div className="flex items-center gap-x-2">

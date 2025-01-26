@@ -14,6 +14,7 @@ export const ClientWrapper = () => {
     environment: "development",
     tokenCallback: fetchToken,
     externalUserId,
+    apiHost: "api.pipedream.com",
   });
 
   return (

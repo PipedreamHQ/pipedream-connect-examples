@@ -268,34 +268,6 @@ export const ConfigPanel = () => {
         </PropertyItem>
       )}
       <PropertyItem
-        name="componentKey"
-        type="string"
-        description="Unique identifier for the component to be rendered"
-        required={true}
-      >
-        <div className="grid grid-cols-2 gap-1">
-          <SelectApp
-            value={selectedApp}
-            onChange={(app) => {
-              app
-                ? setSelectedAppSlug(app.name_slug)
-                : removeSelectedAppSlug()
-            }}
-          />
-          <SelectComponent
-            app={selectedApp}
-            componentType={selectedComponentType}
-            value={selectedComponent}
-            onChange={(comp) => {
-              comp
-                ? setSelectedComponentKey(comp.key)
-                : removeSelectedComponentKey()
-
-            }}
-          />
-        </div>
-      </PropertyItem>
-      <PropertyItem
         name="hideOptionalProps"
         type="boolean"
         description="Only show required form fields"

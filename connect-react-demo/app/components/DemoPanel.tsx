@@ -1,9 +1,11 @@
-import {ComponentForm, CustomizeProvider, useFrontendClient} from "@pipedream/connect-react"
+"use client"
+
+import { ComponentForm, CustomizeProvider, useFrontendClient } from "@pipedream/connect-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
-import {useState} from "react";
+import { useState } from "react"
 
 export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
@@ -21,13 +23,18 @@ export const DemoPanel = () => {
     webhookUrl,
   } = useAppState()
 
-  const [
-    dynamicPropsId,
-    setDynamicPropsId,
-  ] = useState<string | undefined>();
+  const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
 
   const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
     setDynamicPropsId(dynamicProps.id)
+  }
+
+  if (!component) {
+    return (
+      <div className="flex items-center justify-center h-full text-neutral-500">
+        Select a component to get started
+      </div>
+    )
   }
 
   return (
@@ -81,9 +88,9 @@ export const DemoPanel = () => {
                   className="absolute inset-0"
                   style={{
                     backgroundImage: `
-              linear-gradient(rgb(243 244 246 / 0.8) 1px, transparent 1px),
-              linear-gradient(to right, rgb(243 244 246 / 0.8) 1px, transparent 1px)
-            `,
+                linear-gradient(rgb(243 244 246 / 0.8) 1px, transparent 1px),
+                linear-gradient(to right, rgb(243 244 246 / 0.8) 1px, transparent 1px)
+              `,
                     backgroundSize: "40px 40px",
                     maskImage: "linear-gradient(to bottom, white, transparent)",
                   }}
@@ -139,40 +146,38 @@ export const DemoPanel = () => {
                     <CustomizeProvider
                       {...(customizationOption.customization || {})}
                     >
-                      {component && (
-                        <ComponentForm
-                          userId={userId}
-                          component={component}
-                          propNames={propNames}
-                          hideOptionalProps={hideOptionalProps}
-                          configuredProps={configuredProps}
-                          onUpdateConfiguredProps={setConfiguredProps}
-                          onUpdateDynamicProps={handleDynamicProps}
-                          onSubmit={async () => {
-                            setActionRunOutput(undefined)
-                            if (selectedComponentType === "action") {
-                              const data = await frontendClient.actionRun({
-                                userId,
-                                actionId: component.key,
-                                configuredProps,
-                                dynamicPropsId
-                              })
-                              setActionRunOutput(data)
-                            } else if (selectedComponentType === "trigger") {
-                              if (!webhookUrl) {
-                                throw new Error("webhookUrl is required")
-                              }
-                              const data = await frontendClient.deployTrigger({
-                                userId,
-                                triggerId: component.key,
-                                configuredProps,
-                                webhookUrl,
-                              })
-                              setActionRunOutput(data)
+                      <ComponentForm
+                        userId={userId}
+                        component={component}
+                        propNames={propNames}
+                        hideOptionalProps={hideOptionalProps}
+                        configuredProps={configuredProps}
+                        onUpdateConfiguredProps={setConfiguredProps}
+                        onUpdateDynamicProps={handleDynamicProps}
+                        onSubmit={async () => {
+                          setActionRunOutput(undefined)
+                          if (selectedComponentType === "action") {
+                            const data = await frontendClient.actionRun({
+                              userId,
+                              actionId: component.key,
+                              configuredProps,
+                              dynamicPropsId
+                            })
+                            setActionRunOutput(data)
+                          } else if (selectedComponentType === "trigger") {
+                            if (!webhookUrl) {
+                              throw new Error("webhookUrl is required")
                             }
-                          }}
-                        />
-                      )}
+                            const data = await frontendClient.deployTrigger({
+                              userId,
+                              triggerId: component.key,
+                              configuredProps,
+                              webhookUrl,
+                            })
+                            setActionRunOutput(data)
+                          }
+                        }}
+                      />
                     </CustomizeProvider>
                   </div>
                 </PageSkeleton>

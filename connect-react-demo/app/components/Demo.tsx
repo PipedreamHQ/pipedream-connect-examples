@@ -8,6 +8,7 @@ import {
 import { ConfigPanel } from "./ConfigPanel"
 import { DemoHeader } from "./DemoHeader"
 import { DemoPanel } from "./DemoPanel"
+import { ComponentSelector } from "./ComponentSelector"
 
 export default function Demo() {
   return (
@@ -22,6 +23,7 @@ export default function Demo() {
             className="min-h-0 bg-zinc-50"
           >
             <div className="flex flex-col min-h-0 h-full">
+              <ComponentSelector />
               <ConfigPanel />
             </div>
           </ResizablePanel>
