@@ -30,6 +30,7 @@ export const ComponentSelector = () => {
   const [prompt, setPrompt] = useState("")
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [selectedTab, setSelectedTab] = useState<"natural" | "manual">("natural")
   const [searchResults, setSearchResults] = useState<{
     sources: string[]
     actions: string[]
@@ -46,6 +47,10 @@ export const ComponentSelector = () => {
     setSelectedComponentKey,
     removeSelectedComponentKey,
   } = useAppState()
+
+  const handleTabChange = (value: string) => {
+    setSelectedTab(value as "natural" | "manual")
+  }
 
   const handleComponentClick = (componentKey: string, type: 'action' | 'trigger') => {
     const appSlug = componentKey.split('-')[0]
@@ -73,17 +78,20 @@ export const ComponentSelector = () => {
   return (
     <div className="bg-white border-b border-neutral-200 shadow-sm">
       <div className="p-6">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-neutral-800 mb-1">Component Selection</h2>
-          <p className="text-sm text-neutral-600">Choose a component to configure and test</p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-800 mb-1">Component Selection</h2>
+            <p className="text-sm text-neutral-600">Choose a component to configure and test</p>
+          </div>
+          <Tabs value={selectedTab} onValueChange={handleTabChange} className="w-[300px]">
+            <TabsList>
+              <TabsTrigger value="natural">Natural Language</TabsTrigger>
+              <TabsTrigger value="manual">Manual Selection</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        <Tabs defaultValue="natural" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="natural">Natural Language</TabsTrigger>
-            <TabsTrigger value="manual">Manual Selection</TabsTrigger>
-          </TabsList>
-          
+        <Tabs value={selectedTab} onValueChange={handleTabChange}>
           <TabsContent value="manual">
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -108,16 +116,17 @@ export const ComponentSelector = () => {
               </div>
               
               {selectedComponentType && (
-                <div className="space-y-3 pt-2">
+                <div className="space-y-3">
                   <SelectApp
                     value={selectedApp}
                     onChange={(app) => {
+                      console.log('Selected app:', app);
                       if (app) {
-                        setSelectedAppSlug(app.name_slug)
-                        removeSelectedComponentKey()
+                        removeSelectedComponentKey();
+                        setSelectedAppSlug(app.name_slug);
                       } else {
-                        removeSelectedAppSlug()
-                        removeSelectedComponentKey()
+                        removeSelectedAppSlug();
+                        removeSelectedComponentKey();
                       }
                     }}
                   />
