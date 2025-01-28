@@ -6,11 +6,11 @@ settings:
 
 dependencies:
   '@pipedream/connect-react':
-    specifier: ^1.0.0-preview.23
-    version: 1.0.0-preview.23(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
+    specifier: ^1.0.0-preview.25
+    version: 1.0.0-preview.25(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
   '@pipedream/sdk':
-    specifier: ^1.1.6
-    version: 1.1.6
+    specifier: ^1.2.1
+    version: 1.2.1
   '@radix-ui/react-collapsible':
     specifier: ^1.1.1
     version: 1.1.1(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
@@ -505,13 +505,13 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  /@pipedream/connect-react@1.0.0-preview.23(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
-    resolution: {integrity: sha512-Ucmvc6XRDTvfnUotbJAsu3usd8epyieeHK+I3maAB11H22hSgpJCK0vsky7/OWFs/H1zqfokgOqCHwJok4ujXg==}
+  /@pipedream/connect-react@1.0.0-preview.25(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0):
+    resolution: {integrity: sha512-89hqWXJLCb8pvxcc9YBtz1BuH8yhzTOj2lDxOEJiGXu1uqUgqszgyWFcjNOJRWfe6cMff2rTMdIc4ReRYJCU5w==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@pipedream/sdk': 1.1.6
+      '@pipedream/sdk': 1.2.1
       '@tanstack/react-query': 5.62.16(react@18.0.0)
       lodash.isequal: 4.5.0
       react: 18.0.0
@@ -525,8 +525,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@pipedream/sdk@1.1.6:
-    resolution: {integrity: sha512-EJsL6dkTjkxe04962rP77Gm90EPhqgkGfrgWm44fDsR4VQwVsw6TnREtXxu41ePVBO4wSQmtbXNCJHxQoFdSGg==}
+  /@pipedream/sdk@1.2.1:
+    resolution: {integrity: sha512-1d4pSfCwF6Ksaq2gPGrH6IKIYc2Thb8SB7xnayZ9s+12XqcWPkFQa8qoxBAanSeQGYQgBbGbNwtKbtNlaBLVvw==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@rails/actioncable': 8.0.0
@@ -2305,6 +2305,7 @@ packages:
 
   /lodash.isequal@4.5.0:
     resolution: {integrity: sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==}
+    deprecated: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
     dev: false
 
   /longest-streak@3.1.0:
