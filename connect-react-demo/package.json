@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@pipedream/connect-react": "^1.0.0-preview.23",
-    "@pipedream/sdk": "^1.1.6",
+    "@pipedream/connect-react": "^1.0.0-preview.25",
+    "@pipedream/sdk": "^1.2.1",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-navigation-menu": "^1.2.1",
