@@ -167,6 +167,7 @@ export const DemoPanel = () => {
                                 triggerId: component.key,
                                 configuredProps,
                                 webhookUrl,
+                                dynamicPropsId,
                               })
                               setActionRunOutput(data)
                             }
