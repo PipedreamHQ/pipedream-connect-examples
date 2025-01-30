@@ -227,6 +227,10 @@ export const ConfigPanel = () => {
   const id2 = useId();
 
   const isValidWebhookUrl = () => {
+    if (!webhookUrl) {
+      return true
+    }
+
     try {
       new URL(webhookUrl);
     } catch {
@@ -252,10 +256,10 @@ export const ConfigPanel = () => {
       </PropertyItem>
       {selectedComponentType === "trigger" && (
         <PropertyItem
-          name="webhookUrl (required)"
+          name="webhookUrl"
           type="string"
           description="Webhook for trigger"
-          required={true}
+          required={false}
         >
           <input
             value={webhookUrl}
@@ -263,7 +267,7 @@ export const ConfigPanel = () => {
               setWebhookUrl(e.target.value)
             }}
             placeholder="Enter a webhook URL to receive emitted events"
-            className={`w-full px-3 py-1.5 text-sm font-mono ${isValidWebhookUrl() ? "" : "border-2 border-red-500"}  rounded bg-zinc-50/50`}
+            className={`w-full px-3 py-1.5 text-sm font-mono border-2 ${isValidWebhookUrl() ? "" : "border-red-500"}  rounded bg-zinc-50/50`}
           />
         </PropertyItem>
       )}
@@ -394,10 +398,10 @@ export const ConfigPanel = () => {
             <ol className="list-decimal list-outside ml-6 space-y-2">
               <li className="pl-2">
                 Configure the trigger and define a <code className="font-mono text-sm">webhookUrl</code> to receive events (use a{' '}
-                <a 
-                  href="https://pipedream.com/new?h=tch_BXfkaA" 
+                <a
+                  href="https://pipedream.com/new?h=tch_BXfkaA"
                   target="_blank"
-                  rel="noopener noreferrer" 
+                  rel="noopener noreferrer"
                   className="font-medium text-sky-800 hover:text-sky-900 hover:underline transition-colors"
                 >
                   RequestBin

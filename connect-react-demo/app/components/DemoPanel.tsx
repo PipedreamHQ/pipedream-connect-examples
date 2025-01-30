@@ -1,9 +1,9 @@
-import {ComponentForm, CustomizeProvider, useFrontendClient} from "@pipedream/connect-react"
+import { ComponentForm, CustomizeProvider, useFrontendClient } from "@pipedream/connect-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
-import {useState} from "react";
+import { useState } from "react";
 
 export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
@@ -159,9 +159,6 @@ export const DemoPanel = () => {
                               })
                               setActionRunOutput(data)
                             } else if (selectedComponentType === "trigger") {
-                              if (!webhookUrl) {
-                                throw new Error("webhookUrl is required")
-                              }
                               const data = await frontendClient.deployTrigger({
                                 userId,
                                 triggerId: component.key,
@@ -182,7 +179,7 @@ export const DemoPanel = () => {
 
             <TerminalCollapsible
               isOpen={true}
-              onOpenChange={() => {}}
+              onOpenChange={() => { }}
               hasOutput={!!actionRunOutput}
               output={actionRunOutput}
             />
