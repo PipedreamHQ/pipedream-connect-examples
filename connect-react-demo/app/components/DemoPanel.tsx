@@ -26,6 +26,11 @@ export const DemoPanel = () => {
     setDynamicPropsId,
   ] = useState<string | undefined>();
 
+  const [
+    sdkErrors,
+    setSdkErrors,
+  ] = useState<unknown[] | unknown | undefined>(undefined);
+
   const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
     setDynamicPropsId(dynamicProps.id)
   }
@@ -148,28 +153,40 @@ export const DemoPanel = () => {
                           configuredProps={configuredProps}
                           onUpdateConfiguredProps={setConfiguredProps}
                           onUpdateDynamicProps={handleDynamicProps}
+                          sdkErrors={sdkErrors}
+                          environment={frontendClient.getEnvironment()}
                           onSubmit={async () => {
                             setActionRunOutput(undefined)
                             if (selectedComponentType === "action") {
-                              const data = await frontendClient.actionRun({
-                                userId,
-                                actionId: component.key,
-                                configuredProps,
-                                dynamicPropsId
-                              })
-                              setActionRunOutput(data)
+                              try {
+                                const data = await frontendClient.actionRun({
+                                  userId,
+                                  actionId: component.key,
+                                  configuredProps,
+                                  dynamicPropsId
+                                })
+                                setActionRunOutput(data)
+                                setSdkErrors(data)
+                              } catch (e) {
+                                setSdkErrors(e)
+                              }
                             } else if (selectedComponentType === "trigger") {
                               if (!webhookUrl) {
                                 throw new Error("webhookUrl is required")
                               }
-                              const data = await frontendClient.deployTrigger({
-                                userId,
-                                triggerId: component.key,
-                                configuredProps,
-                                webhookUrl,
-                                dynamicPropsId,
-                              })
-                              setActionRunOutput(data)
+                              try {
+                                const data = await frontendClient.deployTrigger({
+                                  userId,
+                                  triggerId: component.key,
+                                  configuredProps,
+                                  webhookUrl,
+                                  dynamicPropsId,
+                                })
+                                setActionRunOutput(data)
+                                setSdkErrors(data)
+                              } catch (e) {
+                                setSdkErrors(e)
+                              }
                             }
                           }}
                         />
