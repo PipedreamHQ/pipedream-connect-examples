@@ -154,7 +154,7 @@ export const DemoPanel = () => {
                           onUpdateConfiguredProps={setConfiguredProps}
                           onUpdateDynamicProps={handleDynamicProps}
                           sdkErrors={sdkErrors}
-                          environment={frontendClient.getEnvironment()}
+                          enableDebugging={true}
                           onSubmit={async () => {
                             setActionRunOutput(undefined)
                             if (selectedComponentType === "action") {
