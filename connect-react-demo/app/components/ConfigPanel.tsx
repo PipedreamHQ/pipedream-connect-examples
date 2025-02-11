@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import Select from "react-select"
 import { CodeSection } from "./config/CodeSection"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {enableDebugging} from "@/lib/query-params";
 
 function getTypeDescription(prop: {
   name: string
@@ -220,6 +221,8 @@ export const ConfigPanel = () => {
     setCustomizationOption,
     hideOptionalProps,
     setHideOptionalProps,
+    enableDebugging,
+    setEnableDebugging,
     propNames,
     component,
   } = useAppState()
@@ -327,6 +330,39 @@ export const ConfigPanel = () => {
                 ? "bg-zinc-900 text-white"
                 : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
             )}
+          >
+            FALSE
+          </button>
+        </div>
+      </PropertyItem>
+      <PropertyItem
+          name="enableDebugging"
+          type="boolean"
+          description="Surface SDK and configuration errors in the form"
+          required={false}
+          defaultValue={false}
+      >
+        <div className="w-fit flex rounded-md border border-zinc-200 shadow-sm">
+          <button
+              onClick={() => setEnableDebugging(true)}
+              className={cn(
+                  "px-3 py-1 text-xs font-medium font-mono",
+                  enableDebugging
+                      ? "bg-zinc-900 text-white"
+                      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+              )}
+          >
+            TRUE
+          </button>
+          <div className="w-px bg-zinc-200" />
+          <button
+              onClick={() => setEnableDebugging(false)}
+              className={cn(
+                  "px-3 py-1 text-xs font-medium font-mono",
+                  !enableDebugging
+                      ? "bg-zinc-900 text-white"
+                      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+              )}
           >
             FALSE
           </button>
