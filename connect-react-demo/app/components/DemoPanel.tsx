@@ -19,7 +19,7 @@ export const DemoPanel = () => {
     actionRunOutput,
     selectedComponentType,
     webhookUrl,
-    enableDebugging
+    enableDebugging,
   } = useAppState()
 
   const [
@@ -35,8 +35,6 @@ export const DemoPanel = () => {
   const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
     setDynamicPropsId(dynamicProps.id)
   }
-  console.log("hide props: ", hideOptionalProps)
-  console.log("enable debugging: ", enableDebugging)
 
   return (
     <div className="flex flex-col min-h-0 h-full bg-neutral-50/50 overflow-hidden">
