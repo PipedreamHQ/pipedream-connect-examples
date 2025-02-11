@@ -19,6 +19,7 @@ export const DemoPanel = () => {
     actionRunOutput,
     selectedComponentType,
     webhookUrl,
+    enableDebugging,
   } = useAppState()
 
   const [
@@ -154,7 +155,7 @@ export const DemoPanel = () => {
                           onUpdateConfiguredProps={setConfiguredProps}
                           onUpdateDynamicProps={handleDynamicProps}
                           sdkErrors={sdkErrors}
-                          enableDebugging={true}
+                          enableDebugging={enableDebugging}
                           onSubmit={async () => {
                             setActionRunOutput(undefined)
                             if (selectedComponentType === "action") {

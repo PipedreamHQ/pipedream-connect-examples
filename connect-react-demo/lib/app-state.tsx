@@ -102,6 +102,9 @@ const useAppStateProviderValue = () => {
   const hideOptionalProps = queryParams.hideOptionalProps === "true"
   const setHideOptionalProps = (value: boolean) => setQueryParam("hideOptionalProps", value ? "true" : undefined)
 
+  const enableDebugging = queryParams.enableDebugging === "true"
+  const setEnableDebugging = (value: boolean) => setQueryParam("enableDebugging", value ? "true" : undefined)
+
   const code = `import { createFrontendClient } from "@pipedream/sdk"
 import { FrontendClientProvider, ComponentFormContainer } from "@pipedream/connect-react"${
     customizationOption.file
@@ -122,6 +125,11 @@ export function MyPage() {
       ? `
         hideOptionalProps={true}`
       : ""
+  }${
+      enableDebugging
+          ? `
+        enableDebugging={true}`
+          : ""
   }${
     propNames.length
       ? `
@@ -186,6 +194,9 @@ export function MyPage() {
 
     hideOptionalProps,
     setHideOptionalProps,
+
+    enableDebugging,
+    setEnableDebugging,
 
     fileCode,
     setFileCode,
