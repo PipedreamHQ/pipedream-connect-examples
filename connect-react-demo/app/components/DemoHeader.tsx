@@ -67,7 +67,7 @@ export const DemoHeader = () => {
               >
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-neutral-800 leading-relaxed text-balance">
-                    One SDK, thousands of API integrations for your app
+                    One SDK, thousands of API integrations for your app or AI agent
                   </h3>
                   <p className="text-sm text-neutral-700 leading-relaxed">
                     Pipedream Connect provides a TypeScript SDK and REST API to
