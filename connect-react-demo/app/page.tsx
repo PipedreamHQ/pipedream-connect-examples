@@ -1,3 +1,4 @@
+"use server"
 
 import { queryParamSchema } from "@/lib/query-params"
 import { Metadata, ResolvingMetadata } from "next"
@@ -25,7 +26,7 @@ export async function generateMetadata(
   };
 }
 
-export default function Home({searchParams: _searchParams}: {searchParams: unknown}) {
+export default async function Home({searchParams: _searchParams}: {searchParams: unknown}) {
   return (
     <Suspense>
       <ClientWrapper/>
