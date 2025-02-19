@@ -34,7 +34,7 @@ pnpm dev
 ```
 
 
-## How to test @pipedream/connecct-react changes with this app
+## How to test @pipedream/connect-react changes with this app
 
 clone this repo as well as the the repo that contains connect-react (pipedream).
 Make sure the two repos are cloned in the same parent directory
@@ -61,3 +61,24 @@ make connect-react-dev
 ```
 
 Changes made in connect-react will not be automatically loaded by the app.  To pick them up you'll need to restart `make connect-react-dev`
+
+A change like the following is an easy way to check that your connect-react changes have been picked up (all app names will be prefixed with 'hello world!'
+```sh
+diff --git a/packages/connect-react/src/components/SelectApp.tsx b/packages/connect-react/src/components/SelectApp.tsx
+index 61fe7bd27..a9378297d 100644
+--- a/packages/connect-react/src/components/SelectApp.tsx
++++ b/packages/connect-react/src/components/SelectApp.tsx
+@@ -48,7 +48,7 @@ export function SelectApp({
+               />
+               <span style={{
+                 whiteSpace: "nowrap",
+-              }}>{optionProps.data.name}</span>
++              }}>hello world!{optionProps.data.name}</span>
+             </div>
+           </Option>
+         ),
+```
+
+## TODO
+
+It would be nice for changes to connect-react while watched to be picked up without having to restart the demo app.
