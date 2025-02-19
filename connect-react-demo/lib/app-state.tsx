@@ -51,8 +51,18 @@ const useAppStateProviderValue = () => {
 
   // XXX Selected* -> Select* (to differentiate from actual selected component (on the left)) ?
   const selectedAppSlug = queryParams.app || "google_sheets"
-  const setSelectedAppSlug = (value: string) => setQueryParam("app", value)
-  const removeSelectedAppSlug = () => setQueryParam("app", undefined)
+  const setSelectedAppSlug = (value: string) => {
+    setQueryParams([
+      { key: "component", value: undefined },
+      { key: "app", value },
+    ]);
+  }
+  const removeSelectedAppSlug = () => {
+    setQueryParams([
+      { key: "component", value: undefined },
+      { key: "app", value: undefined },
+    ]);
+  }
 
   const selectedApp = { name_slug: selectedAppSlug }
 
@@ -62,7 +72,7 @@ const useAppStateProviderValue = () => {
 
   const [webhookUrl, setWebhookUrl] = useState<string>("")
 
-  const selectedComponentKey = queryParams.component || "google_sheets-add-single-row"
+  const selectedComponentKey = queryParams.component //|| "google_sheets-add-single-row"
   const setSelectedComponentKey = (value: string) => {
     setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
     setConfiguredProps({})
