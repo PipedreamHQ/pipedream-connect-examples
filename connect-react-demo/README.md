@@ -34,7 +34,7 @@ cp .env.example .env.local
 ```
 
 
-## How to test @pipedream/connecct-react changes in thi
+## How to test @pipedream/connecct-react changes with this app
 
 clone this repo as well as the the repo that contains connect-react (pipedream).
 Make sure the two repos are cloned in the same parent directory
