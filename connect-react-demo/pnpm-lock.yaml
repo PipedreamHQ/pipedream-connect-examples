@@ -5,15 +5,15 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@pipedream/sdk': ^1.3.3
+  '@pipedream/sdk': ^1.5.0
 
 dependencies:
   '@pipedream/connect-react':
     specifier: ^1.0.0-preview.30
     version: 1.0.0-preview.30(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
   '@pipedream/sdk':
-    specifier: ^1.3.3
-    version: 1.3.3
+    specifier: ^1.5.0
+    version: 1.5.0
   '@radix-ui/react-collapsible':
     specifier: ^1.1.1
     version: 1.1.1(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0)(react@18.0.0)
@@ -482,7 +482,7 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@pipedream/sdk': 1.3.3
+      '@pipedream/sdk': 1.5.0
       '@tanstack/react-query': 5.62.16(react@18.0.0)
       lodash.isequal: 4.5.0
       react: 18.0.0
@@ -496,8 +496,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@pipedream/sdk@1.3.3:
-    resolution: {integrity: sha512-sh0dZWdQlh7IprVs1Ka04+jMmpwTKf5SlyvaAJFmSbcvJ7So1fj/YLuU3BMXU91ehA1R6DGb66Yr+QzBsANcSA==}
+  /@pipedream/sdk@1.5.0:
+    resolution: {integrity: sha512-kEqTFKk+dJeLJA0rxJN1MTF1B8Lvko+/NREAF1y7bj8Rmb9xopmCfexDEezQNvG46ih2/5Zo8ZrD+LjRKFCijw==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@rails/actioncable': 8.0.0
