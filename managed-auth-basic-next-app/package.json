@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@pipedream/sdk": "^1.1.0",
+    "@pipedream/sdk": "^1.6.5",
     "next": "14.1.0",
     "prismjs": "^1.29.0",
     "react": "^18",
