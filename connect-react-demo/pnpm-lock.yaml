@@ -5,20 +5,20 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@pipedream/sdk': ^1.6.5
+  '@pipedream/sdk': ^1.6.6
 
-pnpmfileChecksum: yx52pmwha4ilee74xelq2afa3m
+pnpmfileChecksum: sha256-n1XTTJeARW0l8us8xn3DvQXQK3FiSsRP6+JDGdYEZAk=
 
 importers:
 
   .:
     dependencies:
       '@pipedream/connect-react':
-        specifier: ^1.1.0
-        version: 1.1.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^1.2.0
+        version: 1.2.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@pipedream/sdk':
-        specifier: ^1.6.5
-        version: 1.6.5
+        specifier: ^1.6.6
+        version: 1.6.6
       '@radix-ui/react-collapsible':
         specifier: ^1.1.1
         version: 1.1.11(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -317,14 +317,14 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@pipedream/connect-react@1.1.0':
-    resolution: {integrity: sha512-P+m9i3Pe8Pq9/piSzIx948QfVZum2ucEvbZTkpQ0QsEQLRPyTwoHFCITTqexQh+pN6I4A5zvbyTpqzJp9uKs3Q==}
+  '@pipedream/connect-react@1.2.0':
+    resolution: {integrity: sha512-UGXpMhWWwBJZy2ZIPFwsrXeRiZK0f1ghRZPWCEndNvWScxvcbaPX6OAoC3OxdIq0Bi4Ps+9PiMIqZHbuDdnpvQ==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
 
-  '@pipedream/sdk@1.6.5':
-    resolution: {integrity: sha512-Ju0l9JICR66OCEV877XT7cejw/G2CCI8YTXWQCPHBEDQczLL7C/7wYaaeSqCY2qi0qcqjvKbS+ZcN043Ri37bA==}
+  '@pipedream/sdk@1.6.6':
+    resolution: {integrity: sha512-HTSJBxAdzq94SGopO+Dq+8Ue7AFMys68YuJmn5w2Ppgup/sj2AGWQG+JM4NdnibbOgAu3gMpubdPtd4PEYpvgA==}
     engines: {node: '>=18.0.0'}
 
   '@pkgjs/parseargs@0.11.0':
@@ -2309,9 +2309,9 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@pipedream/connect-react@1.1.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@pipedream/connect-react@1.2.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@pipedream/sdk': 1.6.5
+      '@pipedream/sdk': 1.6.6
       '@tanstack/react-query': 5.80.5(react@18.3.1)
       lodash.isequal: 4.5.0
       react: 18.3.1
@@ -2324,7 +2324,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@pipedream/sdk@1.6.5':
+  '@pipedream/sdk@1.6.6':
     dependencies:
       '@rails/actioncable': 8.0.200
       commander: 12.1.0
