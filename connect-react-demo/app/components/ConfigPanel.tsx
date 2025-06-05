@@ -43,6 +43,9 @@ function getTypeDescription(prop: {
     case "any":
       syntax = `<span class="text-[#569cd6]">any</span>`
       break
+    case "sql":
+      syntax = `<span class="text-[#4ec9b0]">SQL</span>`
+      break
     default:
       if (prop.type.endsWith("[]")) {
         const baseType = prop.type.slice(0, -2)
