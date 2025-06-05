@@ -7,8 +7,6 @@ settings:
 overrides:
   '@pipedream/sdk': ^1.6.6
 
-pnpmfileChecksum: sha256-n1XTTJeARW0l8us8xn3DvQXQK3FiSsRP6+JDGdYEZAk=
-
 importers:
 
   .:
