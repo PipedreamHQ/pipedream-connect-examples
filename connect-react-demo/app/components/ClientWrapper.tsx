@@ -11,7 +11,7 @@ export const ClientWrapper = () => {
   const [externalUserId] = useStableUuid()
 
   const client = createFrontendClient({
-    environment: "development",
+    environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT,
     tokenCallback: fetchToken,
     externalUserId,
   });
