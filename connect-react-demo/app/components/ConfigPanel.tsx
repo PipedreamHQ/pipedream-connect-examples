@@ -492,14 +492,14 @@ export const ConfigPanel = () => {
 
   return (
     <div className="flex flex-col min-h-0 h-full">
-      <div className="p-4 border-b bg-white">
+      <div className="px-6 py-4 border-b bg-white">
         <h2 className="text-lg font-semibold text-gray-900">Demo Configuration</h2>
         <p className="text-sm text-gray-500 mt-1">
           Configure the component demo settings
         </p>
       </div>
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4">
+        <div className="px-6 py-4">
           {formControls}
         </div>
       </ScrollArea>

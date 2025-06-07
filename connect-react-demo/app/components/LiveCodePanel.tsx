@@ -72,7 +72,8 @@ export function LiveCodePanel() {
     propNames
   } = useAppState()
 
-  const [activeTab, setActiveTab] = useState("current")
+  const [activeTab, setActiveTab] = useState("api")
+  const [showLiveUpdates, setShowLiveUpdates] = useState(true)
 
   // Generate the current ComponentForm code
   const currentComponentCode = component ? `import { ComponentForm, useFrontendClient, useComponent } from "@pipedream/connect-react"
@@ -87,29 +88,18 @@ export default function MyIntegrationPage() {
   })
 
   const handleSubmit = async (ctx) => {
-    try {
-      const result = await frontendClient.${selectedComponentType}Run({
-        userId: "${userId}",
-        ${selectedComponentType}Id: "${component.key}",
-        configuredProps: ctx.configuredProps,${selectedComponentType === "trigger" ? `
-        webhookUrl: "${webhookUrl || 'https://your-app.com/webhook'}",` : ""}
-      })
-      
-      console.log('✅ ${selectedComponentType} succeeded:', result)
-      // Handle success - show toast, redirect, etc.
-      
-    } catch (error) {
-      console.error('❌ ${selectedComponentType} failed:', error)
-      // Handle error - show error message
-    }
+    const result = await frontendClient.${selectedComponentType}Run({
+      userId: "${userId}",
+      ${selectedComponentType}Id: "${component.key}",
+      configuredProps: ctx.configuredProps,${selectedComponentType === "trigger" ? `
+      webhookUrl: "${webhookUrl || 'https://your-app.com/webhook'}",` : ""}
+    })
+    
+    // Handle success - show toast, redirect, etc.
   }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">
-        ${component.app?.name} - ${component.name}
-      </h1>
-      
       <ComponentForm
         userId="${userId}"
         component={component}
@@ -197,39 +187,23 @@ const pd = createBackendClient({
 })
 
 export async function GET(request: NextRequest) {
-  try {
-    // Get the current user (from session, JWT, etc.)
-    const userId = await getCurrentUserId(request)
-    
-    // Generate a Connect token for this user using the backend SDK
-    const { token } = await pd.createConnectToken({
-      external_user_id: userId,
-      // Optional: restrict access to specific origins
-      // allowed_origins: ['https://your-app.com'],
-    })
-    
-    return NextResponse.json({ token })
-  } catch (error) {
-    console.error('Failed to generate Connect token:', error)
-    return NextResponse.json(
-      { error: 'Failed to generate token' }, 
-      { status: 500 }
-    )
-  }
-}
-
-async function getCurrentUserId(request: NextRequest) {
-  // TODO: Implement your user authentication logic
-  // This could be from JWT, session, etc.
-  return "${userId}"
+  // Get the current user from your auth system
+  const userId = "${userId}" // Your user's ID
+  
+  // Generate a Connect token for this user
+  const { token } = await pd.createConnectToken({
+    external_user_id: userId,
+  })
+  
+  return NextResponse.json({ token })
 }`
 
   const files = [
     { 
-      id: "current", 
-      name: "IntegrationPage.tsx", 
-      description: "Main integration component with form",
-      icon: "📄"
+      id: "api", 
+      name: "route.ts", 
+      description: "Backend token generation API",
+      icon: "🔗"
     },
     { 
       id: "setup", 
@@ -238,10 +212,10 @@ async function getCurrentUserId(request: NextRequest) {
       icon: "⚙️"
     },
     { 
-      id: "api", 
-      name: "route.ts", 
-      description: "Backend token generation API",
-      icon: "🔗"
+      id: "current", 
+      name: "IntegrationPage.tsx", 
+      description: "Main integration component with form",
+      icon: "📄"
     }
   ]
 
@@ -258,15 +232,15 @@ async function getCurrentUserId(request: NextRequest) {
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header section - fixed height */}
       <div className="flex-shrink-0 bg-white border-b">
-        <div className="px-4 py-3 border-b">
-          <div className="flex items-center gap-2">
-            <IoCodeSlashOutline className="h-5 w-5 text-blue-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Implementation Code</h2>
-          </div>
+        <div className="px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-900">Implementation Code</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Ready-to-use Next.js files - copy these into your project to add Pipedream Connect
+          </p>
         </div>
         
         {/* IDE-style file tabs */}
-        <div className="flex border-b bg-gray-100">
+        <div className="flex border-b bg-gray-100 pl-6">
           {files.map((file, index) => (
             <button
               key={file.id}
@@ -289,21 +263,30 @@ async function getCurrentUserId(request: NextRequest) {
       </div>
 
       {/* Code section - takes remaining height */}
-      <div className="flex-1 min-h-0 relative">
+      <div className="flex-1 min-h-0 relative px-6">
         <CodeBlock language={activeTab === "api" ? "typescript" : "tsx"}>
           {getCodeForFile(activeTab)}
         </CodeBlock>
         
-        {activeTab === "current" && component && (
-          <div className="absolute bottom-4 left-4 right-4 p-3 bg-blue-900/90 backdrop-blur-sm rounded-lg border border-blue-700/50">
+        {activeTab === "current" && component && showLiveUpdates && (
+          <div className="absolute bottom-4 left-0 right-0 mx-6 p-3 bg-blue-900/90 backdrop-blur-sm rounded-lg border border-blue-700/50">
             <div className="flex items-start gap-2">
               <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-              <div className="text-sm">
+              <div className="text-sm flex-1">
                 <p className="font-medium text-blue-100">Live Updates</p>
                 <p className="text-blue-200 mt-1">
                   This code updates in real-time as you configure the component in the demo.
                 </p>
               </div>
+              <button
+                onClick={() => setShowLiveUpdates(false)}
+                className="text-blue-300 hover:text-blue-100 transition-colors p-1"
+                aria-label="Dismiss"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         )}

@@ -164,7 +164,7 @@ export function SDKDebugger() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
         <div>
-          <h2 className="text-lg font-semibold">SDK Call History</h2>
+          <h2 className="text-lg font-semibold">SDK Logs</h2>
           <p className="text-sm text-gray-500">
             {calls.length} {calls.length === 1 ? "call" : "calls"} recorded
           </p>
@@ -185,8 +185,8 @@ export function SDKDebugger() {
         {calls.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <p className="text-sm">No SDK calls recorded yet.</p>
-            <p className="text-xs mt-2">
-              Interact with the demo to see API calls appear here.
+            <p className="text-sm mt-2">
+              Interact with the demo app to see API calls appear here.
             </p>
           </div>
         ) : (
