@@ -11,9 +11,9 @@ import {
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
-import { CodeSection } from "./config/CodeSection"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {enableDebugging} from "@/lib/query-params";
+import {enableDebugging} from "@/lib/query-params"
+import { IoCubeSharp, IoFlashOutline } from "react-icons/io5"
 
 function getTypeDescription(prop: {
   name: string
@@ -203,23 +203,19 @@ const PropertyItem = ({
 
 export const ConfigPanel = () => {
   const {
-    fileCode,
-    setFileCode,
     customizationOption,
-    code,
     userId,
     selectedApp,
     setSelectedAppSlug,
     removeSelectedAppSlug,
     selectedComponentType,
+    setSelectedComponentType,
     selectedComponent,
     webhookUrl,
     setWebhookUrl,
     setSelectedComponentKey,
     removeSelectedComponentKey,
     setPropNames,
-    setConfiguredProps,
-    setActionRunOutput,
     customizationOptions,
     setCustomizationOption,
     hideOptionalProps,
@@ -248,6 +244,40 @@ export const ConfigPanel = () => {
 
   const formControls = (
     <div className="divide-y">
+      <PropertyItem
+        name="componentType"
+        type="'action' | 'trigger'"
+        description="Type of component to configure"
+        required={true}
+      >
+        <div className="w-fit flex rounded-md border border-zinc-200 shadow-sm">
+          <button
+            onClick={() => setSelectedComponentType("action")}
+            className={cn(
+              "px-3 py-1.5 text-xs font-medium font-mono flex items-center gap-2",
+              selectedComponentType === "action"
+                ? "bg-zinc-900 text-white"
+                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+            )}
+          >
+            <IoCubeSharp className="h-3 w-3" />
+            Action
+          </button>
+          <div className="w-px bg-zinc-200" />
+          <button
+            onClick={() => setSelectedComponentType("trigger")}
+            className={cn(
+              "px-3 py-1.5 text-xs font-medium font-mono flex items-center gap-2",
+              selectedComponentType === "trigger"
+                ? "bg-zinc-900 text-white"
+                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+            )}
+          >
+            <IoFlashOutline className="h-3 w-3" />
+            Trigger
+          </button>
+        </div>
+      </PropertyItem>
       <PropertyItem
         name="userId"
         type="string"
@@ -462,17 +492,15 @@ export const ConfigPanel = () => {
 
   return (
     <div className="flex flex-col min-h-0 h-full">
+      <div className="p-4 border-b bg-white">
+        <h2 className="text-lg font-semibold text-gray-900">Demo Configuration</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Configure the component demo settings
+        </p>
+      </div>
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-0 space-y-4">
-          <div className="">
-            <CodeSection
-              fileCode={fileCode || ""}
-              setFileCode={setFileCode}
-              code={code}
-              customizationOption={customizationOption}
-              formControls={formControls}
-            />
-          </div>
+        <div className="p-4">
+          {formControls}
         </div>
       </ScrollArea>
     </div>

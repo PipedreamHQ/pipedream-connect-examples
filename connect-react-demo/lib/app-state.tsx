@@ -4,7 +4,7 @@ import defaultTheme from "@/app/components/customization-select/default-unstyled
 import React, { createContext, useContext, useState } from "react"
 // @ts-ignore
 import blueThemeCode from "raw-loader!@/app/components/customization-select/blue-theme.ts"
-import { useComponent, useFrontendClient } from "@pipedream/connect-react"
+import { useComponent, useFrontendClient, useApp } from "@pipedream/connect-react"
 import { useSearchParams } from "next/navigation";
 // @ts-ignore
 import darkThemeCode from "raw-loader!@/app/components/customization-select/dark-theme.ts"
@@ -64,7 +64,9 @@ const useAppStateProviderValue = () => {
     ]);
   }
 
-  const selectedApp = { name_slug: selectedAppSlug }
+  // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
+  const { app: fetchedApp } = useApp(selectedAppSlug && userId ? selectedAppSlug : undefined)
+  const selectedApp = fetchedApp || undefined
 
   const selectedComponentType = queryParams.type || "action"
   const setSelectedComponentType = (value: string) => setQueryParam("type", value)
@@ -72,7 +74,7 @@ const useAppStateProviderValue = () => {
 
   const [webhookUrl, setWebhookUrl] = useState<string>("")
 
-  const selectedComponentKey = queryParams.component //|| "google_sheets-add-single-row"
+  const selectedComponentKey = queryParams.component || "google_sheets-add-single-row"
   const setSelectedComponentKey = (value: string) => {
     setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
     setConfiguredProps({})

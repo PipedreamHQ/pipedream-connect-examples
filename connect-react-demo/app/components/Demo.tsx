@@ -7,10 +7,11 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ConfigPanel } from "./ConfigPanel"
+import { ConfigAndCodePanel } from "./ConfigAndCodePanel"
 import { DemoHeader } from "./DemoHeader"
 import { DemoPanel } from "./DemoPanel"
 import { SDKDebugger } from "./SDKDebugger"
+import { LiveCodeExamples } from "./CodeExample"
 import { Badge } from "@/components/ui/badge"
 import { useSDKLoggerCallCount, useSDKLoggerPendingCount } from "@/lib/sdk-logger"
 
@@ -57,7 +58,7 @@ export default function Demo() {
               className="min-h-0 bg-zinc-50"
             >
               <div className="flex flex-col min-h-0 h-full">
-                <ConfigPanel />
+                <ConfigAndCodePanel />
               </div>
             </ResizablePanel>
 
@@ -70,6 +71,7 @@ export default function Demo() {
             </ResizablePanel>
           </ResizablePanelGroup>
         </TabsContent>
+        
         
         <TabsContent value="sdk" className="flex-1 min-h-0 m-0">
           <SDKDebugger />
