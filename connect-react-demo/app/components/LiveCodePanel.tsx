@@ -72,14 +72,15 @@ export function LiveCodePanel() {
     propNames
   } = useAppState()
 
-  const [activeTab, setActiveTab] = useState("api")
+  const [activeTab, setActiveTab] = useState("current")
   const [showLiveUpdates, setShowLiveUpdates] = useState(true)
+  const [selectedFramework, setSelectedFramework] = useState("react")
 
   // Generate the current ComponentForm code
   const currentComponentCode = component ? `import { ComponentForm, useFrontendClient, useComponent } from "@pipedream/connect-react"
 import { useState } from "react"
 
-export default function MyIntegrationPage() {
+function MyComponent() {
   const frontendClient = useFrontendClient()
   const [configuredProps, setConfiguredProps] = useState(${JSON.stringify(configuredProps, null, 2).replace(/\n/g, '\n  ')})
 
@@ -117,7 +118,7 @@ export default function MyIntegrationPage() {
 import { SelectApp, SelectComponent } from "@pipedream/connect-react"
 import { useState } from "react"
 
-export default function AppSelector() {
+function AppSelector() {
   const [selectedApp, setSelectedApp] = useState()
   const [selectedComponent, setSelectedComponent] = useState()
   
@@ -150,18 +151,20 @@ export default function AppSelector() {
   )
 }`
 
-  // Generate setup code
-  const setupCode = `"use client"
-
-import { FrontendClientProvider } from "@pipedream/connect-react"
+  // Generate setup code based on framework
+  const getSetupCode = () => {
+    switch (selectedFramework) {
+      case "react":
+        return `import { FrontendClientProvider } from "@pipedream/connect-react"
 import { createFrontendClient } from "@pipedream/sdk/browser"
 
-export function ClientProvider({ children }) {
+function ClientProvider({ children }) {
   const client = createFrontendClient({
-    environment: process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT!,
+    environment: import.meta.env.VITE_PIPEDREAM_PROJECT_ENVIRONMENT,
     tokenCallback: async () => {
       const response = await fetch('/api/connect/token')
-      return response.json()
+      const { token } = await response.json()
+      return token
     },
     externalUserId: "${userId}",
   })
@@ -172,6 +175,54 @@ export function ClientProvider({ children }) {
     </FrontendClientProvider>
   )
 }`
+      case "nextjs":
+        return `"use client"
+
+import { FrontendClientProvider } from "@pipedream/connect-react"
+import { createFrontendClient } from "@pipedream/sdk/browser"
+
+export function ClientProvider({ children }) {
+  const client = createFrontendClient({
+    environment: process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT!,
+    tokenCallback: async () => {
+      const response = await fetch('/api/connect/token')
+      const { token } = await response.json()
+      return token
+    },
+    externalUserId: "${userId}",
+  })
+
+  return (
+    <FrontendClientProvider client={client}>
+      {children}
+    </FrontendClientProvider>
+  )
+}`
+      case "vite":
+        return `import { FrontendClientProvider } from "@pipedream/connect-react"
+import { createFrontendClient } from "@pipedream/sdk/browser"
+
+export function ClientProvider({ children }) {
+  const client = createFrontendClient({
+    environment: import.meta.env.VITE_PIPEDREAM_PROJECT_ENVIRONMENT,
+    tokenCallback: async () => {
+      const response = await fetch('/api/connect/token')
+      const { token } = await response.json()
+      return token
+    },
+    externalUserId: "${userId}",
+  })
+
+  return (
+    <FrontendClientProvider client={client}>
+      {children}
+    </FrontendClientProvider>
+  )
+}`
+      default:
+        return ""
+    }
+  }
 
   // Generate API route code using the backend SDK
   const apiCode = `import { NextRequest, NextResponse } from 'next/server'
@@ -200,10 +251,10 @@ export async function GET(request: NextRequest) {
 
   const files = [
     { 
-      id: "api", 
-      name: "route.ts", 
-      description: "Backend token generation API",
-      icon: "🔗"
+      id: "current", 
+      name: "MyComponent.tsx", 
+      description: "React component with form",
+      icon: "📄"
     },
     { 
       id: "setup", 
@@ -212,17 +263,17 @@ export async function GET(request: NextRequest) {
       icon: "⚙️"
     },
     { 
-      id: "current", 
-      name: "IntegrationPage.tsx", 
-      description: "Main integration component with form",
-      icon: "📄"
+      id: "api", 
+      name: "token-endpoint.js", 
+      description: "Backend token generation API",
+      icon: "🔗"
     }
   ]
 
   const getCodeForFile = (fileId: string) => {
     switch (fileId) {
       case "current": return currentComponentCode
-      case "setup": return setupCode
+      case "setup": return getSetupCode()
       case "api": return apiCode
       default: return ""
     }
@@ -235,8 +286,31 @@ export async function GET(request: NextRequest) {
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Implementation Code</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Ready-to-use Next.js files - copy these into your project to add Pipedream Connect
+            Ready-to-use React files - copy these into your project to add Pipedream Connect
           </p>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+              {[
+                { id: "react", name: "React", logo: "⚛️" },
+                { id: "nextjs", name: "Next.js", logo: "▲" },
+                { id: "vite", name: "Vite", logo: "⚡" }
+              ].map((framework) => (
+                <button
+                  key={framework.id}
+                  onClick={() => setSelectedFramework(framework.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                    selectedFramework === framework.id
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  <span className="text-base">{framework.logo}</span>
+                  {framework.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         
         {/* IDE-style file tabs */}
