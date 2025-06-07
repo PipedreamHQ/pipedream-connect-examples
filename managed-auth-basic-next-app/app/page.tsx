@@ -18,8 +18,7 @@ export default function Home() {
   const [appSlug, setAppSlug] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [pd, setPd] = useState<BrowserClient | null>(null);
-  const [oauthAppId, setOauthAppId] = useState<string>("");
-  const [isOAuthConfirmed, setIsOAuthConfirmed] = useState(false);
+  const [isOAuthConfirmed, setIsOAuthConfirmed] = useState(true);
 
   useEffect(() => {
     // This code only runs in the browser
@@ -47,7 +46,6 @@ export default function Home() {
   interface ConnectConfig {
     app: string
     token: string
-    oauthAppId?: string
     onSuccess: (result: ConnectResult) => void
   }
 
@@ -60,18 +58,12 @@ export default function Home() {
     }
     setAppSlug(appSlug)
     
-    // Only include oauthAppId if it's actually provided
     const connectConfig: ConnectConfig = {
       app: appSlug,
       token,
       onSuccess: ({ id }: ConnectResult) => {
         setAuthProvisionId(id)
       }
-    }
-
-    // Add oauthAppId to config only if it exists
-    if (oauthAppId) {
-      connectConfig.oauthAppId = oauthAppId;
     }
 
     if (!pd) {
@@ -140,23 +132,9 @@ export default function Home() {
     }
   }
 
-  // Add handler for OAuth App ID input
-  const handleOAuthAppIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    setOauthAppId(e.target.value);
-    setError("");
-  };
-
-  // Add handler for OAuth app ID submission
-  const handleOAuthSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsOAuthConfirmed(true);
-  };
-
-  // Reset OAuth confirmed state when app changes
+  // Set OAuth confirmed state when app changes
   useEffect(() => {
-    setIsOAuthConfirmed(false);
-    setOauthAppId("");
+    setIsOAuthConfirmed(true);
   }, [selectedApp]);
   
   return (
@@ -166,7 +144,7 @@ export default function Home() {
           <h1 className="text-title mb-8">Pipedream Connect Example App</h1>
           <div className="mb-4 text-body">
             <p className="mb-4">Refer to the <a href={docsConnect} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">Pipedream Connect docs</a> for a full walkthrough of how to configure Connect for your site.</p>
-            <p>When your customers connect accounts with Pipedream, you'll pass their unique user ID in your system — whatever you use to identify them. In this example, we generate a random external user ID for you:
+            <p>When your customers connect accounts with Pipedream, you&apos;ll pass their unique user ID in your system — whatever you use to identify them. In this example, we&apos;ll generate a random external user ID for you:
               <span className="text-code font-bold"> {externalUserId}.</span>
             </p>
           </div>
@@ -180,7 +158,7 @@ export default function Home() {
               language="typescript"
               code={`import { serverConnectTokenCreate } from "@pipedream/sdk";
 
-const { token, expires_at } = await serverConnectTokenCreate({
+const resp = await serverConnectTokenCreate({
   external_user_id: "${externalUserId}", // The end user's ID in your system, this is an example
 })`}
             />
@@ -219,30 +197,6 @@ const { token, expires_at } = await serverConnectTokenCreate({
           {error && <p className="text-error mt-2">{error}</p>}
         </div>
 
-        {selectedApp && (selectedApp as AppResponse).auth_type === 'oauth' && (
-          <div className="py-2">
-            <form onSubmit={handleOAuthSubmit}>
-              <p className="text-subtitle pb-2">Enter an OAuth App ID for {appSlug} <span className="font-light">(optional)</span></p>
-              <p className="text-body">To use Pipedream&apos;s OAuth client, click <span className="font-semibold">Continue</span>. To use your own, <a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href={connectOauthDocs}>configure it in the Pipedream UI</a> and paste the `oauth_app_id` below, then click <span className="font-semibold">Continue</span>.</p>
-              <div className="flex gap-2 my-4 max-w-md">
-                <input
-                  className="shadow appearance-none border rounded w-64 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  id="oauth-app-id"
-                  type="text"
-                  placeholder="oa_xxxxxx"
-                  value={oauthAppId}
-                  onChange={handleOAuthAppIdChange}
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded"
-                >
-                  Continue
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         {selectedApp && (
           (selectedApp as AppResponse).auth_type !== 'oauth' || isOAuthConfirmed
@@ -255,18 +209,17 @@ const { token, expires_at } = await serverConnectTokenCreate({
                 <div className="my-4">
                   <p className="text-subtitle">Option 1: Connect Link</p>
                   <div className="text-body">
-                    <span>Provide a hosted page via URL to your users to connect their account. This is useful if you aren&apos;t able to execute JavaScript or open an iFrame from your site. </span>
-                    <span className="font-semibold">Note that this URL can only be used once, since Connect tokens are one-time use. </span>
+                    <span>Provide a URL to your users to connect their account. This is useful if you aren&apos;t able to execute JavaScript or open an iFrame from your app. </span>
                     <span><a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href="https://pipedream.com/docs/connect/connect-link">See the docs</a> for more info.</span>
                   </div>
                   {connectLink && (
                     <a 
-                      href={`${connectLink}&app=${selectedApp.name_slug}${oauthAppId ? `&oauthAppId=${oauthAppId}` : ''}`}
+                      href={`${connectLink}&app=${selectedApp.name_slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono hover:underline text-blue-600 block mt-2"
                     >
-                      {connectLink}&app={selectedApp.name_slug}{oauthAppId ? `&oauthAppId=${oauthAppId}` : ''}
+                      {connectLink}&app={selectedApp.name_slug}
                     </a>
                   )}
                 </div>
@@ -277,7 +230,7 @@ const { token, expires_at } = await serverConnectTokenCreate({
                     className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded mt-2"
                     onClick={connectAccount}
                   >
-                    Connect your {selectedApp.name_slug} account
+                    Connect {selectedApp.name}
                   </button>
                 </div>
                 <p className="my-4 text-body">
@@ -291,7 +244,6 @@ const { token, expires_at } = await serverConnectTokenCreate({
 const pd = createFrontendClient();
 pd.connectAccount({
   app: "${selectedApp.name_slug}", // The app name to connect to
-  oauthAppId: ${oauthAppId ? `"${oauthAppId}",` : ''}, // ${oauthAppId ? 'Using custom OAuth client' : 'Defaults to Pipedream\'s OAuth client if omitted'}
   token: "${token || '[TOKEN]'}",
   onSuccess: ({ id: accountId }) => {
     console.log('Account successfully connected: ${apn || '{accountId}'}');

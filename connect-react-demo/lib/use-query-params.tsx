@@ -1,4 +1,5 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import React from "react";
 import { z } from "zod";
 import { queryParamSchema } from "./query-params";
 
@@ -32,7 +33,9 @@ export const useQueryParams = () => {
         setQueryParams([{key, value}]);
     }
 
-    const queryParams = queryParamSchema.parse(Object.fromEntries(searchParams.entries()));
+    const queryParams = React.useMemo(() => {
+        return queryParamSchema.parse(Object.fromEntries(searchParams.entries()));
+    }, [searchParams]);
 
     return {
         setQueryParam,

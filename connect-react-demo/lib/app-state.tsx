@@ -1,7 +1,7 @@
 import blueTheme from "@/app/components/customization-select/blue-theme"
 import darkTheme from "@/app/components/customization-select/dark-theme"
 import defaultTheme from "@/app/components/customization-select/default-unstyled"
-import { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useState } from "react"
 // @ts-ignore
 import blueThemeCode from "raw-loader!@/app/components/customization-select/blue-theme.ts"
 import { useComponent, useFrontendClient } from "@pipedream/connect-react"
@@ -115,7 +115,8 @@ const useAppStateProviderValue = () => {
   const enableDebugging = queryParams.enableDebugging === "true"
   const setEnableDebugging = (value: boolean) => setQueryParam("enableDebugging", value ? "true" : undefined)
 
-  const code = `import { createFrontendClient } from "@pipedream/sdk"
+  const code = React.useMemo(() => {
+    return `import { createFrontendClient } from "@pipedream/sdk"
 import { FrontendClientProvider, ComponentFormContainer } from "@pipedream/connect-react"${
     customizationOption.file
       ? `
@@ -155,6 +156,7 @@ export function MyPage() {
     </FrontendClientProvider>
   )
 }`
+  }, [customizationOption.file, customizationOption.name, userId, selectedComponent?.key, hideOptionalProps, enableDebugging, propNames]);
 
   const [fileCode, setFileCode] = useState<string>()
 

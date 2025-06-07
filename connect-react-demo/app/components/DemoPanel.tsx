@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
-import { useState } from "react";
+import React, { useState } from "react";
 
 export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
@@ -166,8 +166,11 @@ export const DemoPanel = () => {
                                   configuredProps,
                                   dynamicPropsId
                                 })
-                                setActionRunOutput(data)
-                                setSdkErrors(data)
+                                // Update both states in a single render cycle
+                                React.startTransition(() => {
+                                  setActionRunOutput(data);
+                                  setSdkErrors(data);
+                                })
                               } catch (e) {
                                 setSdkErrors(e)
                               }
@@ -183,8 +186,11 @@ export const DemoPanel = () => {
                                   webhookUrl,
                                   dynamicPropsId,
                                 })
-                                setActionRunOutput(data)
-                                setSdkErrors(data)
+                                // Update both states in a single render cycle
+                                React.startTransition(() => {
+                                  setActionRunOutput(data);
+                                  setSdkErrors(data);
+                                })
                               } catch (e) {
                                 setSdkErrors(e)
                               }
