@@ -5,16 +5,20 @@ import { useStableUuid } from "@/lib/stable-uuid"
 import { FrontendClientProvider } from "@pipedream/connect-react"
 import { createFrontendClient } from "@pipedream/sdk/browser"
 import { fetchToken } from "../actions/backendClient"
+import { SDKLoggerProvider, useSDKLogger, createLoggedFrontendClient } from "@/lib/sdk-logger"
 import Demo from "./Demo"
 
-export const ClientWrapper = () => {
+const ClientProviderWithLogger = () => {
   const [externalUserId] = useStableUuid()
+  const logger = useSDKLogger()
 
-  const client = createFrontendClient({
+  const baseClient = createFrontendClient({
     environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT,
     tokenCallback: fetchToken,
     externalUserId,
   });
+
+  const client = createLoggedFrontendClient(baseClient, logger)
 
   return (
     <FrontendClientProvider client={client}>
@@ -22,5 +26,13 @@ export const ClientWrapper = () => {
         <Demo />
       </AppStateProvider>
     </FrontendClientProvider>
+  );
+}
+
+export const ClientWrapper = () => {
+  return (
+    <SDKLoggerProvider>
+      <ClientProviderWithLogger />
+    </SDKLoggerProvider>
   );
 }
