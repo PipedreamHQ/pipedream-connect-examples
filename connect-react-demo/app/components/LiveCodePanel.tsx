@@ -74,7 +74,6 @@ export function LiveCodePanel() {
 
   const [activeTab, setActiveTab] = useState("current")
   const [showLiveUpdates, setShowLiveUpdates] = useState(true)
-  const [selectedFramework, setSelectedFramework] = useState("react")
 
   // Generate the current ComponentForm code
   const currentComponentCode = component ? `import { ComponentForm, useFrontendClient, useComponent } from "@pipedream/connect-react"
@@ -151,39 +150,13 @@ function AppSelector() {
   )
 }`
 
-  // Generate setup code based on framework
-  const getSetupCode = () => {
-    switch (selectedFramework) {
-      case "react":
-        return `import { FrontendClientProvider } from "@pipedream/connect-react"
-import { createFrontendClient } from "@pipedream/sdk/browser"
-
-function ClientProvider({ children }) {
-  const client = createFrontendClient({
-    environment: import.meta.env.VITE_PIPEDREAM_PROJECT_ENVIRONMENT,
-    tokenCallback: async () => {
-      const response = await fetch('/api/connect/token')
-      const { token } = await response.json()
-      return token
-    },
-    externalUserId: "${userId}",
-  })
-
-  return (
-    <FrontendClientProvider client={client}>
-      {children}
-    </FrontendClientProvider>
-  )
-}`
-      case "nextjs":
-        return `"use client"
-
-import { FrontendClientProvider } from "@pipedream/connect-react"
+  // Generate setup code
+  const setupCode = `import { FrontendClientProvider } from "@pipedream/connect-react"
 import { createFrontendClient } from "@pipedream/sdk/browser"
 
 export function ClientProvider({ children }) {
   const client = createFrontendClient({
-    environment: process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT!,
+    environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT,
     tokenCallback: async () => {
       const response = await fetch('/api/connect/token')
       const { token } = await response.json()
@@ -198,31 +171,6 @@ export function ClientProvider({ children }) {
     </FrontendClientProvider>
   )
 }`
-      case "vite":
-        return `import { FrontendClientProvider } from "@pipedream/connect-react"
-import { createFrontendClient } from "@pipedream/sdk/browser"
-
-export function ClientProvider({ children }) {
-  const client = createFrontendClient({
-    environment: import.meta.env.VITE_PIPEDREAM_PROJECT_ENVIRONMENT,
-    tokenCallback: async () => {
-      const response = await fetch('/api/connect/token')
-      const { token } = await response.json()
-      return token
-    },
-    externalUserId: "${userId}",
-  })
-
-  return (
-    <FrontendClientProvider client={client}>
-      {children}
-    </FrontendClientProvider>
-  )
-}`
-      default:
-        return ""
-    }
-  }
 
   // Generate API route code using the backend SDK
   const apiCode = `import { NextRequest, NextResponse } from 'next/server'
@@ -253,19 +201,19 @@ export async function GET(request: NextRequest) {
     { 
       id: "current", 
       name: "MyComponent.tsx", 
-      description: "React component with form",
+      description: "Main React component that renders the integration form and handles user interactions",
       icon: "📄"
     },
     { 
       id: "setup", 
       name: "ClientProvider.tsx", 
-      description: "SDK client configuration",
+      description: "Provider component that configures the Pipedream SDK and wraps your app",
       icon: "⚙️"
     },
     { 
       id: "api", 
       name: "token-endpoint.js", 
-      description: "Backend token generation API",
+      description: "Backend API endpoint that securely generates Connect tokens for frontend authentication",
       icon: "🔗"
     }
   ]
@@ -273,7 +221,7 @@ export async function GET(request: NextRequest) {
   const getCodeForFile = (fileId: string) => {
     switch (fileId) {
       case "current": return currentComponentCode
-      case "setup": return getSetupCode()
+      case "setup": return setupCode
       case "api": return apiCode
       default: return ""
     }
@@ -286,31 +234,8 @@ export async function GET(request: NextRequest) {
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Implementation Code</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Ready-to-use React files - copy these into your project to add Pipedream Connect
+            {files.find(f => f.id === activeTab)?.description || "Ready-to-use React files - copy these into your project to add Pipedream Connect"}
           </p>
-          <div className="flex items-center gap-3 mt-3">
-            <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
-              {[
-                { id: "react", name: "React", logo: "⚛️" },
-                { id: "nextjs", name: "Next.js", logo: "▲" },
-                { id: "vite", name: "Vite", logo: "⚡" }
-              ].map((framework) => (
-                <button
-                  key={framework.id}
-                  onClick={() => setSelectedFramework(framework.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-                    selectedFramework === framework.id
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  )}
-                >
-                  <span className="text-base">{framework.logo}</span>
-                  {framework.name}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
         
         {/* IDE-style file tabs */}
