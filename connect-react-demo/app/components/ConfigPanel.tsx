@@ -14,12 +14,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { BooleanToggle } from "./ui/boolean-toggle"
+import { ComponentTypeSelector } from "./ComponentTypeSelector"
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
-import {enableDebugging} from "@/lib/query-params"
-import { IoCubeSharp, IoFlashOutline, IoChevronDown, IoSettingsOutline } from "react-icons/io5"
+import { IoChevronDown, IoSettingsOutline } from "react-icons/io5"
 import type { ConfigurableProp } from "../../lib/types/pipedream"
+import type { CSSObjectWithLabel } from "react-select"
 import { getTypeDescription } from "../../lib/utils/type-descriptions"
 
 const typeBadgeStyles = {
@@ -185,7 +186,6 @@ export const ConfigPanel = () => {
   const id2 = useId();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Customization config to fix z-index for dropdowns
   const dropdownCustomization = {
     props: {
       controlSelect: {
@@ -196,17 +196,17 @@ export const ConfigPanel = () => {
     },
     styles: {
       controlSelect: {
-        menu: (base: any) => ({
+        menu: (base: CSSObjectWithLabel) => ({
           ...base,
           zIndex: 99999,
           position: 'fixed',
         }),
-        menuPortal: (base: any) => ({ 
+        menuPortal: (base: CSSObjectWithLabel) => ({ 
           ...base, 
           zIndex: 99999,
           position: 'fixed',
         }),
-        control: (base: any) => ({
+        control: (base: CSSObjectWithLabel) => ({
           ...base,
           position: 'relative',
           zIndex: 1,
@@ -216,20 +216,15 @@ export const ConfigPanel = () => {
   }
 
   const isValidWebhookUrl = () => {
-    if (!webhookUrl) {
-      return true
-    }
-
+    if (!webhookUrl) return true
     try {
-      new URL(webhookUrl);
+      new URL(webhookUrl)
+      return true
     } catch {
       return false
     }
-    return true
   }
 
-
-  // Basic configuration options (always visible)
   const basicFormControls = (
     <div className="divide-y">
       <PropertyItem
@@ -238,33 +233,10 @@ export const ConfigPanel = () => {
         description="Type of component to configure"
         required={true}
       >
-        <div className="w-fit flex rounded-md border border-zinc-200 shadow-sm">
-          <button
-            onClick={() => setSelectedComponentType("action")}
-            className={cn(
-              "px-3 py-1.5 text-xs font-medium font-mono flex items-center gap-2",
-              selectedComponentType === "action"
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-            )}
-          >
-            <IoCubeSharp className="h-3 w-3" />
-            Action
-          </button>
-          <div className="w-px bg-zinc-200" />
-          <button
-            onClick={() => setSelectedComponentType("trigger")}
-            className={cn(
-              "px-3 py-1.5 text-xs font-medium font-mono flex items-center gap-2",
-              selectedComponentType === "trigger"
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-            )}
-          >
-            <IoFlashOutline className="h-3 w-3" />
-            Trigger
-          </button>
-        </div>
+        <ComponentTypeSelector 
+          selectedType={selectedComponentType}
+          onTypeChange={setSelectedComponentType}
+        />
       </PropertyItem>
       <PropertyItem
         name="app"
@@ -323,7 +295,6 @@ export const ConfigPanel = () => {
     </div>
   )
 
-  // Advanced configuration options (collapsible)
   const advancedFormControls = (
     <div className="divide-y">
       <PropertyItem
@@ -373,7 +344,7 @@ export const ConfigPanel = () => {
       >
         <Select
           instanceId={id1}
-          options={(component?.configurable_props || []).map((prop: any) => ({
+          options={(component?.configurable_props || []).map((prop: ConfigurableProp) => ({
             label: prop.name,
             value: prop.name,
           }))}
@@ -471,10 +442,8 @@ export const ConfigPanel = () => {
       </div>
       <div>
         <div className="px-4 md:px-6 py-4">
-          {/* Basic configuration - always visible */}
           {basicFormControls}
           
-          {/* Advanced configuration - collapsible on mobile */}
           <div className="mt-4">
             <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
               <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-xs font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150 md:hidden">
@@ -485,7 +454,6 @@ export const ConfigPanel = () => {
                 <IoChevronDown className={cn("h-3 w-3 transition-transform", showAdvanced && "rotate-180")} />
               </CollapsibleTrigger>
               
-              {/* Always show on desktop, collapsible on mobile */}
               <div className="hidden md:block">
                 {advancedFormControls}
               </div>

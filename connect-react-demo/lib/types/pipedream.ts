@@ -3,7 +3,7 @@ export interface ConfigurableProp {
   type: string
   description: string
   optional?: boolean
-  default?: any
+  default?: string | number | boolean | null
   min?: number
   max?: number
   secret?: boolean
@@ -23,7 +23,7 @@ export interface AppResponse {
 export interface CustomizationOption {
   name: string
   label: string
-  customization?: Record<string, any>
+  customization?: Record<string, unknown>
   file?: string
   containerStyle?: React.CSSProperties
 }
@@ -31,7 +31,7 @@ export interface CustomizationOption {
 export interface SDKError {
   message: string
   code?: string
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 export type ComponentType = "action" | "trigger"

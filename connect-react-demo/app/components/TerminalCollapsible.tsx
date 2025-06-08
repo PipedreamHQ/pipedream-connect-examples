@@ -5,6 +5,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Terminal } from "./Terminal"
+import type { TerminalOutput } from "./Terminal"
 import { SectionHeader } from "./SectionHeader"
 import { cn } from "@/lib/utils"
 
@@ -12,7 +13,7 @@ interface TerminalCollapsibleProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   hasOutput: boolean
-  output?: any
+  output?: TerminalOutput | null
 }
 
 export const TerminalCollapsible = ({

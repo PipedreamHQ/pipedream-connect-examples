@@ -21,18 +21,42 @@ export const DemoPanel = () => {
     enableDebugging,
   } = useAppState()
 
-  const [
-    dynamicPropsId,
-    setDynamicPropsId,
-  ] = useState<string | undefined>();
-
-  const [
-    sdkErrors,
-    setSdkErrors,
-  ] = useState<unknown[] | unknown | undefined>(undefined);
+  const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
+  const [sdkErrors, setSdkErrors] = useState<unknown>()
 
   const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
     setDynamicPropsId(dynamicProps.id)
+  }
+
+  const handleSubmit = async () => {
+    if (!component) return
+
+    try {
+      const data = selectedComponentType === "action" 
+        ? await frontendClient.actionRun({
+            userId,
+            actionId: component.key,
+            configuredProps,
+            dynamicPropsId,
+          })
+        : await frontendClient.deployTrigger({
+            userId,
+            triggerId: component.key,
+            configuredProps,
+            webhookUrl,
+            dynamicPropsId,
+          })
+
+      React.startTransition(() => {
+        setSdkErrors(undefined)
+        setActionRunOutput(data)
+      })
+    } catch (error) {
+      React.startTransition(() => {
+        setSdkErrors(error)
+        setActionRunOutput(undefined)
+      })
+    }
   }
 
   return (
@@ -111,48 +135,7 @@ export const DemoPanel = () => {
                       hideOptionalProps={hideOptionalProps}
                       propNames={propNames}
                       enableDebugging={enableDebugging}
-                      onSubmit={async (ctx) => {
-                        if (selectedComponentType === "action") {
-                          try {
-                            const data = await frontendClient.actionRun({
-                              userId,
-                              actionId: component.key,
-                              configuredProps,
-                              dynamicPropsId,
-                            })
-                            // Update both states in a single render cycle
-                            React.startTransition(() => {
-                              setSdkErrors(undefined)
-                              setActionRunOutput(data)
-                            })
-                          } catch (error) {
-                            React.startTransition(() => {
-                              setSdkErrors(error)
-                              setActionRunOutput(undefined)
-                            })
-                          }
-                        } else if (selectedComponentType === "trigger") {
-                          try {
-                            const data = await frontendClient.deployTrigger({
-                              userId,
-                              triggerId: component.key,
-                              configuredProps,
-                              webhookUrl,
-                              dynamicPropsId,
-                            })
-                            // Update both states in a single render cycle
-                            React.startTransition(() => {
-                              setSdkErrors(undefined)
-                              setActionRunOutput(data)
-                            })
-                          } catch (error) {
-                            React.startTransition(() => {
-                              setSdkErrors(error)
-                              setActionRunOutput(undefined)
-                            })
-                          }
-                        }
-                      }}
+                      onSubmit={handleSubmit}
                       onDynamicPropsChange={handleDynamicProps}
                       errors={sdkErrors}
                     />

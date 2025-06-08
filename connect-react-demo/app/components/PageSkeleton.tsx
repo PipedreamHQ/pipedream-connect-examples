@@ -1,9 +1,11 @@
+import type { CustomizationOption } from "@/lib/types/pipedream"
+
 export function PageSkeleton({
   children,
   customizationOption,
 }: {
   children: React.ReactNode
-  customizationOption: any
+  customizationOption: CustomizationOption | null
 }) {
   const isDark = customizationOption?.name === "dark"
 

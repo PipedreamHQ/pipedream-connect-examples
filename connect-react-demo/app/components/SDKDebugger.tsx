@@ -9,40 +9,45 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { IoChevronForward, IoTrashOutline, IoCopyOutline, IoCheckmarkOutline } from "react-icons/io5"
-import { useState, memo } from "react"
+import { useState, memo, useCallback } from "react"
 import { cn } from "@/lib/utils"
 
-function formatDuration(ms?: number) {
+const STATUS_COLORS = {
+  pending: "bg-yellow-100 text-yellow-800",
+  success: "bg-green-100 text-green-800", 
+  error: "bg-red-100 text-red-800"
+} as const
+
+const formatDuration = (ms?: number) => {
   if (!ms) return ""
   if (ms < 1000) return `${ms}ms`
   return `${(ms / 1000).toFixed(2)}s`
 }
 
-function formatTimestamp(date: Date) {
-  return date.toLocaleTimeString("en-US", {
+const formatTimestamp = (date: Date) => 
+  date.toLocaleTimeString("en-US", {
     hour12: false,
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     fractionalSecondDigits: 3
   })
+
+const useCopyToClipboard = () => {
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  
+  const copyToClipboard = useCallback(async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
+  }, [])
+  
+  return { copiedField, copyToClipboard }
 }
 
 const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
-
-  const copyToClipboard = async (text: string, field: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopiedField(field)
-    setTimeout(() => setCopiedField(null), 2000)
-  }
-
-  const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800",
-    success: "bg-green-100 text-green-800", 
-    error: "bg-red-100 text-red-800"
-  }
+  const { copiedField, copyToClipboard } = useCopyToClipboard()
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -57,7 +62,7 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
           
           <Badge 
             variant="secondary" 
-            className={cn("text-xs", statusColors[call.status])}
+            className={cn("text-xs", STATUS_COLORS[call.status])}
           >
             {call.status}
           </Badge>

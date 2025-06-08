@@ -1,8 +1,13 @@
-import { Cursor } from "./Cursor"
+export interface TerminalOutput {
+  error?: boolean
+  message?: string
+  data?: Record<string, unknown>
+  [key: string]: unknown
+}
 
 interface TerminalProps {
   shouldAnimate?: boolean
-  output?: any
+  output?: TerminalOutput | null
 }
 
 export const Terminal = ({ shouldAnimate, output }: TerminalProps) => {
