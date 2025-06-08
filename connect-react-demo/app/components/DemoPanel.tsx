@@ -33,7 +33,7 @@ export const DemoPanel = () => {
 
     try {
       const data = selectedComponentType === "action" 
-        ? await frontendClient.actionRun({
+        ? await frontendClient.runAction({
             userId,
             actionId: component.key,
             configuredProps,
@@ -139,7 +139,7 @@ export const DemoPanel = () => {
                       propNames={propNames}
                       enableDebugging={enableDebugging}
                       onSubmit={handleSubmit}
-                      onDynamicPropsChange={handleDynamicProps}
+                      onUpdateDynamicProps={handleDynamicProps}
                       errors={sdkErrors}
                     />
                   )}

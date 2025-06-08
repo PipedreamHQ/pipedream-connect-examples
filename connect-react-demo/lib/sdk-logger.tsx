@@ -165,21 +165,40 @@ export function createLoggedFrontendClient(
   }
 ): FrontendClient {
   const methodsToLog = [
+    // App methods
+    "getApps",
     "apps",
+    "getApp", 
     "app",
-    "components", 
+    // Component methods
+    "getComponents",
+    "components",
+    "getComponent",
     "component",
-    "accounts",
-    "createAccount",
-    "updateAccount",
-    "deleteAccount",
-    "testAccount",
     "configureComponent",
-    "deployTrigger",
-    "deleteTrigger",
-    "getTriggerWebhooks",
-    "actionRun",
+    "componentConfigure",
     "reloadComponentProps",
+    "componentReloadProps",
+    // Account methods
+    "getAccounts",
+    // Action methods
+    "runAction",
+    "actionRun",
+    // Trigger methods
+    "deployTrigger",
+    "triggerDeploy",
+    "deleteTrigger",
+    "getTrigger",
+    "getTriggers",
+    "updateTrigger",
+    "getTriggerEvents",
+    "getTriggerWorkflows",
+    "updateTriggerWorkflows",
+    "getTriggerWebhooks",
+    "updateTriggerWebhooks",
+    // Workflow methods
+    "invokeWorkflow",
+    "invokeWorkflowForExternalUser",
   ]
 
   const handler: ProxyHandler<FrontendClient> = {
