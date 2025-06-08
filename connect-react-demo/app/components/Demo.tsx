@@ -34,10 +34,19 @@ export default function Demo() {
           
           <div className="space-y-4 text-neutral-700">
             <p className="text-lg font-medium text-neutral-800">
-              Demo of Pipedream Connect: One SDK, thousands of API integrations for your app or AI agent
+              One SDK, thousands of API integrations for your app or AI agent
             </p>
             <p className="text-sm sm:text-base leading-relaxed">
-              This demo shows Pipedream Connect in action using the <strong>@pipedream/connect-react</strong> frontend package. 
+              This demo shows Pipedream Connect in action using the{" "}
+              <a 
+                href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-semibold text-blue-700 hover:text-blue-900 hover:underline transition"
+              >
+                @pipedream/connect-react
+              </a>{" "}
+              frontend package. 
               Connect provides managed authentication, prebuilt components, and access to 2,700+ APIs with 10,000+ triggers and actions.
               You can use our backend API/SDK with your own frontend, or use our React components like shown here.
             </p>

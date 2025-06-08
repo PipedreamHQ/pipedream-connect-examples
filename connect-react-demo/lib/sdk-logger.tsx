@@ -33,14 +33,14 @@ export function SDKLoggerProvider({ children }: { children: ReactNode }) {
   // Use refs to store data without triggering re-renders
   const callsRef = useRef<SDKCall[]>([])
   const subscribersRef = useRef<Set<() => void>>(new Set())
-  const isDevelopment = useRef(process.env.NODE_ENV === 'development')
+  const shouldLog = useRef(true) // Always log - this is a demo feature
 
   const notifySubscribers = useCallback(() => {
     subscribersRef.current.forEach(callback => callback())
   }, [])
 
   const addCall = useCallback((call: Omit<SDKCall, "id">) => {
-    if (!isDevelopment.current) return "" // Skip logging in production
+    if (!shouldLog.current) return "" // Skip logging in production
     
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const newCall = { ...call, id }
@@ -52,7 +52,7 @@ export function SDKLoggerProvider({ children }: { children: ReactNode }) {
   }, [notifySubscribers])
 
   const updateCall = useCallback((id: string, updates: Partial<SDKCall>) => {
-    if (!isDevelopment.current) return // Skip logging in production
+    if (!shouldLog.current) return // Skip logging in production
     
     callsRef.current = callsRef.current.map(call => 
       call.id === id ? { ...call, ...updates } : call
@@ -150,7 +150,7 @@ export function useSDKLoggerPendingCount() {
  * 1. External Store Pattern: Uses refs + useSyncExternalStore to avoid React context re-renders
  * 2. Selective Subscriptions: Components only re-render when they specifically need logger data
  * 3. Memoized Hooks: Separate hooks for different data slices (calls, count, pending count)
- * 4. Development Mode Only: Logging is completely disabled in production builds
+ * 4. Always Enabled: Logging is always enabled since this is a demo feature for developers
  * 
  * This ensures that typing in SelectApp or other components that trigger API calls
  * won't cause the entire app tree to re-render unnecessarily.

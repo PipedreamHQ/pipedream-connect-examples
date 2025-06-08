@@ -23,20 +23,24 @@ export function DemoHeader() {
       </div>
       
       <div className="hidden md:flex items-center gap-x-2">
-        {NAV_LINKS.slice(0, 2).map((link) => (
-          <Button
-            key={link.href}
-            variant="outline"
-            className="flex items-center gap-x-2 text-neutral-600 hover:text-neutral-800 border-neutral-200 hover:bg-neutral-50"
-            onClick={() => window.open(link.href, "_blank")}
-          >
-            {link.label}
-          </Button>
-        ))}
+        <Button
+          variant="outline"
+          className="flex items-center gap-x-2 text-neutral-600 hover:text-neutral-800 border-neutral-200 hover:bg-neutral-50"
+          onClick={() => window.open(NAV_LINKS[0].href, "_blank")}
+        >
+          {NAV_LINKS[0].label}
+        </Button>
+        <Button
+          variant="outline"
+          className="flex items-center gap-x-2 text-neutral-600 hover:text-neutral-800 border-neutral-200 hover:bg-neutral-50"
+          onClick={() => window.open(NAV_LINKS[2].href, "_blank")}
+        >
+          <SiGithub className="h-4 w-4" />
+          {NAV_LINKS[2].label}
+        </Button>
         <Button variant="default" className="gap-2" asChild>
-          <a href={NAV_LINKS[2].href} target="_blank" rel="noopener noreferrer">
-            <SiGithub className="h-4 w-4" />
-            {NAV_LINKS[2].label}
+          <a href={NAV_LINKS[1].href} target="_blank" rel="noopener noreferrer">
+            {NAV_LINKS[1].label}
           </a>
         </Button>
       </div>
