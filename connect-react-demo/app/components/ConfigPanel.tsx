@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useState } from "react"
-import { SelectApp, SelectComponent } from "@pipedream/connect-react"
+import { SelectApp, SelectComponent, CustomizeProvider } from "@pipedream/connect-react"
 import {
   Tooltip,
   TooltipContent,
@@ -17,7 +17,6 @@ import { BooleanToggle } from "./ui/boolean-toggle"
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {enableDebugging} from "@/lib/query-params"
 import { IoCubeSharp, IoFlashOutline, IoChevronDown, IoSettingsOutline } from "react-icons/io5"
 import type { ConfigurableProp } from "../../lib/types/pipedream"
@@ -186,6 +185,36 @@ export const ConfigPanel = () => {
   const id2 = useId();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Customization config to fix z-index for dropdowns
+  const dropdownCustomization = {
+    props: {
+      controlSelect: {
+        menuPortalTarget: typeof document !== 'undefined' ? document.body : undefined,
+        menuPlacement: 'auto',
+        menuShouldBlockScroll: false,
+      },
+    },
+    styles: {
+      controlSelect: {
+        menu: (base: any) => ({
+          ...base,
+          zIndex: 99999,
+          position: 'fixed',
+        }),
+        menuPortal: (base: any) => ({ 
+          ...base, 
+          zIndex: 99999,
+          position: 'fixed',
+        }),
+        control: (base: any) => ({
+          ...base,
+          position: 'relative',
+          zIndex: 1,
+        }),
+      },
+    },
+  }
+
   const isValidWebhookUrl = () => {
     if (!webhookUrl) {
       return true
@@ -243,14 +272,16 @@ export const ConfigPanel = () => {
         description="App to connect to"
         required={true}
       >
-        <SelectApp
-          value={selectedApp}
-          onChange={(app) => {
-            app
-              ? setSelectedAppSlug(app.name_slug)
-              : removeSelectedAppSlug()
-          }}
-        />
+        <CustomizeProvider customization={dropdownCustomization}>
+          <SelectApp
+            value={selectedApp}
+            onChange={(app) => {
+              app
+                ? setSelectedAppSlug(app.name_slug)
+                : removeSelectedAppSlug()
+            }}
+          />
+        </CustomizeProvider>
       </PropertyItem>
       <PropertyItem
         name={selectedComponentType === "action" ? "actionId" : "triggerId"}
@@ -258,17 +289,19 @@ export const ConfigPanel = () => {
         description={`${selectedComponentType === "action" ? "Action" : "Trigger"} to use`}
         required={true}
       >
-        <SelectComponent
-          app={selectedApp}
-          componentType={selectedComponentType}
-          value={selectedComponent}
-          onChange={(comp) => {
-            comp
-              ? setSelectedComponentKey(comp.key)
-              : removeSelectedComponentKey()
+        <CustomizeProvider customization={dropdownCustomization}>
+          <SelectComponent
+            app={selectedApp}
+            componentType={selectedComponentType}
+            value={selectedComponent}
+            onChange={(comp) => {
+              comp
+                ? setSelectedComponentKey(comp.key)
+                : removeSelectedComponentKey()
 
-          }}
-        />
+            }}
+          />
+        </CustomizeProvider>
       </PropertyItem>
       {selectedComponentType === "trigger" && (
         <PropertyItem
@@ -353,6 +386,10 @@ export const ConfigPanel = () => {
           className="react-select-container text-sm"
           classNamePrefix="react-select"
           placeholder="Select properties to show..."
+          menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+          styles={{
+            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          }}
           components={{
             IndicatorSeparator: () => null,
           }}
@@ -378,6 +415,10 @@ export const ConfigPanel = () => {
           className="react-select-container text-sm"
           classNamePrefix="react-select"
           placeholder="Choose a theme..."
+          menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+          styles={{
+            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          }}
           components={{
             IndicatorSeparator: () => null,
           }}
@@ -421,14 +462,14 @@ export const ConfigPanel = () => {
   )
 
   return (
-    <div className="flex flex-col min-h-0 h-full">
+    <div className="flex flex-col">
       <div className="px-4 md:px-6 py-4 border-b bg-white">
         <h2 className="text-lg font-semibold text-gray-900">Demo Configuration</h2>
         <p className="text-sm text-gray-500 mt-1">
           Configure the component demo settings
         </p>
       </div>
-      <ScrollArea className="flex-1 min-h-0">
+      <div>
         <div className="px-4 md:px-6 py-4">
           {/* Basic configuration - always visible */}
           {basicFormControls}
@@ -439,7 +480,7 @@ export const ConfigPanel = () => {
               <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-xs font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150 md:hidden">
                 <div className="flex items-center gap-2">
                   <IoSettingsOutline className="h-3 w-3" />
-                  Advanced Configuration
+                  More options
                 </div>
                 <IoChevronDown className={cn("h-3 w-3 transition-transform", showAdvanced && "rotate-180")} />
               </CollapsibleTrigger>
@@ -457,7 +498,7 @@ export const ConfigPanel = () => {
           
           {triggerInfo}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

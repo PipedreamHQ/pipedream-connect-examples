@@ -5,7 +5,7 @@ export function PageSkeleton({
   children: React.ReactNode
   customizationOption: any
 }) {
-  const isDark = customizationOption.name === "dark"
+  const isDark = customizationOption?.name === "dark"
 
   return (
     <div className="relative">

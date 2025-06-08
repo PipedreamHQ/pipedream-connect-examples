@@ -59,6 +59,9 @@ dependencies:
   framer-motion:
     specifier: ^11.11.11
     version: 11.11.11(react-dom@18.0.0)(react@18.0.0)
+  geist:
+    specifier: ^1.4.2
+    version: 1.4.2(next@14.2.14)
   lucide-react:
     specifier: ^0.454.0
     version: 0.454.0(react@18.0.0)
@@ -2323,6 +2326,14 @@ packages:
 
   /function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
+
+  /geist@1.4.2(next@14.2.14):
+    resolution: {integrity: sha512-OQUga/KUc8ueijck6EbtT07L4tZ5+TZgjw8PyWfxo16sL5FWk7gNViPNU8hgCFjy6bJi9yuTP+CRpywzaGN8zw==}
+    peerDependencies:
+      next: '>=13.2.0'
+    dependencies:
+      next: 14.2.14(react-dom@18.0.0)(react@18.0.0)
+    dev: false
 
   /get-nonce@1.0.1:
     resolution: {integrity: sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q==}

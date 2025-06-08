@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { IoCopyOutline, IoCheckmarkOutline, IoCodeSlashOutline } from "react-icons/io5"
@@ -24,7 +23,7 @@ function CodeBlock({ children, className, language = "tsx" }: { children: string
   }
 
   return (
-    <div className={cn("relative", className)} style={{ height: 'calc(100vh - 280px)' }}>
+    <div className={cn("relative", className)}>
       <Button
         variant="ghost"
         size="sm"
@@ -39,7 +38,7 @@ function CodeBlock({ children, className, language = "tsx" }: { children: string
           <IoCopyOutline className="h-4 w-4 text-gray-300" />
         )}
       </Button>
-      <div className="h-full overflow-hidden">
+      <div>
         <SyntaxHighlighter
           language={language === "tsx" ? "typescript" : language}
           style={tomorrow}
@@ -49,8 +48,6 @@ function CodeBlock({ children, className, language = "tsx" }: { children: string
             background: '#1a1a1a',
             fontSize: '13px',
             lineHeight: '1.5',
-            height: '100%',
-            overflow: 'auto'
           }}
           codeTagProps={{
             style: {
@@ -234,7 +231,7 @@ export async function GET(request: NextRequest) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50">
       {/* Header section - fixed height */}
       <div className="flex-shrink-0 bg-white border-b">
         <div className="px-4 sm:px-6 py-4 border-b">
@@ -267,8 +264,8 @@ export async function GET(request: NextRequest) {
         </div>
       </div>
 
-      {/* Code section - takes remaining height */}
-      <div className="flex-1 min-h-0 relative px-4 sm:px-6">
+      {/* Code section */}
+      <div className="relative px-4 sm:px-6 pb-6">
         <CodeBlock language={activeTab === "api" ? "typescript" : "tsx"}>
           {getCodeForFile(activeTab)}
         </CodeBlock>

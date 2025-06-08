@@ -1,7 +1,6 @@
 "use client"
 
 import { useSDKLogger, useSDKLoggerCalls, SDKCall } from "@/lib/sdk-logger"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { 
@@ -161,7 +160,7 @@ export function SDKDebugger() {
   const { clearCalls } = useSDKLogger()
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       <div className="flex items-center justify-between p-4 border-b">
         <div>
           <h2 className="text-lg font-semibold">SDK Logs</h2>
@@ -181,7 +180,7 @@ export function SDKDebugger() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div>
         {calls.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <p className="text-sm">No SDK calls recorded yet.</p>
@@ -196,7 +195,7 @@ export function SDKDebugger() {
             ))}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </div>
   )
 }

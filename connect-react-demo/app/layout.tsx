@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import { DatadogScript } from "./components/DatadogScript"
+import { GeistSans } from "geist/font/sans"
 
 export const metadata: Metadata = {
   title: "Demo - Pipedream Connect",
@@ -14,9 +15,9 @@ export default async function RootLayout({
 }>) {
 
   return (
-    <html lang="en">
+    <html lang="en" className={GeistSans.variable}>
       <DatadogScript />
-      <body className="antialiased">
+      <body className={`antialiased ${GeistSans.className}`}>
         {children}
       </body>
     </html>
