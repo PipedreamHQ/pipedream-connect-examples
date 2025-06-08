@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ConfigPanel } from "./ConfigPanel"
 import { LiveCodePanel } from "./LiveCodePanel"
 import { DemoPanel } from "./DemoPanel"
@@ -9,7 +10,8 @@ import { SDKDebugger } from "./SDKDebugger"
 import { DemoHeader } from "./DemoHeader"
 import { DemoTabTrigger } from "./DemoTabTrigger"
 import { useSDKLoggerCallCount, useSDKLoggerPendingCount } from "@/lib/sdk-logger"
-import { IoSettingsOutline, IoFlashOutline, IoCodeSlashOutline } from "react-icons/io5"
+import { IoSettingsOutline, IoFlashOutline, IoCodeSlashOutline, IoChevronDown } from "react-icons/io5"
+import { cn } from "@/lib/utils"
 
 const TABS = [
   { value: "config", icon: IoSettingsOutline, label: "Config" },
@@ -19,6 +21,7 @@ const TABS = [
 
 export default function Demo() {
   const [activeTab, setActiveTab] = useState("config")
+  const [showMoreInfo, setShowMoreInfo] = useState(false)
   const callCount = useSDKLoggerCallCount()
   const pendingCount = useSDKLoggerPendingCount()
 
@@ -37,23 +40,57 @@ export default function Demo() {
               One SDK, thousands of API integrations for your app or AI agent
             </p>
           
-            <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
-              This demo app shows Pipedream Connect in action using the{" "}
-              <a 
-                href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700 transition-colors border-b border-blue-200 hover:border-blue-300"
-              >
-                @pipedream/connect-react
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>{" "}
-              frontend package. 
-              Connect provides managed authentication, prebuilt form components, and access to 2,700+ APIs with 10,000+ triggers and actions.
-              You can use our backend API/SDK with your own frontend, or use our React components like shown here.
-            </p>
+            {/* Desktop: Show full content always */}
+            <div className="hidden sm:block space-y-6">
+              <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                This demo app shows Pipedream Connect in action using the{" "}
+                <a 
+                  href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700 transition-colors border-b border-blue-200 hover:border-blue-300"
+                >
+                  @pipedream/connect-react
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>{" "}
+                frontend package. 
+                Connect provides managed authentication, prebuilt form components, and access to 2,700+ APIs with 10,000+ triggers and actions.
+                You can use our backend API/SDK with your own frontend, or use our React components like shown here.
+              </p>
+            </div>
+
+            {/* Mobile: Collapsible content */}
+            <div className="sm:hidden">
+              <Collapsible open={showMoreInfo} onOpenChange={setShowMoreInfo}>
+                <CollapsibleTrigger className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                  <span>More info</span>
+                  <IoChevronDown className={cn("h-3 w-3 transition-transform", showMoreInfo && "rotate-180")} />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="pt-3">
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      This demo app shows Pipedream Connect in action using the{" "}
+                      <a 
+                        href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700 transition-colors border-b border-blue-200 hover:border-blue-300"
+                      >
+                        @pipedream/connect-react
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>{" "}
+                      frontend package. 
+                      Connect provides managed authentication, prebuilt form components, and access to 2,700+ APIs with 10,000+ triggers and actions.
+                      You can use our backend API/SDK with your own frontend, or use our React components like shown here.
+                    </p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           </div>
         </div>
       </div>

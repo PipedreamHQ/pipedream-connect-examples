@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
 import { IoCubeSharp, IoFlashOutline } from "react-icons/io5"
+import { TOGGLE_STYLES } from "@/lib/constants/ui"
 
 interface ComponentTypeSelectorProps {
   selectedType: "action" | "trigger"
@@ -24,15 +25,13 @@ export function ComponentTypeSelector({ selectedType, onTypeChange }: ComponentT
             type="button"
             className={cn(
               "px-3 py-1.5 text-xs font-medium font-mono flex items-center gap-2",
-              selectedType === type.value
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+              selectedType === type.value ? TOGGLE_STYLES.active : TOGGLE_STYLES.inactive
             )}
           >
             <type.icon className="h-3 w-3" />
             {type.label}
           </button>
-          {index === 0 && <div className="w-px bg-zinc-200" />}
+          {index === 0 && <div className={TOGGLE_STYLES.separator} />}
         </div>
       ))}
     </div>
