@@ -226,18 +226,52 @@ export const ConfigPanel = () => {
   }
 
   const basicFormControls = (
-    <div className="divide-y">
-      <PropertyItem
-        name="componentType"
-        type="'action' | 'trigger'"
-        description="Type of component to configure"
-        required={true}
-      >
-        <ComponentTypeSelector 
-          selectedType={selectedComponentType}
-          onTypeChange={setSelectedComponentType}
-        />
-      </PropertyItem>
+    <div>
+      <div className="grid grid-cols-[120px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+        <div className="flex items-start pt-1.5">
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <label className="text-[13px] font-semibold text-neutral-500 border-b border-dotted border-neutral-300 cursor-help">
+                  componentType
+                </label>
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 flex flex-col gap-1.5 max-w-xs bg-white border border-neutral-200 shadow-sm text-neutral-700 rounded-md p-2.5 font-mono text-[13px] leading-tight tracking-tight"
+              >
+                <div className="pb-1.5 mb-1.5 border-b border-neutral-200 font-medium">
+                  <span className="text-[#d73a49]">type</span>{" "}
+                  <span className="text-[#6f42c1]">componentType</span> ={" "}
+                  <span className="text-[#d73a49]">'action' | 'trigger'</span>
+                </div>
+
+                <div className="font-sans text-neutral-600 py-1 text-[13px] leading-normal font-normal">
+                  Type of component to configure
+                </div>
+
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-1 pt-1.5 mt-1.5 border-t border-neutral-200">
+                  <div>
+                    <span className="text-[#d73a49] font-medium">
+                      required:
+                    </span>{" "}
+                    <span className="text-[#22863a]">
+                      true
+                    </span>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        <div className="flex items-start">
+          <ComponentTypeSelector 
+            selectedType={selectedComponentType}
+            onTypeChange={setSelectedComponentType}
+          />
+        </div>
+      </div>
       <PropertyItem
         name="app"
         type="string"
@@ -292,11 +326,6 @@ export const ConfigPanel = () => {
           />
         </PropertyItem>
       )}
-    </div>
-  )
-
-  const advancedFormControls = (
-    <div className="divide-y">
       <PropertyItem
         name="userId"
         type="string"
@@ -309,6 +338,11 @@ export const ConfigPanel = () => {
           readOnly
         />
       </PropertyItem>
+    </div>
+  )
+
+  const advancedFormControls = (
+    <div>
       <PropertyItem
         name="hideOptionalProps"
         type="boolean"
@@ -444,9 +478,18 @@ export const ConfigPanel = () => {
         <div className="px-4 md:px-6 py-4">
           {basicFormControls}
           
-          <div className="mt-4">
+          {/* Desktop: Show with section header */}
+          <div className="hidden md:block mt-6">
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-4">Additional Config Options</h3>
+              {advancedFormControls}
+            </div>
+          </div>
+
+          {/* Mobile: Collapsible */}
+          <div className="md:hidden mt-4">
             <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-sm font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150 md:hidden">
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-sm font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150">
                 <div className="flex items-center gap-2">
                   <IoSettingsOutline className="h-4 w-4" />
                   More options
@@ -454,11 +497,7 @@ export const ConfigPanel = () => {
                 <IoChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
               </CollapsibleTrigger>
               
-              <div className="hidden md:block">
-                {advancedFormControls}
-              </div>
-              
-              <CollapsibleContent className="md:hidden">
+              <CollapsibleContent>
                 {advancedFormControls}
               </CollapsibleContent>
             </Collapsible>

@@ -13,19 +13,19 @@ import { useQueryParams } from "./use-query-params"
 const customizationOptions = [
   {
     name: "default",
-    label: "Default Styles",
+    label: "Default style",
     customization: defaultTheme,
     file: undefined,
   },
   {
     name: "blue",
-    label: "Blue Theme",
+    label: "Blue theme",
     customization: blueTheme,
     file: blueThemeCode.split("\n\n\n;")[0],
   },
   {
     name: "dark",
-    label: "Dark Theme",
+    label: "Dark theme",
     containerStyle: { backgroundColor: "#202020" },
     customization: darkTheme,
     file: darkThemeCode.split("\n\n\n;")[0],

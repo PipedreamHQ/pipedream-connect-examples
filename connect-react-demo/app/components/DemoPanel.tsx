@@ -122,10 +122,13 @@ export const DemoPanel = () => {
         </div>
 
         <div className="relative z-10 max-w-2xl mx-auto">
-          <div className="rounded-lg shadow-sm bg-white overflow-hidden border border-neutral-200">
-            <PageSkeleton>
+          <div 
+            className="rounded-lg shadow-sm bg-white overflow-hidden border border-neutral-200"
+            style={customizationOption.containerStyle}
+          >
+            <PageSkeleton customizationOption={customizationOption}>
               <div className="p-4 sm:p-6 space-y-4">
-                <CustomizeProvider customization={customizationOption}>
+                <CustomizeProvider {...customizationOption.customization}>
                   {component && (
                     <ComponentForm
                       userId={userId}
