@@ -26,28 +26,32 @@ export default function Demo() {
     <div className="flex flex-col min-h-screen">
       <DemoHeader />
       
-      <div className="px-4 sm:px-6 py-6 sm:py-8 border-b bg-white">
+      <div className="px-4 sm:px-6 py-8 sm:py-12 border-b bg-gradient-to-br from-slate-50 to-gray-100">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-4xl font-semibold text-neutral-800 mb-4">
-            Pipedream Connect Demo
+          <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-6">
+            Pipedream Connect
           </h1>
           
-          <div className="space-y-4 text-neutral-700">
-            <p className="text-lg font-medium text-neutral-800">
+          <div className="space-y-6 text-neutral-700">
+            <p className="text-xl sm:text-2xl font-medium text-neutral-800">
               One SDK, thousands of API integrations for your app or AI agent
             </p>
-            <p className="text-sm sm:text-base leading-relaxed">
-              This demo shows Pipedream Connect in action using the{" "}
+          
+            <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+              This demo app shows Pipedream Connect in action using the{" "}
               <a 
                 href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="font-semibold text-blue-700 hover:text-blue-900 hover:underline transition"
+                className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700 transition-colors border-b border-blue-200 hover:border-blue-300"
               >
                 @pipedream/connect-react
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
               </a>{" "}
               frontend package. 
-              Connect provides managed authentication, prebuilt components, and access to 2,700+ APIs with 10,000+ triggers and actions.
+              Connect provides managed authentication, prebuilt form components, and access to 2,700+ APIs with 10,000+ triggers and actions.
               You can use our backend API/SDK with your own frontend, or use our React components like shown here.
             </p>
           </div>

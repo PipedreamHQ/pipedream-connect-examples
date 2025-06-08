@@ -17,7 +17,11 @@ export function ComponentTypeSelector({ selectedType, onTypeChange }: ComponentT
       {COMPONENT_TYPES.map((type, index) => (
         <div key={type.value} className="flex">
           <button
-            onClick={() => onTypeChange(type.value)}
+            onClick={(e) => {
+              e.preventDefault()
+              onTypeChange(type.value)
+            }}
+            type="button"
             className={cn(
               "px-3 py-1.5 text-xs font-medium font-mono flex items-center gap-2",
               selectedType === type.value

@@ -26,7 +26,7 @@ export const useQueryParams = () => {
         const search = current.toString();
         const query = search ? `?${search}` : "";
 
-        router.replace(`${pathname}${query}`);
+        router.replace(`${pathname}${query}`, { scroll: false });
     }
 
     const setQueryParam = (key: KeyValPair["key"], value: KeyValPair["value"]) => {

@@ -72,8 +72,8 @@ function MyComponent() {
   })
 
   const handleSubmit = async (ctx) => {
-    const result = await frontendClient.${data.selectedComponentType}Run({
-      userId: "${data.userId}",
+    const result = await frontendClient.${data.selectedComponentType === "action" ? "actionRun" : "deployTrigger"}({
+      externalUserId: "${data.userId}",
       ${data.selectedComponentType}Id: "${data.componentKey}",
       configuredProps: ctx.configuredProps,${webhookUrlLine}
     })
@@ -100,13 +100,18 @@ import { createFrontendClient } from "@pipedream/sdk/browser"
 
 export function ClientProvider({ children }) {
   const client = createFrontendClient({
-    environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT,
-    tokenCallback: async () => {
-      const response = await fetch('/api/connect/token')
+    environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT
+    tokenCallback: async ({ externalUserId }) => {
+      // Call your backend to get a Connect token for this user
+      const response = await fetch('/api/connect/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ externalUserId }),
+      })
       const { token } = await response.json()
       return token
     },
-    externalUserId: "${userId}",
+    externalUserId: "${userId}", // Your user's unique ID
   })
 
   return (
@@ -128,13 +133,16 @@ const pd = createBackendClient({
   },
 })
 
-export async function GET(request: NextRequest) {
-  // Get the current user from your auth system
-  const userId = "${userId}" // Your user's ID
+export async function POST(request: NextRequest) {
+  const { externalUserId } = await request.json()
   
   // Generate a Connect token for this user
   const { token } = await pd.createConnectToken({
-    external_user_id: userId,
+    external_user_id: externalUserId,
+    allowed_origins: [
+      'http://localhost:3000',
+      'https://your-app.com',
+    ],
   })
   
   return NextResponse.json({ token })
@@ -155,7 +163,7 @@ export const CODE_FILES = [
   },
   { 
     id: "api", 
-    name: "token-endpoint.js", 
+    name: "api/connect/token/route.ts", 
     description: "Backend API endpoint that securely generates Connect tokens for frontend authentication",
     icon: "🔗"
   }

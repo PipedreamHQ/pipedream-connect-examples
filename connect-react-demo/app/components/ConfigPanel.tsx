@@ -437,7 +437,7 @@ export const ConfigPanel = () => {
       <div className="px-4 md:px-6 py-4 border-b bg-white">
         <h2 className="text-lg font-semibold text-gray-900">Demo Configuration</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Configure the component demo settings
+          Select an action or trigger and explore additional configuration options
         </p>
       </div>
       <div>
@@ -446,12 +446,12 @@ export const ConfigPanel = () => {
           
           <div className="mt-4">
             <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-xs font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150 md:hidden">
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-sm font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150 md:hidden">
                 <div className="flex items-center gap-2">
-                  <IoSettingsOutline className="h-3 w-3" />
+                  <IoSettingsOutline className="h-4 w-4" />
                   More options
                 </div>
-                <IoChevronDown className={cn("h-3 w-3 transition-transform", showAdvanced && "rotate-180")} />
+                <IoChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
               </CollapsibleTrigger>
               
               <div className="hidden md:block">

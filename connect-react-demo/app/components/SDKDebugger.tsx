@@ -165,24 +165,26 @@ export function SDKDebugger() {
   const { clearCalls } = useSDKLogger()
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div>
-          <h2 className="text-lg font-semibold">SDK Logs</h2>
-          <p className="text-sm text-gray-500">
-            {calls.length} {calls.length === 1 ? "call" : "calls"} recorded
-          </p>
+    <div className="flex flex-col bg-gray-50">
+      <div className="px-4 md:px-6 py-4 border-b bg-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">SDK Logs</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {calls.length} {calls.length === 1 ? "call" : "calls"} recorded
+            </p>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearCalls}
+            disabled={calls.length === 0}
+          >
+            <IoTrashOutline className="h-4 w-4 mr-2" />
+            Clear All
+          </Button>
         </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={clearCalls}
-          disabled={calls.length === 0}
-        >
-          <IoTrashOutline className="h-4 w-4 mr-2" />
-          Clear All
-        </Button>
       </div>
 
       <div>
