@@ -12,15 +12,17 @@ export function ConfigAndCodePanel() {
   return (
     <div className="flex flex-col h-full">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <div className="border-b bg-white px-4 py-2">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="config" className="flex items-center gap-2">
+        <div className="border-b bg-white px-3 sm:px-4 py-2">
+          <TabsList className="grid w-full grid-cols-2 h-12">
+            <TabsTrigger value="config" className="flex items-center gap-2 h-10 text-sm">
               <IoSettingsOutline className="h-4 w-4" />
-              Configuration
+              <span className="hidden sm:inline">Configuration</span>
+              <span className="sm:hidden">Config</span>
             </TabsTrigger>
-            <TabsTrigger value="code" className="flex items-center gap-2">
+            <TabsTrigger value="code" className="flex items-center gap-2 h-10 text-sm">
               <IoCodeSlashOutline className="h-4 w-4" />
-              Code Examples
+              <span className="hidden sm:inline">Code Examples</span>
+              <span className="sm:hidden">Code</span>
             </TabsTrigger>
           </TabsList>
         </div>

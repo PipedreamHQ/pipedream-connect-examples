@@ -39,7 +39,7 @@ export const DemoPanel = () => {
   return (
     <div className="flex flex-col min-h-0 h-full bg-neutral-50/50 overflow-hidden">
       <ScrollArea className="flex-1 min-h-0">
-        <div className="min-h-full p-6 relative">
+        <div className="min-h-full p-4 md:p-6 relative">
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute inset-0 grid grid-cols-12 gap-x-6">
               <div className="absolute right-0 top-0 h-full w-px bg-zinc-200" />
@@ -132,7 +132,7 @@ export const DemoPanel = () => {
             />
           </div>
 
-          <div className="relative max-w-[85%] w-full mx-auto lg:max-w-3xl space-y-4">
+          <div className="relative max-w-[95%] md:max-w-[85%] w-full mx-auto lg:max-w-3xl space-y-4">
             <div className="relative rounded-lg border border-zinc-200/60 bg-white shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)]">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
 
@@ -141,7 +141,7 @@ export const DemoPanel = () => {
                 style={customizationOption.containerStyle ?? {}}
               >
                 <PageSkeleton customizationOption={customizationOption}>
-                  <div className="flex-1 p-6">
+                  <div className="flex-1 p-3 md:p-6">
                     <CustomizeProvider
                       {...(customizationOption.customization || {})}
                     >

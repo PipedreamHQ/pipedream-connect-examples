@@ -1,6 +1,6 @@
 "use client"
 
-import { useId } from "react"
+import { useId, useState } from "react"
 import { SelectApp, SelectComponent } from "@pipedream/connect-react"
 import {
   Tooltip,
@@ -8,12 +8,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {enableDebugging} from "@/lib/query-params"
-import { IoCubeSharp, IoFlashOutline } from "react-icons/io5"
+import { IoCubeSharp, IoFlashOutline, IoChevronDown, IoSettingsOutline } from "react-icons/io5"
 
 function getTypeDescription(prop: {
   name: string
@@ -114,7 +119,7 @@ const PropertyItem = ({
   })
 
   return (
-    <div className="grid grid-cols-[180px_1fr] gap-4 items-center py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+    <div className="grid grid-cols-[120px_1fr] gap-3 items-center py-2 pl-4 pr-2 hover:bg-zinc-50/50">
       <div className="flex items-center">
         <TooltipProvider delayDuration={0}>
           <Tooltip>
@@ -227,6 +232,7 @@ export const ConfigPanel = () => {
   } = useAppState()
   const id1 = useId();
   const id2 = useId();
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const isValidWebhookUrl = () => {
     if (!webhookUrl) {
@@ -242,7 +248,8 @@ export const ConfigPanel = () => {
   }
 
 
-  const formControls = (
+  // Basic configuration options (always visible)
+  const basicFormControls = (
     <div className="divide-y">
       <PropertyItem
         name="componentType"
@@ -279,15 +286,36 @@ export const ConfigPanel = () => {
         </div>
       </PropertyItem>
       <PropertyItem
-        name="userId"
+        name="app"
         type="string"
-        description="Authenticated user identifier"
+        description="App to connect to"
         required={true}
       >
-        <input
-          value={userId || ""}
-          className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
-          readOnly
+        <SelectApp
+          value={selectedApp}
+          onChange={(app) => {
+            app
+              ? setSelectedAppSlug(app.name_slug)
+              : removeSelectedAppSlug()
+          }}
+        />
+      </PropertyItem>
+      <PropertyItem
+        name={selectedComponentType === "action" ? "actionId" : "triggerId"}
+        type="string"
+        description={`${selectedComponentType === "action" ? "Action" : "Trigger"} to use`}
+        required={true}
+      >
+        <SelectComponent
+          app={selectedApp}
+          componentType={selectedComponentType}
+          value={selectedComponent}
+          onChange={(comp) => {
+            comp
+              ? setSelectedComponentKey(comp.key)
+              : removeSelectedComponentKey()
+
+          }}
         />
       </PropertyItem>
       {selectedComponentType === "trigger" && (
@@ -307,33 +335,23 @@ export const ConfigPanel = () => {
           />
         </PropertyItem>
       )}
+    </div>
+  )
+
+  // Advanced configuration options (collapsible)
+  const advancedFormControls = (
+    <div className="divide-y">
       <PropertyItem
-        name="componentKey"
+        name="userId"
         type="string"
-        description="Unique identifier for the component to be rendered"
+        description="Authenticated user identifier"
         required={true}
       >
-        <div className="grid grid-cols-2 gap-1">
-          <SelectApp
-            value={selectedApp}
-            onChange={(app) => {
-              app
-                ? setSelectedAppSlug(app.name_slug)
-                : removeSelectedAppSlug()
-            }}
-          />
-          <SelectComponent
-            app={selectedApp}
-            componentType={selectedComponentType}
-            value={selectedComponent}
-            onChange={(comp) => {
-              comp
-                ? setSelectedComponentKey(comp.key)
-                : removeSelectedComponentKey()
-
-            }}
-          />
-        </div>
+        <input
+          value={userId || ""}
+          className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
+          readOnly
+        />
       </PropertyItem>
       <PropertyItem
         name="hideOptionalProps"
@@ -442,7 +460,6 @@ export const ConfigPanel = () => {
           onChange={(v) => {
             if (v) {
               setCustomizationOption(v)
-              setFileCode(undefined)
             }
           }}
           getOptionValue={(o) => o.name}
@@ -454,53 +471,79 @@ export const ConfigPanel = () => {
           }}
         />
       </PropertyItem>
-      {selectedComponentType === "trigger" && (
-        <div className="bg-sky-100/50 backdrop-blur-xl border rounded border-neutral-200/50 px-4 py-2 mb-10 m-4 shadow-sm">
-          <div className="text-sm text-neutral-700 leading-relaxed">
-            <p className="py-2 flex gap-2">
-              {/* <BsInfoCircleFill className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-1" /> */}
-              <span>
-                When you deploy a trigger via the Pipedream components API, we'll emit events to a{' '}
-                <code className="font-mono mx-1">webhookUrl</code> that you define. To test your trigger:
-              </span>
-            </p>
-            <ol className="list-decimal list-outside ml-6 space-y-2">
-              <li className="pl-2">
-                Configure the trigger and define a <code className="font-mono text-sm">webhookUrl</code> to receive events (use a{' '}
-                <a
-                  href="https://pipedream.com/new?h=tch_BXfkaA"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-sky-800 hover:text-sky-900 hover:underline transition-colors"
-                >
-                  RequestBin
-                </a>
-                {' '}for example)
-              </li>
-              <li className="pl-2">
-                Click <span className="font-semibold">Submit</span> on the right (may take up to a minute, but can happen asynchronously in your app)
-              </li>
-              <li className="pl-2">
-                Generate some actual events in the relevant app and check your webhook for emitted events.
-              </li>
-            </ol>
-          </div>
-        </div>
-      )}
+    </div>
+  )
+
+  const triggerInfo = selectedComponentType === "trigger" && (
+    <div className="bg-sky-100/50 backdrop-blur-xl border rounded border-neutral-200/50 px-4 py-2 mb-10 m-4 shadow-sm hidden md:block">
+      <div className="text-sm text-neutral-700 leading-relaxed">
+        <p className="py-2 flex gap-2">
+          {/* <BsInfoCircleFill className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-1" /> */}
+          <span>
+            When you deploy a trigger via the Pipedream components API, we'll emit events to a{' '}
+            <code className="font-mono mx-1">webhookUrl</code> that you define. To test your trigger:
+          </span>
+        </p>
+        <ol className="list-decimal list-outside ml-6 space-y-2">
+          <li className="pl-2">
+            Configure the trigger and define a <code className="font-mono text-sm">webhookUrl</code> to receive events (use a{' '}
+            <a
+              href="https://pipedream.com/new?h=tch_BXfkaA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-sky-800 hover:text-sky-900 hover:underline transition-colors"
+            >
+              RequestBin
+            </a>
+            {' '}for example)
+          </li>
+          <li className="pl-2">
+            Click <span className="font-semibold">Submit</span> on the right (may take up to a minute, but can happen asynchronously in your app)
+          </li>
+          <li className="pl-2">
+            Generate some actual events in the relevant app and check your webhook for emitted events.
+          </li>
+        </ol>
+      </div>
     </div>
   )
 
   return (
     <div className="flex flex-col min-h-0 h-full">
-      <div className="px-6 py-4 border-b bg-white">
+      <div className="px-4 md:px-6 py-4 border-b bg-white">
         <h2 className="text-lg font-semibold text-gray-900">Demo Configuration</h2>
         <p className="text-sm text-gray-500 mt-1">
           Configure the component demo settings
         </p>
       </div>
       <ScrollArea className="flex-1 min-h-0">
-        <div className="px-6 py-4">
-          {formControls}
+        <div className="px-4 md:px-6 py-4">
+          {/* Basic configuration - always visible */}
+          {basicFormControls}
+          
+          {/* Advanced configuration - collapsible on mobile */}
+          <div className="mt-4">
+            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-xs font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150 md:hidden">
+                <div className="flex items-center gap-2">
+                  <IoSettingsOutline className="h-3 w-3" />
+                  Advanced Configuration
+                </div>
+                <IoChevronDown className={cn("h-3 w-3 transition-transform", showAdvanced && "rotate-180")} />
+              </CollapsibleTrigger>
+              
+              {/* Always show on desktop, collapsible on mobile */}
+              <div className="hidden md:block">
+                {advancedFormControls}
+              </div>
+              
+              <CollapsibleContent className="md:hidden">
+                {advancedFormControls}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+          
+          {triggerInfo}
         </div>
       </ScrollArea>
     </div>

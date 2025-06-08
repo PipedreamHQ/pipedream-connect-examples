@@ -39,10 +39,10 @@ function CodeBlock({ children, className, language = "tsx" }: { children: string
           style={tomorrow}
           customStyle={{
             margin: 0,
-            padding: '24px 32px',
+            padding: '16px 20px',
             background: '#1a1a1a',
-            fontSize: '14px',
-            lineHeight: '1.6',
+            fontSize: '13px',
+            lineHeight: '1.5',
             height: '100%',
             overflow: 'auto'
           }}
@@ -231,7 +231,7 @@ export async function GET(request: NextRequest) {
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header section - fixed height */}
       <div className="flex-shrink-0 bg-white border-b">
-        <div className="px-6 py-4 border-b">
+        <div className="px-4 sm:px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Implementation Code</h2>
           <p className="text-sm text-gray-500 mt-1">
             {files.find(f => f.id === activeTab)?.description || "Ready-to-use React files - copy these into your project to add Pipedream Connect"}
@@ -239,20 +239,20 @@ export async function GET(request: NextRequest) {
         </div>
         
         {/* IDE-style file tabs */}
-        <div className="flex border-b bg-gray-100 pl-6">
+        <div className="flex border-b bg-gray-100 pl-4 sm:pl-6 overflow-x-auto">
           {files.map((file, index) => (
             <button
               key={file.id}
               onClick={() => setActiveTab(file.id)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm border-r border-gray-200 transition-colors relative",
+                "flex items-center gap-2 px-3 sm:px-4 py-3 text-sm border-r border-gray-200 transition-colors relative whitespace-nowrap min-h-[44px]",
                 activeTab === file.id
                   ? "bg-white text-gray-900 border-b-2 border-blue-500"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               )}
             >
               <span className="text-xs">{file.icon}</span>
-              <span className="font-mono">{file.name}</span>
+              <span className="font-mono text-xs sm:text-sm">{file.name}</span>
               {activeTab === file.id && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
               )}
@@ -262,7 +262,7 @@ export async function GET(request: NextRequest) {
       </div>
 
       {/* Code section - takes remaining height */}
-      <div className="flex-1 min-h-0 relative px-6">
+      <div className="flex-1 min-h-0 relative px-4 sm:px-6">
         <CodeBlock language={activeTab === "api" ? "typescript" : "tsx"}>
           {getCodeForFile(activeTab)}
         </CodeBlock>
