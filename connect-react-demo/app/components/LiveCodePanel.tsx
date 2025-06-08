@@ -14,9 +14,13 @@ function CodeBlock({ children, className, language = "tsx" }: { children: string
   const [copied, setCopied] = useState(false)
 
   const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(children)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(children)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
   }
 
   return (
@@ -26,6 +30,8 @@ function CodeBlock({ children, className, language = "tsx" }: { children: string
         size="sm"
         onClick={copyToClipboard}
         className="absolute top-3 right-3 h-8 w-8 p-0 bg-gray-800/50 hover:bg-gray-700/50 backdrop-blur-sm z-10"
+        aria-label="Copy code to clipboard"
+        title={copied ? "Copied!" : "Copy code"}
       >
         {copied ? (
           <IoCheckmarkOutline className="h-4 w-4 text-green-400" />

@@ -13,63 +13,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { BooleanToggle } from "./ui/boolean-toggle"
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {enableDebugging} from "@/lib/query-params"
 import { IoCubeSharp, IoFlashOutline, IoChevronDown, IoSettingsOutline } from "react-icons/io5"
-
-function getTypeDescription(prop: {
-  name: string
-  type: string
-  description: string
-  optional?: boolean
-  default?: any
-  min?: number
-  max?: number
-  secret?: boolean
-}) {
-  let syntax = ""
-
-  switch (prop.type) {
-    case "string":
-      syntax = `<span class="text-[#569cd6]">string</span>`
-      break
-    case "integer":
-      syntax = `<span class="text-[#569cd6]">number</span>`
-      break
-    case "boolean":
-      syntax = `<span class="text-[#569cd6]">boolean</span>`
-      break
-    case "app":
-      syntax = `<span class="text-[#4ec9b0]">AppConnection</span>`
-      break
-    case "any":
-      syntax = `<span class="text-[#569cd6]">any</span>`
-      break
-    case "sql":
-      syntax = `<span class="text-[#4ec9b0]">SQL</span>`
-      break
-    default:
-      if (prop.type.endsWith("[]")) {
-        const baseType = prop.type.slice(0, -2)
-        syntax = `<span class="text-[#4ec9b0]">Array</span>&lt;<span class="text-[#569cd6]">${baseType}</span>&gt;`
-      } else {
-        syntax = `<span class="text-[#569cd6]">${prop.type}</span>`
-      }
-  }
-
-  if (prop.optional) {
-    syntax = `${syntax} <span class="text-[#d4d4d4]">|</span> <span class="text-[#569cd6]">undefined</span>`
-  }
-
-  return {
-    syntax,
-    isArray: prop.type.endsWith("[]"),
-    isOptional: prop.optional,
-  }
-}
+import type { ConfigurableProp } from "../../lib/types/pipedream"
+import { getTypeDescription } from "../../lib/utils/type-descriptions"
 
 const typeBadgeStyles = {
   string:
@@ -89,7 +41,7 @@ interface PropertyItemProps {
   required?: boolean
   children: React.ReactNode
   action?: React.ReactNode
-  defaultValue?: any
+  defaultValue?: unknown
   min?: number
   max?: number
   secret?: boolean
@@ -360,31 +312,11 @@ export const ConfigPanel = () => {
         required={false}
         defaultValue={false}
       >
-        <div className="w-fit flex rounded-md border border-zinc-200 shadow-sm">
-          <button
-            onClick={() => setHideOptionalProps(true)}
-            className={cn(
-              "px-3 py-1 text-xs font-medium font-mono",
-              hideOptionalProps
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-            )}
-          >
-            TRUE
-          </button>
-          <div className="w-px bg-zinc-200" />
-          <button
-            onClick={() => setHideOptionalProps(false)}
-            className={cn(
-              "px-3 py-1 text-xs font-medium font-mono",
-              !hideOptionalProps
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-            )}
-          >
-            FALSE
-          </button>
-        </div>
+        <BooleanToggle
+          value={hideOptionalProps}
+          onChange={setHideOptionalProps}
+          aria-label="Hide optional properties toggle"
+        />
       </PropertyItem>
       <PropertyItem
           name="enableDebugging"
@@ -393,31 +325,11 @@ export const ConfigPanel = () => {
           required={false}
           defaultValue={false}
       >
-        <div className="w-fit flex rounded-md border border-zinc-200 shadow-sm">
-          <button
-              onClick={() => setEnableDebugging(true)}
-              className={cn(
-                  "px-3 py-1 text-xs font-medium font-mono",
-                  enableDebugging
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-              )}
-          >
-            TRUE
-          </button>
-          <div className="w-px bg-zinc-200" />
-          <button
-              onClick={() => setEnableDebugging(false)}
-              className={cn(
-                  "px-3 py-1 text-xs font-medium font-mono",
-                  !enableDebugging
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-              )}
-          >
-            FALSE
-          </button>
-        </div>
+        <BooleanToggle
+          value={enableDebugging}
+          onChange={setEnableDebugging}
+          aria-label="Enable debugging toggle"
+        />
       </PropertyItem>
 
       <PropertyItem
