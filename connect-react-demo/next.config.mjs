@@ -27,7 +27,18 @@ const nextConfig = {
         basePath: false
       }
     ]
-  }
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/_vercel/:path*',
+          destination: 'https://pipedream-connect-demo.vercel.app/_vercel/:path*',
+          basePath: false
+        }
+      ]
+    }
+  },
 }
 
 export default nextConfig
