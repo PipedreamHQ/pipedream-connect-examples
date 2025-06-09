@@ -180,7 +180,6 @@ export const ConfigPanel = () => {
     enableDebugging,
     setEnableDebugging,
     propNames,
-    component,
   } = useAppState()
   const id1 = useId();
   const id2 = useId();
@@ -378,10 +377,7 @@ export const ConfigPanel = () => {
       >
         <Select
           instanceId={id1}
-          options={(component?.configurable_props || []).map((prop: ConfigurableProp) => ({
-            label: prop.name,
-            value: prop.name,
-          }))}
+          options={[]}
           isMulti={true}
           value={propNames.map((name) => ({
             label: name,

@@ -1,10 +1,10 @@
 import blueTheme from "@/app/components/customization-select/blue-theme"
 import darkTheme from "@/app/components/customization-select/dark-theme"
 import defaultTheme from "@/app/components/customization-select/default-unstyled"
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useState, startTransition } from "react"
 // @ts-ignore
 import blueThemeCode from "raw-loader!@/app/components/customization-select/blue-theme.ts"
-import { useComponent, useFrontendClient, useApp } from "@pipedream/connect-react"
+import { useFrontendClient, useApp } from "@pipedream/connect-react"
 import { useSearchParams } from "next/navigation";
 // @ts-ignore
 import darkThemeCode from "raw-loader!@/app/components/customization-select/dark-theme.ts"
@@ -40,28 +40,35 @@ const useAppStateProviderValue = () => {
     customizationOptions[0]
   )
 
-  const [activeTypingIndex, setActiveTypingIndex] = useState<number>(0)
-
-  const refreshUserId = () => {} // no op since cannot serialize with "use client"
 
   const {queryParams, setQueryParam, setQueryParams} = useQueryParams()
 
   const propNames = queryParams.propNames ? queryParams.propNames.split(",") : []
   const setPropNames = (value: string[]) => setQueryParam("propNames", value?.length ? value.join(",") : undefined)
 
-  // XXX Selected* -> Select* (to differentiate from actual selected component (on the left)) ?
+  // Helper to batch state updates with startTransition
+  const updateStateAsync = (callback: () => void) => {
+    startTransition(() => {
+      callback()
+    })
+  }
+
   const selectedAppSlug = queryParams.app || "google_sheets"
   const setSelectedAppSlug = (value: string) => {
-    setQueryParams([
-      { key: "component", value: undefined },
-      { key: "app", value },
-    ]);
+    updateStateAsync(() => {
+      setQueryParams([
+        { key: "component", value: undefined },
+        { key: "app", value },
+      ])
+    })
   }
   const removeSelectedAppSlug = () => {
-    setQueryParams([
-      { key: "component", value: undefined },
-      { key: "app", value: undefined },
-    ]);
+    updateStateAsync(() => {
+      setQueryParams([
+        { key: "component", value: undefined },
+        { key: "app", value: undefined },
+      ])
+    })
   }
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
@@ -76,28 +83,25 @@ const useAppStateProviderValue = () => {
 
   const selectedComponentKey = queryParams.component || "google_sheets-add-single-row"
   const setSelectedComponentKey = (value: string) => {
-    setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
-    setConfiguredProps({})
-    setActionRunOutput(undefined)
+    // Batch all state updates to prevent multiple configureComponent calls
+    updateStateAsync(() => {
+      setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
+      setConfiguredProps({})
+      setActionRunOutput(undefined)
+    })
   }
   const removeSelectedComponentKey = () => {
-    setQueryParams([
-      { key: "component", value: undefined },
-      { key: "propNames", value: undefined },
-    ]);
-    setConfiguredProps({})
-    setActionRunOutput(undefined)
+    updateStateAsync(() => {
+      setQueryParams([
+        { key: "component", value: undefined },
+        { key: "propNames", value: undefined },
+      ])
+      setConfiguredProps({})
+      setActionRunOutput(undefined)
+    })
   }
 
   const selectedComponent = { key: selectedComponentKey }
-
-  const {
-    component,
-  }: {
-    component?: any
-  } = useComponent({
-    key: selectedComponent?.key && userId ? selectedComponent.key : undefined,
-  })
 
   const searchParams = useSearchParams()
 
@@ -164,14 +168,10 @@ export function MyPage() {
 
   return {
     userId,
-    refreshUserId,
 
     customizationOptions,
     customizationOption,
     setCustomizationOption,
-
-    activeTypingIndex,
-    setActiveTypingIndex,
 
     propNames,
     setPropNames,
@@ -193,7 +193,6 @@ export function MyPage() {
 
     selectedApp,
     selectedComponent,
-    component,
 
     showStressTest,
 

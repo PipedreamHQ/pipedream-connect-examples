@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { ComponentForm, CustomizeProvider, useFrontendClient } from "@pipedream/connect-react"
+import { ComponentFormContainer, CustomizeProvider, useFrontendClient } from "@pipedream/connect-react"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
@@ -9,7 +9,7 @@ export const DemoPanel = () => {
   const {
     customizationOption,
     userId,
-    component,
+    selectedComponentKey,
     propNames,
     hideOptionalProps,
     configuredProps,
@@ -29,19 +29,19 @@ export const DemoPanel = () => {
   }
 
   const handleSubmit = async () => {
-    if (!component) return
+    if (!selectedComponentKey) return
 
     try {
       const data = selectedComponentType === "action" 
         ? await frontendClient.runAction({
             userId,
-            actionId: component.key,
+            actionId: selectedComponentKey,
             configuredProps,
             dynamicPropsId,
           })
         : await frontendClient.deployTrigger({
             userId,
-            triggerId: component.key,
+            triggerId: selectedComponentKey,
             configuredProps,
             webhookUrl,
             dynamicPropsId,
@@ -129,10 +129,10 @@ export const DemoPanel = () => {
             <PageSkeleton customizationOption={customizationOption}>
               <div className="p-4 sm:p-6 space-y-4">
                 <CustomizeProvider {...customizationOption.customization}>
-                  {component && (
-                    <ComponentForm
+                  {selectedComponentKey && (
+                    <ComponentFormContainer
                       userId={userId}
-                      component={component}
+                      componentKey={selectedComponentKey}
                       configuredProps={configuredProps}
                       onUpdateConfiguredProps={setConfiguredProps}
                       hideOptionalProps={hideOptionalProps}

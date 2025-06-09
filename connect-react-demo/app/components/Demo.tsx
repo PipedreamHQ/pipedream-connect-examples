@@ -126,32 +126,65 @@ function TabsContainer({
         </TabsList>
       </div>
       
-      <TabsContent value="config" className="m-0" forceMount>
-        <div style={{ display: activeTab === "config" ? "block" : "none" }}>
-          {isMobile ? (
-            <div className="flex flex-col">
-              {isLoading ? <LoadingSkeleton /> : <ConfigPanel />}
-              <div className="border-t">
-                {isLoading ? <LoadingSkeleton /> : <DemoPanel />}
-              </div>
+      {isLoading ? (
+        <>
+          <TabsContent value="config" className="m-0" forceMount>
+            <div style={{ display: activeTab === "config" ? "block" : "none" }}>
+              {isMobile ? (
+                <div className="flex flex-col">
+                  <LoadingSkeleton />
+                  <div className="border-t">
+                    <LoadingSkeleton />
+                  </div>
+                </div>
+              ) : (
+                <LoadingSkeleton />
+              )}
             </div>
-          ) : (
-            isLoading ? <LoadingSkeleton /> : <ConfigPanel />
-          )}
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="code" className="m-0" forceMount>
-        <div style={{ display: activeTab === "code" ? "block" : "none" }}>
-          {isLoading ? <LoadingSkeleton /> : <LiveCodePanel />}
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="debug" className="m-0" forceMount>
-        <div style={{ display: activeTab === "debug" ? "block" : "none" }}>
-          {isLoading ? <LoadingSkeleton /> : <SDKDebugger />}
-        </div>
-      </TabsContent>
+          </TabsContent>
+          
+          <TabsContent value="code" className="m-0" forceMount>
+            <div style={{ display: activeTab === "code" ? "block" : "none" }}>
+              <LoadingSkeleton />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="debug" className="m-0" forceMount>
+            <div style={{ display: activeTab === "debug" ? "block" : "none" }}>
+              <LoadingSkeleton />
+            </div>
+          </TabsContent>
+        </>
+      ) : (
+        <>
+          <TabsContent value="config" className="m-0" forceMount>
+            <div style={{ display: activeTab === "config" ? "block" : "none" }}>
+              {isMobile ? (
+                <div className="flex flex-col">
+                  <ConfigPanel />
+                  <div className="border-t">
+                    <DemoPanel />
+                  </div>
+                </div>
+              ) : (
+                <ConfigPanel />
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="code" className="m-0" forceMount>
+            <div style={{ display: activeTab === "code" ? "block" : "none" }}>
+              <LiveCodePanel />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="debug" className="m-0" forceMount>
+            <div style={{ display: activeTab === "debug" ? "block" : "none" }}>
+              <SDKDebugger />
+            </div>
+          </TabsContent>
+        </>
+      )}
     </Tabs>
   )
 }

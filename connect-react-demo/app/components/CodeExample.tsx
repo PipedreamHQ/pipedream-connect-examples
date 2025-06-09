@@ -85,7 +85,7 @@ export function CodeExample({ title, description, children, className }: CodeExa
 
 export function LiveCodeExamples() {
   const { 
-    component, 
+    selectedComponentKey, 
     selectedComponentType, 
     userId,
     configuredProps,
@@ -138,7 +138,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   )
 }`
 
-  const integrationPageCode = component ? `// app/integrations/page.tsx
+  const integrationPageCode = selectedComponentKey ? `// app/integrations/page.tsx
 "use client"
 
 import { useState } from "react"
@@ -155,12 +155,12 @@ export default function IntegrationsPage() {
       ${selectedComponentType === "action" ? 
         `const result = await frontendClient.actionRun({
         userId: "user-${userId}",
-        actionId: "${component.key}",
+        actionId: "${selectedComponentKey}",
         configuredProps: ctx.configuredProps,
       })` : 
         `const result = await frontendClient.deployTrigger({
         userId: "user-${userId}",
-        triggerId: "${component.key}",
+        triggerId: "${selectedComponentKey}",
         configuredProps: ctx.configuredProps,
         webhookUrl: "https://your-app.com/api/webhook",
       })`}

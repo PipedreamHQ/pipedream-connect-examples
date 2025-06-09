@@ -13,8 +13,8 @@ import {
 
 export function LiveCodePanel() {
   const { 
-    component, 
     selectedComponentType, 
+    selectedComponentKey,
     userId,
     configuredProps,
     webhookUrl,
@@ -29,7 +29,7 @@ export function LiveCodePanel() {
 
   const currentComponentCode = generateComponentCode({
     userId,
-    componentKey: component?.key,
+    componentKey: selectedComponentKey,
     configuredProps,
     selectedComponentType,
     webhookUrl,
@@ -93,7 +93,7 @@ export function LiveCodePanel() {
           {getCodeForFile(activeTab)}
         </CodeBlock>
         
-        {activeTab === "current" && component && showLiveUpdates && (
+        {activeTab === "current" && selectedComponentKey && showLiveUpdates && (
           <div className="absolute bottom-4 left-0 right-0 mx-6 p-3 bg-blue-900/90 backdrop-blur-sm rounded-lg border border-blue-700/50">
             <div className="flex items-start gap-2">
               <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>

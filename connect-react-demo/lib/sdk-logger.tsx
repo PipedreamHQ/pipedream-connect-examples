@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo, useSyncExternalStore } from "react"
+import { createContext, useContext, useCallback, ReactNode, useRef, useMemo, useSyncExternalStore } from "react"
 import { FrontendClient } from "@pipedream/sdk/browser"
 
 export interface SDKCall {
@@ -36,10 +36,10 @@ export function SDKLoggerProvider({ children }: { children: ReactNode }) {
   const shouldLog = useRef(true) // Always log - this is a demo feature
 
   const notifySubscribers = useCallback(() => {
-    // Defer notifications to avoid state updates during render
-    setTimeout(() => {
+    // Queue notifications in the next microtask to avoid state updates during render
+    queueMicrotask(() => {
       subscribersRef.current.forEach(callback => callback())
-    }, 0)
+    })
   }, [])
 
   const addCall = useCallback((call: Omit<SDKCall, "id">) => {
@@ -170,26 +170,18 @@ export function createLoggedFrontendClient(
   const methodsToLog = [
     // App methods
     "getApps",
-    "apps",
-    "getApp", 
-    "app",
+    "getApp",
     // Component methods
     "getComponents",
-    "components",
     "getComponent",
-    "component",
     "configureComponent",
-    "componentConfigure",
     "reloadComponentProps",
-    "componentReloadProps",
     // Account methods
     "getAccounts",
     // Action methods
     "runAction",
-    "actionRun",
     // Trigger methods
     "deployTrigger",
-    "triggerDeploy",
     "deleteTrigger",
     "getTrigger",
     "getTriggers",
