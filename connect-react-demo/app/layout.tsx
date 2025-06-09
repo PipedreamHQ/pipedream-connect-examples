@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { DatadogScript } from "./components/DatadogScript"
 import { GeistSans } from "geist/font/sans"
+import { Analytics } from "@vercel/analytics/react"
 
 export const metadata: Metadata = {
   title: "Pipedream Connect Demo",
@@ -19,6 +20,7 @@ export default async function RootLayout({
       <DatadogScript />
       <body className={`antialiased ${GeistSans.className}`}>
         {children}
+        <Analytics />
       </body>
     </html>
   )
