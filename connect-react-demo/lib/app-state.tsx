@@ -1,10 +1,10 @@
 import blueTheme from "@/app/components/customization-select/blue-theme"
 import darkTheme from "@/app/components/customization-select/dark-theme"
 import defaultTheme from "@/app/components/customization-select/default-unstyled"
-import { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useState, startTransition } from "react"
 // @ts-ignore
 import blueThemeCode from "raw-loader!@/app/components/customization-select/blue-theme.ts"
-import { useComponent, useFrontendClient } from "@pipedream/connect-react"
+import { useFrontendClient, useApp } from "@pipedream/connect-react"
 import { useSearchParams } from "next/navigation";
 // @ts-ignore
 import darkThemeCode from "raw-loader!@/app/components/customization-select/dark-theme.ts"
@@ -13,19 +13,19 @@ import { useQueryParams } from "./use-query-params"
 const customizationOptions = [
   {
     name: "default",
-    label: "Default Styles",
+    label: "Default style",
     customization: defaultTheme,
     file: undefined,
   },
   {
     name: "blue",
-    label: "Blue Theme",
+    label: "Blue theme",
     customization: blueTheme,
     file: blueThemeCode.split("\n\n\n;")[0],
   },
   {
     name: "dark",
-    label: "Dark Theme",
+    label: "Dark theme",
     containerStyle: { backgroundColor: "#202020" },
     customization: darkTheme,
     file: darkThemeCode.split("\n\n\n;")[0],
@@ -40,31 +40,40 @@ const useAppStateProviderValue = () => {
     customizationOptions[0]
   )
 
-  const [activeTypingIndex, setActiveTypingIndex] = useState<number>(0)
-
-  const refreshUserId = () => {} // no op since cannot serialize with "use client"
 
   const {queryParams, setQueryParam, setQueryParams} = useQueryParams()
 
   const propNames = queryParams.propNames ? queryParams.propNames.split(",") : []
   const setPropNames = (value: string[]) => setQueryParam("propNames", value?.length ? value.join(",") : undefined)
 
-  // XXX Selected* -> Select* (to differentiate from actual selected component (on the left)) ?
-  const selectedAppSlug = queryParams.app || "google_sheets"
-  const setSelectedAppSlug = (value: string) => {
-    setQueryParams([
-      { key: "component", value: undefined },
-      { key: "app", value },
-    ]);
-  }
-  const removeSelectedAppSlug = () => {
-    setQueryParams([
-      { key: "component", value: undefined },
-      { key: "app", value: undefined },
-    ]);
+  // Helper to batch state updates with startTransition
+  const updateStateAsync = (callback: () => void) => {
+    startTransition(() => {
+      callback()
+    })
   }
 
-  const selectedApp = { name_slug: selectedAppSlug }
+  const selectedAppSlug = queryParams.app || "google_sheets"
+  const setSelectedAppSlug = (value: string) => {
+    updateStateAsync(() => {
+      setQueryParams([
+        { key: "component", value: undefined },
+        { key: "app", value },
+      ])
+    })
+  }
+  const removeSelectedAppSlug = () => {
+    updateStateAsync(() => {
+      setQueryParams([
+        { key: "component", value: undefined },
+        { key: "app", value: undefined },
+      ])
+    })
+  }
+
+  // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
+  const { app: fetchedApp } = useApp(selectedAppSlug && userId ? selectedAppSlug : undefined)
+  const selectedApp = fetchedApp || undefined
 
   const selectedComponentType = queryParams.type || "action"
   const setSelectedComponentType = (value: string) => setQueryParam("type", value)
@@ -72,30 +81,27 @@ const useAppStateProviderValue = () => {
 
   const [webhookUrl, setWebhookUrl] = useState<string>("")
 
-  const selectedComponentKey = queryParams.component //|| "google_sheets-add-single-row"
+  const selectedComponentKey = queryParams.component || "google_sheets-add-single-row"
   const setSelectedComponentKey = (value: string) => {
-    setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
-    setConfiguredProps({})
-    setActionRunOutput(undefined)
+    // Batch all state updates to prevent multiple configureComponent calls
+    updateStateAsync(() => {
+      setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
+      setConfiguredProps({})
+      setActionRunOutput(undefined)
+    })
   }
   const removeSelectedComponentKey = () => {
-    setQueryParams([
-      { key: "component", value: undefined },
-      { key: "propNames", value: undefined },
-    ]);
-    setConfiguredProps({})
-    setActionRunOutput(undefined)
+    updateStateAsync(() => {
+      setQueryParams([
+        { key: "component", value: undefined },
+        { key: "propNames", value: undefined },
+      ])
+      setConfiguredProps({})
+      setActionRunOutput(undefined)
+    })
   }
 
   const selectedComponent = { key: selectedComponentKey }
-
-  const {
-    component,
-  }: {
-    component?: any
-  } = useComponent({
-    key: selectedComponent?.key,
-  })
 
   const searchParams = useSearchParams()
 
@@ -115,7 +121,8 @@ const useAppStateProviderValue = () => {
   const enableDebugging = queryParams.enableDebugging === "true"
   const setEnableDebugging = (value: boolean) => setQueryParam("enableDebugging", value ? "true" : undefined)
 
-  const code = `import { createFrontendClient } from "@pipedream/sdk"
+  const code = React.useMemo(() => {
+    return `import { createFrontendClient } from "@pipedream/sdk"
 import { FrontendClientProvider, ComponentFormContainer } from "@pipedream/connect-react"${
     customizationOption.file
       ? `
@@ -155,19 +162,16 @@ export function MyPage() {
     </FrontendClientProvider>
   )
 }`
+  }, [customizationOption.file, customizationOption.name, userId, selectedComponent?.key, hideOptionalProps, enableDebugging, propNames]);
 
   const [fileCode, setFileCode] = useState<string>()
 
   return {
     userId,
-    refreshUserId,
 
     customizationOptions,
     customizationOption,
     setCustomizationOption,
-
-    activeTypingIndex,
-    setActiveTypingIndex,
 
     propNames,
     setPropNames,
@@ -189,7 +193,6 @@ export function MyPage() {
 
     selectedApp,
     selectedComponent,
-    component,
 
     showStressTest,
 

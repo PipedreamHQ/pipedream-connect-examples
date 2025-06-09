@@ -1,70 +1,27 @@
 "use client"
 
-import { useId } from "react"
-import { SelectApp, SelectComponent } from "@pipedream/connect-react"
+import { useId, useState } from "react"
+import { SelectApp, SelectComponent, CustomizeProvider } from "@pipedream/connect-react"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { BooleanToggle } from "./ui/boolean-toggle"
+import { ComponentTypeSelector } from "./ComponentTypeSelector"
 import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
-import { CodeSection } from "./config/CodeSection"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {enableDebugging} from "@/lib/query-params";
-
-function getTypeDescription(prop: {
-  name: string
-  type: string
-  description: string
-  optional?: boolean
-  default?: any
-  min?: number
-  max?: number
-  secret?: boolean
-}) {
-  let syntax = ""
-
-  switch (prop.type) {
-    case "string":
-      syntax = `<span class="text-[#569cd6]">string</span>`
-      break
-    case "integer":
-      syntax = `<span class="text-[#569cd6]">number</span>`
-      break
-    case "boolean":
-      syntax = `<span class="text-[#569cd6]">boolean</span>`
-      break
-    case "app":
-      syntax = `<span class="text-[#4ec9b0]">AppConnection</span>`
-      break
-    case "any":
-      syntax = `<span class="text-[#569cd6]">any</span>`
-      break
-    case "sql":
-      syntax = `<span class="text-[#4ec9b0]">SQL</span>`
-      break
-    default:
-      if (prop.type.endsWith("[]")) {
-        const baseType = prop.type.slice(0, -2)
-        syntax = `<span class="text-[#4ec9b0]">Array</span>&lt;<span class="text-[#569cd6]">${baseType}</span>&gt;`
-      } else {
-        syntax = `<span class="text-[#569cd6]">${prop.type}</span>`
-      }
-  }
-
-  if (prop.optional) {
-    syntax = `${syntax} <span class="text-[#d4d4d4]">|</span> <span class="text-[#569cd6]">undefined</span>`
-  }
-
-  return {
-    syntax,
-    isArray: prop.type.endsWith("[]"),
-    isOptional: prop.optional,
-  }
-}
+import { IoChevronDown, IoSettingsOutline } from "react-icons/io5"
+import type { ConfigurableProp } from "../../lib/types/pipedream"
+import type { CSSObjectWithLabel } from "react-select"
+import { getTypeDescription } from "../../lib/utils/type-descriptions"
 
 const typeBadgeStyles = {
   string:
@@ -84,7 +41,7 @@ interface PropertyItemProps {
   required?: boolean
   children: React.ReactNode
   action?: React.ReactNode
-  defaultValue?: any
+  defaultValue?: unknown
   min?: number
   max?: number
   secret?: boolean
@@ -114,7 +71,7 @@ const PropertyItem = ({
   })
 
   return (
-    <div className="grid grid-cols-[180px_1fr] gap-4 items-center py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+    <div className="grid grid-cols-[120px_1fr] gap-3 items-center py-2 pl-4 pr-2 hover:bg-zinc-50/50">
       <div className="flex items-center">
         <TooltipProvider delayDuration={0}>
           <Tooltip>
@@ -203,23 +160,19 @@ const PropertyItem = ({
 
 export const ConfigPanel = () => {
   const {
-    fileCode,
-    setFileCode,
     customizationOption,
-    code,
     userId,
     selectedApp,
     setSelectedAppSlug,
     removeSelectedAppSlug,
     selectedComponentType,
+    setSelectedComponentType,
     selectedComponent,
     webhookUrl,
     setWebhookUrl,
     setSelectedComponentKey,
     removeSelectedComponentKey,
     setPropNames,
-    setConfiguredProps,
-    setActionRunOutput,
     customizationOptions,
     setCustomizationOption,
     hideOptionalProps,
@@ -227,38 +180,133 @@ export const ConfigPanel = () => {
     enableDebugging,
     setEnableDebugging,
     propNames,
-    component,
   } = useAppState()
   const id1 = useId();
   const id2 = useId();
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const dropdownCustomization = {
+    props: {
+      controlSelect: {
+        menuPortalTarget: typeof document !== 'undefined' ? document.body : undefined,
+        menuPlacement: 'auto',
+        menuShouldBlockScroll: false,
+      },
+    },
+    styles: {
+      controlSelect: {
+        menu: (base: CSSObjectWithLabel) => ({
+          ...base,
+          zIndex: 99999,
+          position: 'fixed',
+        }),
+        menuPortal: (base: CSSObjectWithLabel) => ({ 
+          ...base, 
+          zIndex: 99999,
+          position: 'fixed',
+        }),
+        control: (base: CSSObjectWithLabel) => ({
+          ...base,
+          position: 'relative',
+          zIndex: 1,
+        }),
+      },
+    },
+  }
 
   const isValidWebhookUrl = () => {
-    if (!webhookUrl) {
-      return true
-    }
-
+    if (!webhookUrl) return true
     try {
-      new URL(webhookUrl);
+      new URL(webhookUrl)
+      return true
     } catch {
       return false
     }
-    return true
   }
 
+  const basicFormControls = (
+    <div>
+      <div className="grid grid-cols-[120px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+        <div className="flex items-start pt-1.5">
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <label className="text-[13px] font-semibold text-neutral-500 border-b border-dotted border-neutral-300 cursor-help">
+                  componentType
+                </label>
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 flex flex-col gap-1.5 max-w-xs bg-white border border-neutral-200 shadow-sm text-neutral-700 rounded-md p-2.5 font-mono text-[13px] leading-tight tracking-tight"
+              >
+                <div className="pb-1.5 mb-1.5 border-b border-neutral-200 font-medium">
+                  <span className="text-[#d73a49]">type</span>{" "}
+                  <span className="text-[#6f42c1]">componentType</span> ={" "}
+                  <span className="text-[#d73a49]">'action' | 'trigger'</span>
+                </div>
 
-  const formControls = (
-    <div className="divide-y">
+                <div className="font-sans text-neutral-600 py-1 text-[13px] leading-normal font-normal">
+                  Type of component to configure
+                </div>
+
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-1 pt-1.5 mt-1.5 border-t border-neutral-200">
+                  <div>
+                    <span className="text-[#d73a49] font-medium">
+                      required:
+                    </span>{" "}
+                    <span className="text-[#22863a]">
+                      true
+                    </span>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        <div className="flex items-start">
+          <ComponentTypeSelector 
+            selectedType={selectedComponentType}
+            onTypeChange={setSelectedComponentType}
+          />
+        </div>
+      </div>
       <PropertyItem
-        name="userId"
+        name="app"
         type="string"
-        description="Authenticated user identifier"
+        description="App to connect to"
         required={true}
       >
-        <input
-          value={userId || ""}
-          className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
-          readOnly
-        />
+        <CustomizeProvider customization={dropdownCustomization}>
+          <SelectApp
+            value={selectedApp}
+            onChange={(app) => {
+              app
+                ? setSelectedAppSlug(app.name_slug)
+                : removeSelectedAppSlug()
+            }}
+          />
+        </CustomizeProvider>
+      </PropertyItem>
+      <PropertyItem
+        name={selectedComponentType === "action" ? "actionId" : "triggerId"}
+        type="string"
+        description={`${selectedComponentType === "action" ? "Action" : "Trigger"} to use`}
+        required={true}
+      >
+        <CustomizeProvider customization={dropdownCustomization}>
+          <SelectComponent
+            app={selectedApp}
+            componentType={selectedComponentType}
+            value={selectedComponent}
+            onChange={(comp) => {
+              comp
+                ? setSelectedComponentKey(comp.key)
+                : removeSelectedComponentKey()
+
+            }}
+          />
+        </CustomizeProvider>
       </PropertyItem>
       {selectedComponentType === "trigger" && (
         <PropertyItem
@@ -278,33 +326,22 @@ export const ConfigPanel = () => {
         </PropertyItem>
       )}
       <PropertyItem
-        name="componentKey"
+        name="userId"
         type="string"
-        description="Unique identifier for the component to be rendered"
+        description="Authenticated user identifier"
         required={true}
       >
-        <div className="grid grid-cols-2 gap-1">
-          <SelectApp
-            value={selectedApp}
-            onChange={(app) => {
-              app
-                ? setSelectedAppSlug(app.name_slug)
-                : removeSelectedAppSlug()
-            }}
-          />
-          <SelectComponent
-            app={selectedApp}
-            componentType={selectedComponentType}
-            value={selectedComponent}
-            onChange={(comp) => {
-              comp
-                ? setSelectedComponentKey(comp.key)
-                : removeSelectedComponentKey()
-
-            }}
-          />
-        </div>
+        <input
+          value={userId || ""}
+          className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
+          readOnly
+        />
       </PropertyItem>
+    </div>
+  )
+
+  const advancedFormControls = (
+    <div>
       <PropertyItem
         name="hideOptionalProps"
         type="boolean"
@@ -312,31 +349,11 @@ export const ConfigPanel = () => {
         required={false}
         defaultValue={false}
       >
-        <div className="w-fit flex rounded-md border border-zinc-200 shadow-sm">
-          <button
-            onClick={() => setHideOptionalProps(true)}
-            className={cn(
-              "px-3 py-1 text-xs font-medium font-mono",
-              hideOptionalProps
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-            )}
-          >
-            TRUE
-          </button>
-          <div className="w-px bg-zinc-200" />
-          <button
-            onClick={() => setHideOptionalProps(false)}
-            className={cn(
-              "px-3 py-1 text-xs font-medium font-mono",
-              !hideOptionalProps
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-            )}
-          >
-            FALSE
-          </button>
-        </div>
+        <BooleanToggle
+          value={hideOptionalProps}
+          onChange={setHideOptionalProps}
+          aria-label="Hide optional properties toggle"
+        />
       </PropertyItem>
       <PropertyItem
           name="enableDebugging"
@@ -345,31 +362,11 @@ export const ConfigPanel = () => {
           required={false}
           defaultValue={false}
       >
-        <div className="w-fit flex rounded-md border border-zinc-200 shadow-sm">
-          <button
-              onClick={() => setEnableDebugging(true)}
-              className={cn(
-                  "px-3 py-1 text-xs font-medium font-mono",
-                  enableDebugging
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-              )}
-          >
-            TRUE
-          </button>
-          <div className="w-px bg-zinc-200" />
-          <button
-              onClick={() => setEnableDebugging(false)}
-              className={cn(
-                  "px-3 py-1 text-xs font-medium font-mono",
-                  !enableDebugging
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-              )}
-          >
-            FALSE
-          </button>
-        </div>
+        <BooleanToggle
+          value={enableDebugging}
+          onChange={setEnableDebugging}
+          aria-label="Enable debugging toggle"
+        />
       </PropertyItem>
 
       <PropertyItem
@@ -380,10 +377,7 @@ export const ConfigPanel = () => {
       >
         <Select
           instanceId={id1}
-          options={(component?.configurable_props || []).map((prop: any) => ({
-            label: prop.name,
-            value: prop.name,
-          }))}
+          options={[]}
           isMulti={true}
           value={propNames.map((name) => ({
             label: name,
@@ -393,6 +387,10 @@ export const ConfigPanel = () => {
           className="react-select-container text-sm"
           classNamePrefix="react-select"
           placeholder="Select properties to show..."
+          menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+          styles={{
+            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          }}
           components={{
             IndicatorSeparator: () => null,
           }}
@@ -412,69 +410,98 @@ export const ConfigPanel = () => {
           onChange={(v) => {
             if (v) {
               setCustomizationOption(v)
-              setFileCode(undefined)
             }
           }}
           getOptionValue={(o) => o.name}
           className="react-select-container text-sm"
           classNamePrefix="react-select"
           placeholder="Choose a theme..."
+          menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+          styles={{
+            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          }}
           components={{
             IndicatorSeparator: () => null,
           }}
         />
       </PropertyItem>
-      {selectedComponentType === "trigger" && (
-        <div className="bg-sky-100/50 backdrop-blur-xl border rounded border-neutral-200/50 px-4 py-2 mb-10 m-4 shadow-sm">
-          <div className="text-sm text-neutral-700 leading-relaxed">
-            <p className="py-2 flex gap-2">
-              {/* <BsInfoCircleFill className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-1" /> */}
-              <span>
-                When you deploy a trigger via the Pipedream components API, we'll emit events to a{' '}
-                <code className="font-mono mx-1">webhookUrl</code> that you define. To test your trigger:
-              </span>
-            </p>
-            <ol className="list-decimal list-outside ml-6 space-y-2">
-              <li className="pl-2">
-                Configure the trigger and define a <code className="font-mono text-sm">webhookUrl</code> to receive events (use a{' '}
-                <a
-                  href="https://pipedream.com/new?h=tch_BXfkaA"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-sky-800 hover:text-sky-900 hover:underline transition-colors"
-                >
-                  RequestBin
-                </a>
-                {' '}for example)
-              </li>
-              <li className="pl-2">
-                Click <span className="font-semibold">Submit</span> on the right (may take up to a minute, but can happen asynchronously in your app)
-              </li>
-              <li className="pl-2">
-                Generate some actual events in the relevant app and check your webhook for emitted events.
-              </li>
-            </ol>
-          </div>
-        </div>
-      )}
+    </div>
+  )
+
+  const triggerInfo = selectedComponentType === "trigger" && (
+    <div className="bg-sky-100/50 backdrop-blur-xl border rounded border-neutral-200/50 px-4 py-2 mb-10 m-4 shadow-sm hidden md:block">
+      <div className="text-sm text-neutral-700 leading-relaxed">
+        <p className="py-2 flex gap-2">
+          {/* <BsInfoCircleFill className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-1" /> */}
+          <span>
+            When you deploy a trigger via the Pipedream components API, we'll emit events to a{' '}
+            <code className="font-mono mx-1">webhookUrl</code> that you define. To test your trigger:
+          </span>
+        </p>
+        <ol className="list-decimal list-outside ml-6 space-y-2">
+          <li className="pl-2">
+            Configure the trigger and define a <code className="font-mono text-sm">webhookUrl</code> to receive events (use a{' '}
+            <a
+              href="https://pipedream.com/new?h=tch_BXfkaA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-sky-800 hover:text-sky-900 hover:underline transition-colors"
+            >
+              RequestBin
+            </a>
+            {' '}for example)
+          </li>
+          <li className="pl-2">
+            Click <span className="font-semibold">Submit</span> on the right (may take up to a minute, but can happen asynchronously in your app)
+          </li>
+          <li className="pl-2">
+            Generate some actual events in the relevant app and check your webhook for emitted events.
+          </li>
+        </ol>
+      </div>
     </div>
   )
 
   return (
-    <div className="flex flex-col min-h-0 h-full">
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-0 space-y-4">
-          <div className="">
-            <CodeSection
-              fileCode={fileCode || ""}
-              setFileCode={setFileCode}
-              code={code}
-              customizationOption={customizationOption}
-              formControls={formControls}
-            />
+    <div className="flex flex-col">
+      <div className="px-4 md:px-6 py-4 border-b bg-white">
+        <h2 className="text-lg font-semibold text-gray-900">Demo Configuration</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Select an action or trigger and explore additional configuration options
+        </p>
+      </div>
+      <div>
+        <div className="px-4 md:px-6 py-4">
+          {basicFormControls}
+          
+          {/* Desktop: Show with section header */}
+          <div className="hidden md:block mt-6">
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-4">Additional Config Options</h3>
+              {advancedFormControls}
+            </div>
           </div>
+
+          {/* Mobile: Collapsible */}
+          <div className="md:hidden mt-4">
+            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-sm font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150">
+                <div className="flex items-center gap-2">
+                  <IoSettingsOutline className="h-4 w-4" />
+                  More options
+                </div>
+                <IoChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                {advancedFormControls}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+          
+          {triggerInfo}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
