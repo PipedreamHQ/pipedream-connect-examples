@@ -31,13 +31,13 @@ export function DemoTabTrigger({
       className={cn(
         baseClasses,
         isMobile ? mobileClasses : desktopClasses,
-        value === "debugger" && "relative",
+        value === "debug" && "relative",
         className
       )}
     >
       <Icon className={cn("h-4 w-4", !isMobile && "mr-2")} />
       <span className={cn(isMobile && "ml-2")}>{label}</span>
-      {value === "debugger" && callCount > 0 && (
+      {value === "debug" && callCount > 0 && (
         <Badge 
           variant={pendingCount > 0 ? "default" : "secondary"} 
           className={cn(

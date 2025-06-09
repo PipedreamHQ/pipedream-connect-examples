@@ -36,7 +36,10 @@ export function SDKLoggerProvider({ children }: { children: ReactNode }) {
   const shouldLog = useRef(true) // Always log - this is a demo feature
 
   const notifySubscribers = useCallback(() => {
-    subscribersRef.current.forEach(callback => callback())
+    // Defer notifications to avoid state updates during render
+    setTimeout(() => {
+      subscribersRef.current.forEach(callback => callback())
+    }, 0)
   }, [])
 
   const addCall = useCallback((call: Omit<SDKCall, "id">) => {

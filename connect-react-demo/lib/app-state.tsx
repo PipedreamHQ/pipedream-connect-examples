@@ -96,7 +96,7 @@ const useAppStateProviderValue = () => {
   }: {
     component?: any
   } = useComponent({
-    key: selectedComponent?.key,
+    key: selectedComponent?.key && userId ? selectedComponent.key : undefined,
   })
 
   const searchParams = useSearchParams()

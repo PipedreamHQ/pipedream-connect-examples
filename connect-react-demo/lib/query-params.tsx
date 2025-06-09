@@ -7,6 +7,7 @@ export const componentKeySlug = z.string().optional();
 export const propNames = z.string().optional();
 export const hideOptionalProps = z.string().optional();
 export const enableDebugging = z.string().optional();
+export const tab = z.string().optional();
 
 export const queryParamSchema = z.object({
   app: appSlug,
@@ -15,4 +16,5 @@ export const queryParamSchema = z.object({
   hideOptionalProps,
   enableDebugging,
   type: componentType,
+  tab,
 });
