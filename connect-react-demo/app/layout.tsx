@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import { DatadogScript } from "./components/DatadogScript"
+import { GoogleAnalytics } from "./components/GoogleAnalytics"
 import { GeistSans } from "geist/font/sans"
-import { Analytics } from "@vercel/analytics/react"
 
 export const metadata: Metadata = {
   title: "Pipedream Connect Demo",
@@ -18,9 +18,9 @@ export default async function RootLayout({
   return (
     <html lang="en" className={GeistSans.variable}>
       <DatadogScript />
+      <GoogleAnalytics />
       <body className={`antialiased ${GeistSans.className}`}>
         {children}
-        <Analytics />
       </body>
     </html>
   )
