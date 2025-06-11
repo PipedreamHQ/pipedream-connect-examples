@@ -6,7 +6,9 @@ export const useStableUuid = (): [string, () => void] => {
     const [id, setId] = useState<string>("")
 
     const refresh = () => {
-      setId(`demo-${uuid()}`)
+      // Check for override env var first
+      const overrideId = process.env.NEXT_PUBLIC_EXTERNAL_USER_ID
+      setId(overrideId || `demo-${uuid()}`)
     }
 
     useEffect(() => {
