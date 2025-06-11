@@ -1,5 +1,5 @@
 export interface CodeTemplateData {
-  userId: string
+  externalUserId: string
   componentKey?: string
   configuredProps: Record<string, any>
   selectedComponentType: "action" | "trigger"
@@ -73,7 +73,7 @@ function MyComponent() {
 
   const handleSubmit = async (ctx) => {
     const result = await frontendClient.${data.selectedComponentType === "action" ? "actionRun" : "deployTrigger"}({
-      externalUserId: "${data.userId}",
+      externalUserId: "${data.externalUserId}",
       ${data.selectedComponentType}Id: "${data.componentKey}",
       configuredProps: ctx.configuredProps,${webhookUrlLine}
     })
@@ -84,7 +84,7 @@ function MyComponent() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <ComponentForm
-        userId="${data.userId}"
+        externalUserId="${data.externalUserId}"
         component={component}
         configuredProps={configuredProps}
         onUpdateConfiguredProps={setConfiguredProps}${optionalProps ? '\n' + optionalProps : ''}
@@ -95,7 +95,7 @@ function MyComponent() {
 }`
 }
 
-export const generateSetupCode = (userId: string) => `import { FrontendClientProvider } from "@pipedream/connect-react"
+export const generateSetupCode = (externalUserId: string) => `import { FrontendClientProvider } from "@pipedream/connect-react"
 import { createFrontendClient } from "@pipedream/sdk/browser"
 
 export function ClientProvider({ children }) {
@@ -111,7 +111,7 @@ export function ClientProvider({ children }) {
       const { token } = await response.json()
       return token
     },
-    externalUserId: "${userId}", // Your user's unique ID
+    externalUserId: "${externalUserId}", // Your user's unique ID
   })
 
   return (
@@ -121,7 +121,7 @@ export function ClientProvider({ children }) {
   )
 }`
 
-export const generateApiCode = (userId: string) => `import { NextRequest, NextResponse } from 'next/server'
+export const generateApiCode = (externalUserId: string) => `import { NextRequest, NextResponse } from 'next/server'
 import { createBackendClient } from '@pipedream/sdk/server'
 
 const pd = createBackendClient({

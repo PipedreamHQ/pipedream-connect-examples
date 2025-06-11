@@ -34,7 +34,7 @@ const customizationOptions = [
 
 const useAppStateProviderValue = () => {
   const client = useFrontendClient()
-  const userId = client.externalUserId || ""
+  const externalUserId = client.externalUserId || ""
 
   const [customizationOption, setCustomizationOption] = useState(
     customizationOptions[0]
@@ -72,7 +72,7 @@ const useAppStateProviderValue = () => {
   }
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
-  const { app: fetchedApp } = useApp(selectedAppSlug && userId ? selectedAppSlug : undefined)
+  const { app: fetchedApp } = useApp(selectedAppSlug && externalUserId ? selectedAppSlug : undefined)
   const selectedApp = fetchedApp || undefined
 
   const selectedComponentType = queryParams.type || "action"
@@ -136,7 +136,7 @@ export function MyPage() {
   return (
     <FrontendClientProvider client={client}>
       <ComponentFormContainer
-        userId="${userId}"
+        externalUserId="${externalUserId}"
         componentKey="${selectedComponent?.key}"${
     hideOptionalProps
       ? `
@@ -162,12 +162,12 @@ export function MyPage() {
     </FrontendClientProvider>
   )
 }`
-  }, [customizationOption.file, customizationOption.name, userId, selectedComponent?.key, hideOptionalProps, enableDebugging, propNames]);
+  }, [customizationOption.file, customizationOption.name, externalUserId, selectedComponent?.key, hideOptionalProps, enableDebugging, propNames]);
 
   const [fileCode, setFileCode] = useState<string>()
 
   return {
-    userId,
+    externalUserId,
 
     customizationOptions,
     customizationOption,

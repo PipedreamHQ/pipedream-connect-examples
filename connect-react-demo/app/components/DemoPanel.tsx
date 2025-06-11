@@ -8,7 +8,7 @@ export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
   const {
     customizationOption,
-    userId,
+    externalUserId,
     selectedComponentKey,
     propNames,
     hideOptionalProps,
@@ -34,13 +34,13 @@ export const DemoPanel = () => {
     try {
       const data = selectedComponentType === "action" 
         ? await frontendClient.runAction({
-            userId,
+            externalUserId,
             actionId: selectedComponentKey,
             configuredProps,
             dynamicPropsId,
           })
         : await frontendClient.deployTrigger({
-            userId,
+            externalUserId,
             triggerId: selectedComponentKey,
             configuredProps,
             webhookUrl,
@@ -131,7 +131,7 @@ export const DemoPanel = () => {
                 <CustomizeProvider {...customizationOption.customization}>
                   {selectedComponentKey && (
                     <ComponentFormContainer
-                      userId={userId}
+                      externalUserId={externalUserId}
                       componentKey={selectedComponentKey}
                       configuredProps={configuredProps}
                       onUpdateConfiguredProps={setConfiguredProps}

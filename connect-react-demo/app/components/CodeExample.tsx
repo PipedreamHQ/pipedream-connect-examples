@@ -87,7 +87,7 @@ export function LiveCodeExamples() {
   const { 
     selectedComponentKey, 
     selectedComponentType, 
-    userId,
+    externalUserId,
     configuredProps,
     webhookUrl 
   } = useAppState()
@@ -128,7 +128,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
       const { token } = await response.json()
       return token
     },
-    externalUserId: "user-${userId}",
+    externalUserId: "user-${externalUserId}",
   })
 
   return (
@@ -154,12 +154,12 @@ export default function IntegrationsPage() {
     try {
       ${selectedComponentType === "action" ? 
         `const result = await frontendClient.actionRun({
-        userId: "user-${userId}",
+        externalUserId: "user-${externalUserId}",
         actionId: "${selectedComponentKey}",
         configuredProps: ctx.configuredProps,
       })` : 
         `const result = await frontendClient.deployTrigger({
-        userId: "user-${userId}",
+        externalUserId: "user-${externalUserId}",
         triggerId: "${selectedComponentKey}",
         configuredProps: ctx.configuredProps,
         webhookUrl: "https://your-app.com/api/webhook",
@@ -187,7 +187,7 @@ export default function IntegrationsPage() {
 
         {selectedComponent && (
           <ComponentForm
-            userId="user-${userId}"
+            externalUserId="user-${externalUserId}"
             component={selectedComponent}
             configuredProps={configuredProps}
             onUpdateConfiguredProps={setConfiguredProps}

@@ -159,6 +159,28 @@ export function useSDKLoggerPendingCount() {
  * won't cause the entire app tree to re-render unnecessarily.
  */
 
+// Recursively clean undefined values from objects for cleaner SDK debugging
+function cleanUndefinedValues(obj: any): any {
+  if (obj === null || obj === undefined) return obj
+  
+  if (Array.isArray(obj)) {
+    return obj
+      .map(cleanUndefinedValues)
+      .filter(item => item !== undefined)
+  }
+  
+  if (typeof obj === 'object') {
+    return Object.entries(obj).reduce((cleaned, [key, value]) => {
+      if (value !== undefined) {
+        cleaned[key] = cleanUndefinedValues(value)
+      }
+      return cleaned
+    }, {} as any)
+  }
+  
+  return obj
+}
+
 // Utility to create a logged version of the frontend client
 export function createLoggedFrontendClient(
   client: FrontendClient,
@@ -203,10 +225,14 @@ export function createLoggedFrontendClient(
       if (typeof value === "function" && methodsToLog.includes(String(prop))) {
         return async (...args: any[]) => {
           const startTime = Date.now()
+          
+          // Recursively filter out undefined properties from the request object
+          const cleanRequest = args[0] ? cleanUndefinedValues(args[0]) : {}
+          
           const callId = logger.addCall({
             method: String(prop),
             timestamp: new Date(),
-            request: args[0] || {},
+            request: cleanRequest,
             status: "pending"
           })
 
