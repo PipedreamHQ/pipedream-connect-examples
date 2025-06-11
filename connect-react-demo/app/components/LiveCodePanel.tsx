@@ -15,7 +15,7 @@ export function LiveCodePanel() {
   const { 
     selectedComponentType, 
     selectedComponentKey,
-    userId,
+    externalUserId,
     configuredProps,
     webhookUrl,
     selectedApp,
@@ -28,7 +28,7 @@ export function LiveCodePanel() {
   const [showLiveUpdates, setShowLiveUpdates] = useState(true)
 
   const currentComponentCode = generateComponentCode({
-    userId,
+    externalUserId,
     componentKey: selectedComponentKey,
     configuredProps,
     selectedComponentType,
@@ -38,9 +38,9 @@ export function LiveCodePanel() {
     propNames
   })
 
-  const setupCode = generateSetupCode(userId)
+  const setupCode = generateSetupCode(externalUserId)
 
-  const apiCode = generateApiCode(userId)
+  const apiCode = generateApiCode(externalUserId)
 
   const files = CODE_FILES
 

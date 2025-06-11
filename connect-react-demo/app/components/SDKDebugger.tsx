@@ -11,6 +11,7 @@ import {
 import { IoChevronForward, IoTrashOutline, IoCopyOutline, IoCheckmarkOutline } from "react-icons/io5"
 import { useState, memo, useCallback } from "react"
 import { cn } from "@/lib/utils"
+import { formatPayload } from "@/lib/format-utils"
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -92,7 +93,7 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => copyToClipboard(JSON.stringify(call.request, null, 2), "request")}
+                onClick={() => copyToClipboard(formatPayload(call.request), "request")}
                 className="h-7 px-2"
               >
                 {copiedField === "request" ? (
@@ -103,7 +104,7 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
               </Button>
             </div>
             <pre className="text-xs bg-white rounded-md p-3 overflow-x-auto border">
-              <code>{JSON.stringify(call.request, null, 2)}</code>
+              <code>{formatPayload(call.request)}</code>
             </pre>
           </div>
 
@@ -115,7 +116,7 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => copyToClipboard(JSON.stringify(call.response, null, 2), "response")}
+                  onClick={() => copyToClipboard(formatPayload(call.response), "response")}
                   className="h-7 px-2"
                 >
                   {copiedField === "response" ? (
@@ -126,7 +127,7 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
                 </Button>
               </div>
               <pre className="text-xs bg-white rounded-md p-3 overflow-x-auto border max-h-96 overflow-y-auto">
-                <code>{JSON.stringify(call.response, null, 2)}</code>
+                <code>{formatPayload(call.response)}</code>
               </pre>
             </div>
           )}
@@ -139,7 +140,7 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => copyToClipboard(JSON.stringify(call.error, null, 2), "error")}
+                  onClick={() => copyToClipboard(formatPayload(call.error), "error")}
                   className="h-7 px-2"
                 >
                   {copiedField === "error" ? (
@@ -150,7 +151,7 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
                 </Button>
               </div>
               <pre className="text-xs bg-red-50 text-red-900 rounded-md p-3 overflow-x-auto border border-red-200">
-                <code>{JSON.stringify(call.error, null, 2)}</code>
+                <code>{formatPayload(call.error)}</code>
               </pre>
             </div>
           )}

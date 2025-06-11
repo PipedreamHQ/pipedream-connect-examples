@@ -161,7 +161,7 @@ const PropertyItem = ({
 export const ConfigPanel = () => {
   const {
     customizationOption,
-    userId,
+    externalUserId,
     selectedApp,
     setSelectedAppSlug,
     removeSelectedAppSlug,
@@ -295,17 +295,22 @@ export const ConfigPanel = () => {
         required={true}
       >
         <CustomizeProvider customization={dropdownCustomization}>
-          <SelectComponent
-            app={selectedApp}
-            componentType={selectedComponentType}
-            value={selectedComponent}
-            onChange={(comp) => {
-              comp
-                ? setSelectedComponentKey(comp.key)
-                : removeSelectedComponentKey()
-
-            }}
-          />
+          {selectedApp ? (
+            <SelectComponent
+              app={selectedApp}
+              componentType={selectedComponentType}
+              value={selectedComponent}
+              onChange={(comp) => {
+                comp
+                  ? setSelectedComponentKey(comp.key)
+                  : removeSelectedComponentKey()
+              }}
+            />
+          ) : (
+            <div className="w-full px-3 py-1.5 text-sm text-gray-500 border rounded bg-gray-50">
+              Loading components...
+            </div>
+          )}
         </CustomizeProvider>
       </PropertyItem>
       {selectedComponentType === "trigger" && (
@@ -326,13 +331,13 @@ export const ConfigPanel = () => {
         </PropertyItem>
       )}
       <PropertyItem
-        name="userId"
+        name="externalUserId"
         type="string"
         description="Authenticated user identifier"
         required={true}
       >
         <input
-          value={userId || ""}
+          value={externalUserId || ""}
           className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
           readOnly
         />
