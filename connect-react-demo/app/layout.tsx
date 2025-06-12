@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     siteName: "Pipedream Connect",
     images: [
       {
-        url: "/opengraph-image.png",
+        url: "https://pipedream.com/connect/demo/opengraph-image.png",
         width: 1200,
         height: 630,
         alt: "Pipedream Connect",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "One SDK, thousands of API integrations",
     description: "Pipedream Connect provides managed authentication for 2,700+ APIs and access to 10,000+ prebuilt tools.",
-    images: ["/opengraph-image.png"],
+    images: ["https://pipedream.com/connect/demo/opengraph-image.png"],
   },
 }
 
