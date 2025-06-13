@@ -158,6 +158,8 @@ export function MyPage() {
         \{...customization\}`
       : ""
   }
+        // Optional: specify OAuth app ID for app-specific account connections
+        // oauthAppId="your-oauth-app-id"
       />
     </FrontendClientProvider>
   )
