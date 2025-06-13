@@ -151,8 +151,8 @@ export const DemoPanel = () => {
                       onSubmit={handleSubmit}
                       onUpdateDynamicProps={handleDynamicProps}
                       sdkResponse={sdkErrors}
-                      // Optional: specify OAuth app ID for app-specific account connections
-                      oauthAppId="your-oauth-app-id"
+                      // Optional: specify OAuth app ID for app-specific account connections (coming soon)
+                      // oauthAppId="your-oauth-app-id"
                     />
                   )}
                 </CustomizeProvider>

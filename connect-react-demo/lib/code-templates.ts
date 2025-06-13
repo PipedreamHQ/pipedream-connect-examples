@@ -89,8 +89,6 @@ function MyComponent() {
         configuredProps={configuredProps}
         onUpdateConfiguredProps={setConfiguredProps}${optionalProps ? '\n' + optionalProps : ''}
         onSubmit={handleSubmit}
-        // Optional: specify OAuth app ID for app-specific account connections
-        // oauthAppId="your-oauth-app-id"
       />
     </div>
   )
