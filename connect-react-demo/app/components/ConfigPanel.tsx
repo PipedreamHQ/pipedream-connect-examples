@@ -1,7 +1,7 @@
 "use client"
 
-import { useId, useState } from "react"
-import { SelectApp, SelectComponent, CustomizeProvider } from "@pipedream/connect-react"
+import React, { useId, useState, useCallback, useMemo, useRef, useEffect } from "react"
+import { SelectApp, SelectComponent, CustomizeProvider, useComponent } from "@pipedream/connect-react"
 import {
   Tooltip,
   TooltipContent,
@@ -184,6 +184,63 @@ export const ConfigPanel = () => {
   const id1 = useId();
   const id2 = useId();
   const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Local state for immediate UI updates, separate from router state
+  const [localPropNames, setLocalPropNames] = useState(propNames)
+  
+  // Sync router state to local state
+  useEffect(() => {
+    setLocalPropNames(propNames)
+  }, [propNames])
+  
+  // Debounced sync from local state to router
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (JSON.stringify(localPropNames) !== JSON.stringify(propNames)) {
+        // Use requestAnimationFrame to ensure this happens outside any ongoing render
+        requestAnimationFrame(() => {
+          setPropNames(localPropNames)
+        })
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [localPropNames, propNames, setPropNames])
+
+  // Fetch component details to get configurable_props for the propNames dropdown
+  const { component, isLoading, error } = useComponent({ 
+    key: selectedComponent?.key || '',
+    useQueryOpts: {
+      enabled: !!selectedComponent?.key
+    }
+  })
+
+
+  // Common select styles for consistent UI
+  const selectPortalStyles = useMemo(() => ({
+    menuPortal: (base: CSSObjectWithLabel) => ({ ...base, zIndex: 9999 }),
+    option: (base: CSSObjectWithLabel) => ({ ...base, fontSize: '14px' }),
+  }), [])
+
+  const multiSelectStyles = useMemo(() => ({
+    ...selectPortalStyles,
+    multiValue: (base: CSSObjectWithLabel) => ({ ...base, fontSize: '14px' }),
+    multiValueLabel: (base: CSSObjectWithLabel) => ({ ...base, fontSize: '14px' }),
+  }), [selectPortalStyles])
+
+  const singleSelectStyles = useMemo(() => ({
+    ...selectPortalStyles,
+    singleValue: (base: CSSObjectWithLabel) => ({ ...base, fontSize: '14px' }),
+  }), [selectPortalStyles])
+
+  // Common Select props
+  const commonSelectProps = useMemo(() => ({
+    className: "react-select-container text-sm",
+    classNamePrefix: "react-select",
+    menuPortalTarget: typeof document !== 'undefined' ? document.body : undefined,
+    components: {
+      IndicatorSeparator: () => null,
+    },
+  }), [])
 
   const dropdownCustomization = {
     props: {
@@ -382,23 +439,28 @@ export const ConfigPanel = () => {
       >
         <Select
           instanceId={id1}
-          options={[]}
+          {...commonSelectProps}
+          options={useMemo(() => 
+            (component?.configurable_props || []).map((prop: any) => ({
+              label: prop.label ? `${prop.label} (${prop.name})` : prop.name,
+              value: prop.name,
+            })), [component?.configurable_props]
+          )}
           isMulti={true}
-          value={propNames.map((name) => ({
-            label: name,
-            value: name,
-          }))}
-          onChange={(vs) => setPropNames(vs.map((v) => v.value))}
-          className="react-select-container text-sm"
-          classNamePrefix="react-select"
+          value={useMemo(() => 
+            localPropNames.map((name) => {
+              const prop = (component?.configurable_props || []).find((p: any) => p.name === name)
+              return {
+                label: prop?.label ? `${prop.label} (${prop.name})` : name,
+                value: name,
+              }
+            }), [localPropNames, component?.configurable_props]
+          )}
+          onChange={useCallback((vs) => {
+            setLocalPropNames((vs || []).map((v) => v.value))
+          }, [])}
           placeholder="Select properties to show..."
-          menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
-          styles={{
-            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-          }}
-          components={{
-            IndicatorSeparator: () => null,
-          }}
+          styles={multiSelectStyles}
         />
       </PropertyItem>
 
@@ -410,6 +472,7 @@ export const ConfigPanel = () => {
       >
         <Select
           instanceId={id2}
+          {...commonSelectProps}
           options={customizationOptions}
           value={customizationOption}
           onChange={(v) => {
@@ -418,16 +481,8 @@ export const ConfigPanel = () => {
             }
           }}
           getOptionValue={(o) => o.name}
-          className="react-select-container text-sm"
-          classNamePrefix="react-select"
           placeholder="Choose a theme..."
-          menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
-          styles={{
-            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-          }}
-          components={{
-            IndicatorSeparator: () => null,
-          }}
+          styles={singleSelectStyles}
         />
       </PropertyItem>
     </div>

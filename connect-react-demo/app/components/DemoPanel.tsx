@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import { ComponentFormContainer, CustomizeProvider, useFrontendClient } from "@pipedream/connect-react"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
@@ -23,6 +23,16 @@ export const DemoPanel = () => {
 
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
   const [sdkErrors, setSdkErrors] = useState<unknown>()
+  
+  // Debounce propNames to prevent cascading render issues with app props
+  const [debouncedPropNames, setDebouncedPropNames] = useState(propNames)
+  
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPropNames(propNames)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [propNames])
 
   const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
     setDynamicPropsId(dynamicProps.id)
@@ -136,11 +146,13 @@ export const DemoPanel = () => {
                       configuredProps={configuredProps}
                       onUpdateConfiguredProps={setConfiguredProps}
                       hideOptionalProps={hideOptionalProps}
-                      propNames={propNames}
+                      propNames={debouncedPropNames}
                       enableDebugging={enableDebugging}
                       onSubmit={handleSubmit}
                       onUpdateDynamicProps={handleDynamicProps}
-                      errors={sdkErrors}
+                      sdkResponse={sdkErrors}
+                      // Optional: specify OAuth app ID for app-specific account connections (coming soon)
+                      // oauthAppId="your-oauth-app-id"
                     />
                   )}
                 </CustomizeProvider>
