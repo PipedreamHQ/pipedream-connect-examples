@@ -1,5 +1,7 @@
 # Pipedream Components Demo (React)
 
+This app is published at [https://pipedream.com/connect/demo](https://pipedream.com/connect/demo). Read below to run it locally.
+
 ## Clone this Next.js demo app
 
 ```sh
@@ -33,7 +35,6 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-
 ## How to test @pipedream/connect-react changes with this app
 
 clone this repo as well as the the repo that contains connect-react (pipedream).
@@ -44,7 +45,7 @@ git clone https://github.com/PipedreamHQ/pipedream-connect-examples.git
 git clone https://github.com/PipedreamHQ/pipedream.git
 ```
 
-Install dependencies and build connect-react.  Using watch will rebuild the package when changes are detected.
+Install dependencies and build connect-react. Using watch will rebuild the package when changes are detected.
 
 ```sh
 cd pipedream/packages/connect-react
@@ -52,7 +53,7 @@ pnpm install
 pnpm watch
 ```
 
-In a separate tab install dependencies and run the demo app.  Be sure to set the correct values in .env.local
+In a separate tab install dependencies and run the demo app. Be sure to set the correct values in .env.local
 
 ```sh
 cd pipedream-connect-examples/connect-react-demo
@@ -60,9 +61,10 @@ cp .env.example .env.local
 make connect-react-dev
 ```
 
-Changes made in connect-react will not be automatically loaded by the app.  To pick them up you'll need to restart `make connect-react-dev`
+Changes made in connect-react will not be automatically loaded by the app. To pick them up you'll need to restart `make connect-react-dev`
 
 A change like the following is an easy way to check that your connect-react changes have been picked up (all app names will be prefixed with 'hello world!'
+
 ```sh
 diff --git a/packages/connect-react/src/components/SelectApp.tsx b/packages/connect-react/src/components/SelectApp.tsx
 index 61fe7bd27..a9378297d 100644
@@ -78,7 +80,3 @@ index 61fe7bd27..a9378297d 100644
            </Option>
          ),
 ```
-
-## TODO
-
-It would be nice for changes to connect-react while watched to be picked up without having to restart the demo app.
