@@ -9,8 +9,8 @@ export const formatPayload = (obj: any, indent = 0): string => {
   const innerSpaces = ' '.repeat((indent + 1) * 2)
   
   if (typeof obj === 'string') {
-    // Return string without quotes for cleaner display
-    return obj
+    // Return string with quotes
+    return `"${obj}"`
   }
   
   if (typeof obj === 'number' || typeof obj === 'boolean') {
