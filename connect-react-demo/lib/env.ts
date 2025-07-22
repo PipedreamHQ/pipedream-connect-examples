@@ -28,6 +28,7 @@ const envSchema = z.object({
   // Optional environment variables, useful for different environments (e.g.
   // local development, production, etc.).
   PIPEDREAM_API_HOST: z.optional(z.string().default("api.pipedream.com")),
+  PIPEDREAM_FRONTEND_HOST: z.optional(z.string().default("pipedream.com")),
   PIPEDREAM_WORKFLOW_DOMAIN: z.optional(z.string().default("m.pipedream.net")),
 
   // Datadog

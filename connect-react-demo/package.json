@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@pipedream/connect-react": "^1.3.2",
+    "@pipedream/connect-react": "1.3.3",
     "@pipedream/sdk": "^1.7.0",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.14",

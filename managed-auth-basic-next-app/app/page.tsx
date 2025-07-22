@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { serverConnectTokenCreate, getAppInfo } from "./server"
 import { AppResponse, BrowserClient } from "@pipedream/sdk/browser";
 
-const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
+const frontendHost = process.env.PIPEDREAM_FRONTEND_HOST || "pipedream.com"
 
 export default function Home() {
   const [externalUserId, setExternalUserId] = useState<string | null>(null);
