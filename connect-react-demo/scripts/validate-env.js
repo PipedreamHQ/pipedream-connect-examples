@@ -38,22 +38,24 @@ function validateEnvironment() {
   const hasEnv = fs.existsSync(envPath);
   const hasEnvLocal = fs.existsSync(envLocalPath);
   
+  let env = {};
+  
   if (!hasEnv && !hasEnvLocal) {
-    errors.push('❌ No .env or .env.local file found. Please copy .env.example to .env or .env.local and configure it.');
-    console.error(errors[0]);
-    process.exit(1);
+    // In deployment environments (like Vercel), use process.env instead of local files
+    console.log('📁 No local .env files found, using environment variables from deployment platform\n');
+    env = process.env;
+  } else {
+    // Load env files (env.local takes precedence)
+    const envBase = hasEnv ? loadEnvFile(envPath) : {};
+    const envLocal = hasEnvLocal ? loadEnvFile(envLocalPath) : {};
+    env = { ...envBase, ...envLocal };
+    
+    // Log which files are being used
+    const filesUsed = [];
+    if (hasEnv) filesUsed.push('.env');
+    if (hasEnvLocal) filesUsed.push('.env.local');
+    console.log(`📁 Using environment files: ${filesUsed.join(', ')}\n`);
   }
-  
-  // Load env files (env.local takes precedence)
-  const envBase = hasEnv ? loadEnvFile(envPath) : {};
-  const envLocal = hasEnvLocal ? loadEnvFile(envLocalPath) : {};
-  const env = { ...envBase, ...envLocal };
-  
-  // Log which files are being used
-  const filesUsed = [];
-  if (hasEnv) filesUsed.push('.env');
-  if (hasEnvLocal) filesUsed.push('.env.local');
-  console.log(`📁 Using environment files: ${filesUsed.join(', ')}\n`);
   
   // Required fields
   const requiredFields = [
