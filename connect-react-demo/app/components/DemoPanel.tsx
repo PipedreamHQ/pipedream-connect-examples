@@ -24,6 +24,13 @@ export const DemoPanel = () => {
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
   const [sdkErrors, setSdkErrors] = useState<unknown>()
   
+  // Define OAuth app ID mappings for testing
+  // const oauthAppConfig = useMemo(() => ({
+  //   'github': 'oa_abc1234',
+  //   'google_sheets': 'oa_def4567',
+  //   'slack': 'oa_1234567',
+  // }), [])
+  
   // Debounce propNames to prevent cascading render issues with app props
   const [debouncedPropNames, setDebouncedPropNames] = useState(propNames)
   
@@ -151,8 +158,7 @@ export const DemoPanel = () => {
                       onSubmit={handleSubmit}
                       onUpdateDynamicProps={handleDynamicProps}
                       sdkResponse={sdkErrors}
-                      // Optional: specify OAuth app ID for app-specific account connections (coming soon)
-                      // oauthAppId="your-oauth-app-id"
+                      // oauthAppConfig={oauthAppConfig}
                     />
                   )}
                 </CustomizeProvider>
