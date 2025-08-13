@@ -80,6 +80,7 @@ const useAppStateProviderValue = () => {
   const removeSelectedComponentType = () => setQueryParam("type", undefined)
 
   const [webhookUrl, setWebhookUrl] = useState<string>("")
+  const [webhookUrlValidationAttempted, setWebhookUrlValidationAttempted] = useState<boolean>(false)
 
   const selectedComponentKey = queryParams.component || "google_sheets-add-single-row"
   const setSelectedComponentKey = (value: string) => {
@@ -88,6 +89,7 @@ const useAppStateProviderValue = () => {
       setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
       setConfiguredProps({})
       setActionRunOutput(undefined)
+      setWebhookUrlValidationAttempted(false) // Reset validation state when switching components
     })
   }
   const removeSelectedComponentKey = () => {
@@ -98,6 +100,7 @@ const useAppStateProviderValue = () => {
       ])
       setConfiguredProps({})
       setActionRunOutput(undefined)
+      setWebhookUrlValidationAttempted(false) // Reset validation state when removing component
     })
   }
 
@@ -188,6 +191,8 @@ export function MyPage() {
 
     webhookUrl,
     setWebhookUrl,
+    webhookUrlValidationAttempted,
+    setWebhookUrlValidationAttempted,
 
     selectedComponentKey,
     setSelectedComponentKey,
