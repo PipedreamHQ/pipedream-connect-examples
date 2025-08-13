@@ -180,6 +180,8 @@ export const ConfigPanel = () => {
     enableDebugging,
     setEnableDebugging,
     propNames,
+    webhookUrlValidationAttempted,
+    setWebhookUrlValidationAttempted,
   } = useAppState()
   const id1 = useId();
   const id2 = useId();
@@ -272,13 +274,17 @@ export const ConfigPanel = () => {
   }
 
   const isValidWebhookUrl = () => {
-    if (!webhookUrl) return true
+    if (!webhookUrl) return false
     try {
       new URL(webhookUrl)
       return true
     } catch {
       return false
     }
+  }
+
+  const shouldShowWebhookUrlError = () => {
+    return webhookUrlValidationAttempted && (!webhookUrl || !isValidWebhookUrl())
   }
 
   const basicFormControls = (
@@ -374,17 +380,42 @@ export const ConfigPanel = () => {
         <PropertyItem
           name="webhookUrl"
           type="string"
-          description="Webhook for trigger"
-          required={false}
+          description="Webhook URL to receive trigger events (required)"
+          required={true}
         >
-          <input
-            value={webhookUrl}
-            onChange={(e) => {
-              setWebhookUrl(e.target.value)
-            }}
-            placeholder="Enter a webhook URL to receive emitted events"
-            className={`w-full px-3 py-1.5 text-sm font-mono border-2 ${isValidWebhookUrl() ? "" : "border-red-500"}  rounded bg-zinc-50/50`}
-          />
+          <div className="space-y-1">
+            <input
+              value={webhookUrl}
+              onChange={(e) => {
+                setWebhookUrl(e.target.value)
+                // Reset validation state when user starts typing
+                if (webhookUrlValidationAttempted) {
+                  setWebhookUrlValidationAttempted(false)
+                }
+              }}
+              placeholder="https://example.com/webhook"
+              className={`w-full px-3 py-1.5 text-sm font-mono border-2 ${
+                shouldShowWebhookUrlError() 
+                  ? "border-red-500" 
+                  : webhookUrl 
+                  ? "border-gray-200" 
+                  : "border-blue-500"
+              } rounded bg-zinc-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
+            />
+            {shouldShowWebhookUrlError() && (
+              <p className="text-xs text-red-600 mt-1">
+                {!webhookUrl 
+                  ? "Webhook URL is required for triggers" 
+                  : "Please enter a valid URL"
+                }
+              </p>
+            )}
+            {!webhookUrl && !shouldShowWebhookUrlError() && (
+              <p className="text-xs font-medium text-blue-500 mt-1">
+                In order to deploy a trigger, enter a webhook URL that will receive events
+              </p>
+            )}
+          </div>
         </PropertyItem>
       )}
       <PropertyItem
@@ -494,7 +525,7 @@ export const ConfigPanel = () => {
         <p className="py-2 flex gap-2">
           {/* <BsInfoCircleFill className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-1" /> */}
           <span>
-            When you deploy a trigger via the Pipedream components API, we'll emit events to a{' '}
+            When you deploy a trigger via the Pipedream Connect, we'll emit events to a{' '}
             <code className="font-mono mx-1">webhookUrl</code> that you define. To test your trigger:
           </span>
         </p>

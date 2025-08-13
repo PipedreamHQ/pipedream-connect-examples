@@ -19,6 +19,7 @@ export const DemoPanel = () => {
     selectedComponentType,
     webhookUrl,
     enableDebugging,
+    setWebhookUrlValidationAttempted,
   } = useAppState()
 
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
@@ -48,6 +49,30 @@ export const DemoPanel = () => {
   const handleSubmit = async () => {
     if (!selectedComponentKey) return
 
+    // Validate webhookUrl for triggers
+    if (selectedComponentType === "trigger") {
+      if (!webhookUrl || webhookUrl.trim() === "") {
+        React.startTransition(() => {
+          setWebhookUrlValidationAttempted(true)
+          setSdkErrors(new Error("Webhook URL is required for to deploy a trigger. Please enter a valid URL to receive events."))
+          setActionRunOutput(undefined)
+        })
+        return
+      }
+      
+      // Validate URL format
+      try {
+        new URL(webhookUrl)
+      } catch {
+        React.startTransition(() => {
+          setWebhookUrlValidationAttempted(true)
+          setSdkErrors(new Error("Invalid webhook URL format. Please enter a valid URL (e.g., https://example.com/webhook)."))
+          setActionRunOutput(undefined)
+        })
+        return
+      }
+    }
+
     try {
       const data = selectedComponentType === "action" 
         ? await frontendClient.runAction({
@@ -67,6 +92,7 @@ export const DemoPanel = () => {
       React.startTransition(() => {
         setSdkErrors(undefined)
         setActionRunOutput(data)
+        setWebhookUrlValidationAttempted(false) // Reset validation state on successful submission
       })
     } catch (error) {
       React.startTransition(() => {
