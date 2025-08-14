@@ -1,7 +1,8 @@
 "use client"
 
 import CodePanel from "./CodePanel";
-import { useEffect, useState, useRef } from "react";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { serverConnectTokenCreate, getAppInfo, getAccountById } from "./server"
 import { type GetAppResponse, type BrowserClient, type App } from "@pipedream/sdk/browser";
@@ -9,19 +10,25 @@ import { type GetAppResponse, type BrowserClient, type App } from "@pipedream/sd
 const frontendHost = process.env.PIPEDREAM_FRONTEND_HOST || "pipedream.com"
 
 export default function Home() {
+  // Core Pipedream Connect state
   const [externalUserId, setExternalUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null)
   const [connectLink, setConnectLink] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
-  const [accountId, setAccountId] = useState<string | null>(null)
-  const [accountName, setAccountName] = useState<string | null>(null)
+  const [pd, setPd] = useState<BrowserClient | null>(null);
+  
+  // Selected app and connection state
   const [selectedApp, setSelectedApp] = useState<GetAppResponse | null>(null);
   const [appSlug, setAppSlug] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [pd, setPd] = useState<BrowserClient | null>(null);
+  const [accountId, setAccountId] = useState<string | null>(null)
+  const [accountName, setAccountName] = useState<string | null>(null)
   const [isOAuthConfirmed, setIsOAuthConfirmed] = useState(true);
   
-  // App search dropdown state
+  // UI state
+  const [error, setError] = useState<string>("");
+  const [selectedLanguage, setSelectedLanguage] = useState<'typescript' | 'python'>('typescript');
+  
+  // App search dropdown state (grouped for better organization)
   const [searchResults, setSearchResults] = useState<App[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -34,6 +41,8 @@ export default function Home() {
   
   // Ref to track if token creation is in progress (prevents duplicate creation in StrictMode)
   const tokenCreationInProgress = useRef<boolean>(false);
+  // Ref for Connect section to enable auto-scroll
+  const connectSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // This code only runs in the browser
@@ -65,9 +74,20 @@ export default function Home() {
 
   const docsConnect = "https://pipedream.com/docs/connect/"
   const docsTokenCreate =
-    "https://pipedream.com/docs/connect/quickstart#generate-a-short-lived-token"
+    "https://pipedream.com/docs/connect/managed-auth/tokens"
   const frontendSDKDocs = "https://pipedream.com/docs/connect/api-reference/sdks#browser-usage"
-  // const connectOauthDocs = "https://pipedream.com/docs/connect/oauth-clients"
+
+  // Reusable link component
+  const ExternalLink = ({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) => (
+    <a 
+      href={href} 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      className={`hover:underline text-blue-600 font-semibold ${className}`}
+    >
+      {children}
+    </a>
+  )
 
   interface ConnectResult {
     id: string
@@ -261,7 +281,7 @@ export default function Home() {
     }
   }
   
-  const searchAppsClient = async (query?: string, limit: number = 10, append: boolean = false): Promise<App[]> => {
+  const searchAppsClient = useCallback(async (query?: string, limit: number = 10, append: boolean = false): Promise<App[]> => {
     if (!pd) {
       console.error("Pipedream client not loaded");
       return [];
@@ -322,7 +342,7 @@ export default function Home() {
       console.error("Error fetching apps:", error);
       return [];
     }
-  };
+  }, [pd, nextCursor]);
 
   const loadMoreApps = async () => {
     if (isLoadingMore || !hasMoreApps) return;
@@ -372,6 +392,14 @@ export default function Home() {
         data: app
       };
       setSelectedApp(mockResponse);
+      
+      // Auto-scroll to Connect section after a brief delay
+      setTimeout(() => {
+        connectSectionRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 100);
     } catch (err) {
       console.error("Error:", err);
       setError(`Couldn't load the app ${app.name_slug}`);
@@ -398,6 +426,14 @@ export default function Home() {
       const response = await getAppInfo(normalizedSlug);
       // console.log('App Info:', response);
       setSelectedApp(response); // This is the key change - access the data property
+      
+      // Auto-scroll to Connect section after a brief delay
+      setTimeout(() => {
+        connectSectionRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 100);
     } catch (err) {
       console.error("Error:", err);
       setError(`Couldn't find the app slug, ${normalizedSlug}`);
@@ -433,15 +469,15 @@ export default function Home() {
         clearTimeout(searchTimeout);
       }
     };
-  }, [searchTimeout]);
+  }, []);
   
   return (
-    <main className="p-5 flex flex-col gap-2 max-w-6xl mb-48">
+    <main className="p-8 flex flex-col gap-2 max-w-6xl mb-48 mx-auto">
       {externalUserId && (
         <div>
           <h1 className="text-title mb-8">Pipedream Connect: Managed Auth Demo App</h1>
           <div className="mb-4 text-body">
-            <p className="mb-4">Refer to the <a href={docsConnect} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">Pipedream Connect docs</a> for a full walkthrough of how to configure Connect for your app.</p>
+            <p className="mb-4">Refer to the <ExternalLink href={docsConnect}>Pipedream Connect docs</ExternalLink> for a full walkthrough of how to configure Connect for your app.</p>
             <p>When your customers connect accounts with Pipedream, you&apos;ll pass their unique user ID in your system — whatever you use to identify them. In this example, we&apos;ll generate a random external user ID for you:
               <span className="text-code font-bold"> {externalUserId}.</span>
             </p>
@@ -449,17 +485,81 @@ export default function Home() {
           <div className="border border-b mb-4"></div>
           
           <div className="mb-8">
-            <p className="text-body">In <code>server.ts</code>, the app calls <code>serverConnectTokenCreate</code> to create a short-lived token for the user. You&apos;ll use that token to initiate app connection requests from your site securely. <a href={docsTokenCreate} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">See docs</a>.</p>
+            <p className="text-body">In <code>server.ts</code>, the app calls <code>serverConnectTokenCreate</code> to create a short-lived token for the user. You&apos;ll use that token to initiate app connection requests from your app securely. <ExternalLink href={docsTokenCreate}>See the docs</ExternalLink> for more info.</p>
           </div>
           <div className="mb-8">
-            <CodePanel
-              language="typescript"
-              code={`import { serverConnectTokenCreate } from "@pipedream/sdk";
+            <div className="bg-gray-900 rounded-lg overflow-hidden">
+              <div className="flex items-center px-4 py-2 bg-gray-800">
+                <div className="flex">
+                  <button
+                    onClick={() => setSelectedLanguage('typescript')}
+                    className={`flex items-center justify-center gap-2 w-32 px-3 pt-3 pb-4 text-sm transition-all duration-200 border-b-2 ${
+                      selectedLanguage === 'typescript'
+                        ? 'text-gray-100 border-gray-100'
+                        : 'text-gray-400 border-transparent hover:text-gray-200'
+                    }`}
+                  >
+                    <img 
+                      src="/typescript-icon.svg" 
+                      alt="TypeScript" 
+                      className="w-4 h-4"
+                    />
+                    TypeScript
+                  </button>
+                  <button
+                    onClick={() => setSelectedLanguage('python')}
+                    className={`flex items-center justify-center gap-2 w-32 px-3 pt-3 pb-4 text-sm transition-all duration-200 border-b-2 ${
+                      selectedLanguage === 'python'
+                        ? 'text-gray-100 border-gray-100'
+                        : 'text-gray-400 border-transparent hover:text-gray-200'
+                    }`}
+                  >
+                    <img 
+                      src="/python-icon.svg" 
+                      alt="Python" 
+                      className="w-4 h-4"
+                    />
+                    Python
+                  </button>
+                </div>
+              </div>
+              <div className="relative">
+                <CodePanel
+                  language={selectedLanguage === 'typescript' ? 'typescript' : 'python'}
+                  code={selectedLanguage === 'typescript' 
+                    ? `import { createBackendClient } from "@pipedream/sdk";
 
-const resp = await serverConnectTokenCreate({
+const client = createBackendClient({
+  projectId: "your_project_id",
+  environment: "development", // or "production"
+  credentials: {
+    clientId: "your_client_id",
+    clientSecret: "your_client_secret"
+  }
+});
+
+const resp = await client.createConnectToken({
   external_user_id: "${externalUserId}", // The end user's ID in your system, this is an example
-})`}
-            />
+});
+
+console.log(resp);`
+                    : `from pipedream import Pipedream
+
+client = Pipedream(
+  project_id="your_project_id",
+  project_environment="development", # or "production"
+  client_id="your_client_id",
+  client_secret="your_client_secret",
+)
+
+resp = client.tokens.create(
+  external_user_id="${externalUserId}",
+)
+
+print(resp);`}
+                />
+              </div>
+            </div>
           </div>
 
           {token && (
@@ -475,7 +575,8 @@ const resp = await serverConnectTokenCreate({
           
           <div className="py-2">
             <p className="text-subtitle pb-2">Select an app to connect</p>
-            <div className="app-search-container relative max-w-md py-4">
+            <ErrorBoundary>
+              <div className="app-search-container relative max-w-md py-4">
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   {selectedApp ? (
@@ -505,20 +606,47 @@ const resp = await serverConnectTokenCreate({
                       </button>
                     </div>
                   ) : (
-                    <input
-                      className="shadow appearance-none border rounded w-full px-3 py-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"
-                      id="app-slug"
-                      type="text"
-                      placeholder="Search apps (e.g., slack, google sheets)"
-                      value={appSlug}
-                      onChange={handleAppSlugChange}
-                      onFocus={handleAppSlugFocus}
-                      onKeyDown={handleKeyDown}
-                      autoComplete="off"
-                    />
+                    <div className="relative">
+                      <input
+                        className="shadow appearance-none border rounded w-full px-3 py-2 pr-8 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"
+                        id="app-slug"
+                        type="text"
+                        placeholder="Search apps (e.g., slack, google sheets)"
+                        value={appSlug}
+                        onChange={handleAppSlugChange}
+                        onFocus={handleAppSlugFocus}
+                        onKeyDown={handleKeyDown}
+                        autoComplete="off"
+                        role="combobox"
+                        aria-expanded={showDropdown}
+                        aria-haspopup="listbox"
+                        aria-controls="app-dropdown"
+                        aria-activedescendant={selectedIndex >= 0 ? `app-option-${selectedIndex}` : undefined}
+                        aria-label="Search for apps to connect"
+                      />
+                      {appSlug && (
+                        <button
+                          onClick={() => {
+                            setAppSlug("");
+                            setSearchResults([]);
+                            setShowDropdown(false);
+                            setCurrentQuery("");
+                            setNextCursor(null);
+                            setHasMoreApps(true);
+                          }}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                          title="Clear search"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   )}
                   {showDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-96 overflow-y-auto">
+                    <div 
+                      id="app-dropdown"
+                      role="listbox"
+                      className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-96 overflow-y-auto">
                       {isSearching ? (
                         <div className="px-4 py-2 text-gray-500">
                           Searching...
@@ -527,7 +655,10 @@ const resp = await serverConnectTokenCreate({
                         searchResults.map((app, index) => (
                           <div
                             key={app.name_slug}
-                            className={`flex items-center px-4 py-2 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                            id={`app-option-${index}`}
+                            role="option"
+                            aria-selected={index === selectedIndex}
+                            className={`flex items-center px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 ${
                               index === selectedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
                             }`}
                             onClick={() => handleAppSelect(app)}
@@ -543,8 +674,13 @@ const resp = await serverConnectTokenCreate({
                               }}
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 truncate">{app.name}</div>
-                              <div className="text-sm text-gray-500 truncate">{app.name_slug}</div>
+                              <div className="font-medium text-gray-900 truncate">
+                                <span>{app.name}</span>
+                                <code className="text-sm font-normal text-gray-500 truncate">{' ('}{app.name_slug}{')'}</code>
+                              </div>
+                              {app.description && (
+                                <div className="text-sm text-gray-400 mt-1 line-clamp-2">{app.description}</div>
+                              )}
                             </div>
                             <div className="text-xs text-gray-400 ml-2">
                               {app.auth_type === 'oauth' ? 'OAuth' : 
@@ -575,6 +711,7 @@ const resp = await serverConnectTokenCreate({
               </div>
             </div>
             {error && <p className="text-red-600 mt-2">{error}</p>}
+            </ErrorBoundary>
           </div>
 
 
@@ -584,13 +721,13 @@ const resp = await serverConnectTokenCreate({
           <>
             <div className="border border-b my-2"></div>
               
-              <div className="my-8">
+              <div className="my-8" ref={connectSectionRef}>
                 <h2 className="text-title mb-4">Connect your account</h2>
                 <div className="my-4">
                   <p className="text-subtitle">Option 1: Connect Link</p>
                   <div className="text-body">
                     <span>Give your users a link to connect their account. This is useful if you aren&apos;t able to execute JavaScript or open an iFrame from your app. </span>
-                    <span><a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href="https://pipedream.com/docs/connect/connect-link">See the docs</a> for more info.</span>
+                    <span><ExternalLink href="https://pipedream.com/docs/connect/connect-link" className="">See the docs</ExternalLink> for more info.</span>
                   </div>
                   {connectLink && (
                     <a 
@@ -605,7 +742,7 @@ const resp = await serverConnectTokenCreate({
                 </div>
                 <div className="mt-8">
                   <p className="text-subtitle">Option 2: Connect via SDK</p>
-                  <p className="text-body">Use the client SDK to open a Pipedream iFrame directly from your site (<a target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600" href={frontendSDKDocs}>see docs</a>).</p>
+                  <p className="text-body">Use the frontend SDK to open a Pipedream iFrame directly from your site (<ExternalLink href={frontendSDKDocs} className="">see docs</ExternalLink>).</p>
                   <button 
                     className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded mt-2"
                     onClick={connectAccount}
@@ -613,9 +750,9 @@ const resp = await serverConnectTokenCreate({
                     Connect {selectedApp.data.name}
                   </button>
                   {accountId && (
-                    <div className="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                    <div className="mt-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
                       <div className="mb-2">
-                        ✅ Account connected successfully! {accountName ? (
+                        ✅ Account connected! {accountName ? (
                           <><strong>{accountName}</strong> <span> (ID: </span><code className="font-mono">{accountId}</code><span>)</span></>
                         ) : (
                           <>Account ID: <code className="font-mono">{accountId}</code></>
@@ -623,23 +760,19 @@ const resp = await serverConnectTokenCreate({
                       </div>
                       <div className="text-sm">
                         <span>You can manage your users and their connected accounts in the </span>
-                        <a 
+                        <ExternalLink 
                           href={`https://pipedream.com/@pd-connect-testing/projects/${process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ID}/connect/users`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-600 hover:text-green-800 underline font-bold"
+                          className="text-blue-800 hover:text-blue-900 underline font-bold"
                         >
                           Pipedream UI
-                        </a>
+                        </ExternalLink>
                         <span>{' '}or{' '}</span>
-                        <a 
-                          href={`https://pipedream.com/docs/connect/api-reference/list-accounts`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-600 hover:text-green-800 underline font-bold"
+                        <ExternalLink 
+                          href="https://pipedream.com/docs/connect/api-reference/list-accounts"
+                          className="text-blue-800 hover:text-blue-900 underline font-bold"
                         >
                           via the API
-                        </a>
+                        </ExternalLink>
                       </div>
                     </div>
                   )}

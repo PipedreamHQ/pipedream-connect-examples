@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Prism from "prismjs";
 import "prismjs/themes/prism-okaidia.css";
 import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-python";
 import "prismjs/components/prism-bash";
 
 interface CodePanelProps {
@@ -13,9 +14,11 @@ const CodePanel = ({ code, language }: CodePanelProps) => {
   const [highlightedCode, setHighlightedCode] = useState("");
 
   useEffect(() => {
+    // Use the correct language for highlighting, with fallback to typescript
+    const languageGrammar = Prism.languages[language] || Prism.languages.typescript;
     const highlighted = Prism.highlight(
       code,
-      Prism.languages.typescript,
+      languageGrammar,
       language,
     );
     const lines = highlighted.split("\n").map(
@@ -29,15 +32,8 @@ const CodePanel = ({ code, language }: CodePanelProps) => {
   }, [code, language]);
 
   return (
-    <div className="relative pt-4 bg-gray-800 text-white font-mono text-sm rounded-md max-w-full shadow-lg pr-4">
-      <div className="absolute top-0 left-0 right-0 p-2 flex items-center bg-gray-900 rounded-md">
-        <div className="flex space-x-2 ml-2 my-1">
-          <span className="block w-3 h-3 bg-red-500 rounded-full"></span>
-          <span className="block w-3 h-3 bg-yellow-400 rounded-full"></span>
-          <span className="block w-3 h-3 bg-green-500 rounded-full"></span>
-        </div>
-      </div>
-      <div className="pt-6 mt-2 overflow-x-auto">
+    <div className="py-4 relative bg-gray-800 text-white font-mono text-sm rounded-md max-w-full shadow-lg pr-4">
+      <div className="overflow-x-auto">
         <pre>
           <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
           <br />

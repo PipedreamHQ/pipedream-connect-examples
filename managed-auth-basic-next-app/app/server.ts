@@ -34,6 +34,10 @@ const pd = createBackendClient({
 });
 
 export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
+  if (!opts.external_user_id) {
+    throw new Error("external_user_id is required");
+  }
+
   // Add allowed_origins from environment if provided
   let allowedOrigins: string[] | undefined;
   
@@ -57,9 +61,13 @@ export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Pr
     ...(opts.webhook_uri && { webhook_uri: opts.webhook_uri })
   };
   
-  console.log('Creating connect token with options:', createOpts);
-  
-  return pd.createConnectToken(createOpts);
+  try {
+    console.log('Creating connect token with options:', createOpts);
+    return await pd.createConnectToken(createOpts);
+  } catch (error) {
+    console.error('Error creating connect token:', error);
+    throw new Error('Failed to create connect token');
+  }
 }
 
 export async function getAppInfo(nameSlug: string): Promise<GetAppResponse> {
@@ -113,38 +121,62 @@ export async function makeAppRequest<T>(
   nameSlug: string,
   opts: RequestInit,
 ): Promise<T> {
-  const account = await pd.getAccountById(accountId, { include_credentials: true })
-  const appData = await pd.getApp(nameSlug)
-  
-  const headers = {
-    authorization: `Bearer ${account.credentials?.oauth_access_token}`,
-    "content-type": "application/json",
+  if (!accountId) {
+    throw new Error("Account ID is required");
   }
-  
-  if (appData && appData.data.auth_type === "keys") {
-    // For basic auth, you would need to implement the logic based on your app's configuration
-    // This is a simplified version that assumes basic auth credentials are stored properly
-    const username = account.credentials?.username || ""
-    const password = account.credentials?.password || ""
-    const buffer = `${username}:${password}`
-    headers.authorization = `Basic ${Buffer.from(buffer).toString("base64")}`
+  if (!endpoint) {
+    throw new Error("Endpoint is required");
   }
-  
-  const config: RequestInit = {
-    method: opts.method || "GET",
-    headers: {
-      ...headers,
-      ...opts.headers,
-    },
+  if (!nameSlug) {
+    throw new Error("Name slug is required");
   }
 
-  if(opts.method != "GET") {
-    config.body = opts.body
+  try {
+    const account = await pd.getAccountById(accountId, { include_credentials: true });
+    
+    if (!account.credentials) {
+      throw new Error("No credentials found for account");
+    }
+
+    const appData = await pd.getApp(nameSlug);
+    
+    const headers = {
+      authorization: `Bearer ${account.credentials?.oauth_access_token}`,
+      "content-type": "application/json",
+    }
+    
+    if (appData && appData.data.auth_type === "keys") {
+      // For basic auth, you would need to implement the logic based on your app's configuration
+      // This is a simplified version that assumes basic auth credentials are stored properly
+      const username = account.credentials?.username || ""
+      const password = account.credentials?.password || ""
+      const buffer = `${username}:${password}`
+      headers.authorization = `Basic ${Buffer.from(buffer).toString("base64")}`
+    }
+    
+    const config: RequestInit = {
+      method: opts.method || "GET",
+      headers: {
+        ...headers,
+        ...opts.headers,
+      },
+    }
+
+    if(opts.method != "GET") {
+      config.body = opts.body
+    }
+    
+    const resp: Response = await fetch(endpoint.toString(), config);
+    
+    if (!resp.ok) {
+      throw new Error(`API request failed: ${resp.status} ${resp.statusText}`);
+    }
+
+    const result = await resp.json();
+    return result;
+  } catch (error) {
+    console.error("Error making app request:", error);
+    throw error;
   }
-  const resp: Response = await fetch(endpoint.toString(), config)
-
-  const result = await resp.json()
-
-  return result
 }
 
