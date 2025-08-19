@@ -259,7 +259,7 @@ export default function Demo({ isLoading = false }: { isLoading?: boolean }) {
           {isLoading ? (
             <LoadingSkeleton withContainer />
           ) : (
-            <div className="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-visible">
               <DemoPanel />
             </div>
           )}

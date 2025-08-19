@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@pipedream/connect-react':
-        specifier: 1.4.0
-        version: 1.4.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 1.5.0
+        version: 1.5.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@pipedream/sdk':
         specifier: ^1.6.6
         version: 1.7.0
@@ -329,8 +329,8 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@pipedream/connect-react@1.4.0':
-    resolution: {integrity: sha512-1u/YPZAcnPnePZxvkxNmeoknKm3edX47AQnqWoxPqrUcEguxaFBAfe9TlQhju9ltYBfEtZ10oAiuLpo2lbiyoA==}
+  '@pipedream/connect-react@1.5.0':
+    resolution: {integrity: sha512-TT+OKzFKb6QfFTzIZ5B8mo6CY26zNET70q1tbcRf9djosIwQ0h5mTYImKGsLWWrU/Cd3azc68APL5DZ6P5bt/g==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
@@ -2397,7 +2397,7 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@pipedream/connect-react@1.4.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@pipedream/connect-react@1.5.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@pipedream/sdk': 1.7.0
       '@tanstack/react-query': 5.83.0(react@18.3.1)
