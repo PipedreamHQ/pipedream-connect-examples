@@ -105,7 +105,7 @@ export const DemoPanel = () => {
   return (
     <div className="flex flex-col bg-neutral-50/50">
       <div className="p-4 md:p-6 relative">
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-visible">
           <div className="absolute inset-0 grid grid-cols-12 gap-x-6">
             <div className="absolute right-0 top-0 h-full w-px bg-zinc-200" />
 
@@ -164,9 +164,9 @@ export const DemoPanel = () => {
           </div>
         </div>
 
-        <div className="relative z-10 max-w-2xl mx-auto">
+        <div className="relative max-w-2xl mx-auto">
           <div 
-            className="rounded-lg shadow-sm bg-white overflow-hidden border border-neutral-200"
+            className="rounded-lg shadow-sm bg-white overflow-visible border border-neutral-200"
             style={customizationOption.containerStyle}
           >
             <PageSkeleton customizationOption={customizationOption}>
