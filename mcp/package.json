@@ -1,0 +1,19 @@
+{
+  "name": "pipedream-mcp-examples",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pipedream MCP CLI Examples",
+  "scripts": {
+    "build": "pnpm -r build",
+    "ai-sdk": "pnpm --filter ./ai-sdk run start",
+    "openai-sdk": "pnpm --filter ./openai-sdk run start"
+  },
+  "keywords": [
+    "mcp",
+    "pipedream",
+    "ai",
+    "examples"
+  ],
+  "author": "Pipedream",
+  "license": "MIT"
+}
