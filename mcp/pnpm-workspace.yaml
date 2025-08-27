@@ -1,0 +1,4 @@
+packages:
+  - 'ai-sdk'
+  - 'openai-sdk' 
+  - 'shared'
