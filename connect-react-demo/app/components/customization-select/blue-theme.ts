@@ -1,4 +1,4 @@
-import { CustomizationConfig } from "@pipedream/connect-react/src/hooks/customization-context"
+import { CustomizationConfig } from "@pipedream/connect-react"
 import { CustomDropdownIndicator } from "./CustomIndicators"
 import { CustomLabel } from "./CustomLabel"
 

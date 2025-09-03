@@ -1,13 +1,4 @@
-export interface ConfigurableProp {
-  name: string
-  type: string
-  description: string
-  optional?: boolean
-  default?: string | number | boolean | null
-  min?: number
-  max?: number
-  secret?: boolean
-}
+import type { ConfigurableProp } from "@pipedream/sdk"
 
 export interface Component {
   key: string
@@ -29,6 +20,7 @@ export interface CustomizationOption {
 }
 
 export interface SDKError {
+  name: string
   message: string
   code?: string
   details?: Record<string, unknown>
