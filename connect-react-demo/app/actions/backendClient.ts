@@ -22,10 +22,10 @@ const allowedOrigins = ([
 const _fetchToken = async (opts: FetchTokenOpts) => {
   const serverClient = backendClient()
 
-  const resp = await serverClient.createConnectToken({
-    external_user_id: opts.externalUserId,
-    allowed_origins: allowedOrigins, // TODO set this to the correct origin
-    webhook_uri: process.env.PIPEDREAM_CONNECT_WEBHOOK_URI,
+  const resp = await serverClient.tokens.create({
+    externalUserId: opts.externalUserId,
+    allowedOrigins: allowedOrigins, // TODO set this to the correct origin
+    webhookUri: process.env.PIPEDREAM_CONNECT_WEBHOOK_URI,
   });
   return resp
 }

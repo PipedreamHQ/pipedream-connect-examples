@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { 
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -54,8 +54,8 @@ export function CodeExample({ title, description, children, className }: CodeExa
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className={className}>
       <CollapsibleTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full justify-between h-auto p-4 text-left"
         >
           <div className="flex items-start gap-3">
@@ -65,7 +65,7 @@ export function CodeExample({ title, description, children, className }: CodeExa
               <div className="text-sm text-gray-500 mt-1">{description}</div>
             </div>
           </div>
-          <IoChevronDown 
+          <IoChevronDown
             className={cn(
               "h-4 w-4 transition-transform text-gray-400 flex-shrink-0",
               isOpen && "rotate-180"
@@ -73,7 +73,7 @@ export function CodeExample({ title, description, children, className }: CodeExa
           />
         </Button>
       </CollapsibleTrigger>
-      
+
       <CollapsibleContent>
         <div className="mt-3">
           <CodeBlock>{children}</CodeBlock>
@@ -84,12 +84,12 @@ export function CodeExample({ title, description, children, className }: CodeExa
 }
 
 export function LiveCodeExamples() {
-  const { 
-    selectedComponentKey, 
-    selectedComponentType, 
+  const {
+    selectedComponentKey,
+    selectedComponentType,
     externalUserId,
     configuredProps,
-    webhookUrl 
+    webhookUrl
   } = useAppState()
 
   const [activeFileTab, setActiveFileTab] = useState("app")
@@ -122,7 +122,7 @@ import { createFrontendClient } from "@pipedream/sdk/browser"
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   const client = createFrontendClient({
-    environment: process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT,
+    projectEnvironment: process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT,
     tokenCallback: async () => {
       const response = await fetch('/api/connect/token')
       const { token } = await response.json()
@@ -152,19 +152,19 @@ export default function IntegrationsPage() {
 
   const handleComponentSubmit = async (ctx) => {
     try {
-      ${selectedComponentType === "action" ? 
-        `const result = await frontendClient.actionRun({
+      ${selectedComponentType === "action" ?
+      `const result = await frontendClient.actions.run({
         externalUserId: "user-${externalUserId}",
-        actionId: "${selectedComponentKey}",
+        id: "${selectedComponentKey}",
         configuredProps: ctx.configuredProps,
-      })` : 
-        `const result = await frontendClient.deployTrigger({
+      })` :
+      `const result = await frontendClient.triggers.deploy({
         externalUserId: "user-${externalUserId}",
-        triggerId: "${selectedComponentKey}",
+        id: "${selectedComponentKey}",
         configuredProps: ctx.configuredProps,
         webhookUrl: "https://your-app.com/api/webhook",
       })`}
-      
+
       console.log('Success:', result)
       // Handle success (show toast, redirect, etc.)
     } catch (error) {
@@ -176,7 +176,7 @@ export default function IntegrationsPage() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Connect Your Apps</h1>
-      
+
       <div className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2">
@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get the current user (from session, JWT, etc.)
     const userId = await getCurrentUserId(request)
-    
+
     // Generate a Connect token for this user
     const response = await fetch(
       \`https://api.pipedream.com/v1/connect/token\`,
@@ -225,11 +225,11 @@ export async function GET(request: NextRequest) {
     )
 
     const { token } = await response.json()
-    
+
     return NextResponse.json({ token })
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to generate token' }, 
+      { error: 'Failed to generate token' },
       { status: 500 }
     )
   }
@@ -259,7 +259,7 @@ export async function GET(request: NextRequest) {
         <h3 className="text-lg font-semibold text-gray-900">Implementation Steps</h3>
         <span className="text-sm text-gray-500">Complete Next.js integration</span>
       </div>
-      
+
       {/* File tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
             </p>
           </div>
         </div>
-        
+
         <CodeBlock>{getFileContent(activeFileTab)}</CodeBlock>
       </div>
     </div>

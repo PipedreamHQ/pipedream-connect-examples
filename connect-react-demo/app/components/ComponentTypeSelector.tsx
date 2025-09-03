@@ -1,22 +1,23 @@
 import { cn } from "@/lib/utils"
 import { IoCubeSharp, IoFlashOutline } from "react-icons/io5"
 import { TOGGLE_STYLES } from "@/lib/constants/ui"
+import { ComponentType } from "@pipedream/sdk"
 
 interface ComponentTypeSelectorProps {
-  selectedType: "action" | "trigger"
-  onTypeChange: (type: "action" | "trigger") => void
+  selectedType: ComponentType
+  onTypeChange: (type: ComponentType) => void
 }
 
 const COMPONENT_TYPES = [
-  { 
-    value: "action", 
-    label: "Action", 
+  {
+    value: "action",
+    label: "Action",
     icon: IoCubeSharp,
     description: "Perform read and write API operations"
   },
-  { 
-    value: "trigger", 
-    label: "Trigger", 
+  {
+    value: "trigger",
+    label: "Trigger",
     icon: IoFlashOutline,
     description: "React to events and webhooks"
   },
@@ -46,7 +47,7 @@ export function ComponentTypeSelector({ selectedType, onTypeChange }: ComponentT
           </div>
         ))}
       </div>
-      
+
       <div className="text-sm text-gray-500 mt-2">
         {COMPONENT_TYPES.find(type => type.value === selectedType)?.description}
       </div>
