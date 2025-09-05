@@ -34,6 +34,7 @@ const ClientProviderWithLogger = () => {
   const logger = useSDKLogger()
 
   const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST
+  const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST
   const environment = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT as PipedreamEnvironment || undefined
   const projectEnvironment = process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT as ProjectEnvironment
 
@@ -42,6 +43,7 @@ const ClientProviderWithLogger = () => {
     return createLoggedFrontendClient(
       createFrontendClient({
         ...(frontendHost && { frontendHost }),
+        ...(apiHost && { apiHost }),
         ...(environment && { environment }),
         ...(projectEnvironment && { projectEnvironment }),
         tokenCallback: deferredTokenCallback,
@@ -49,7 +51,7 @@ const ClientProviderWithLogger = () => {
       }),
       logger
     )
-  }, [externalUserId, frontendHost, environment, projectEnvironment, logger])
+  }, [externalUserId, frontendHost, apiHost, environment, projectEnvironment, logger])
 
   if (!client) {
     return <DemoWithLoading isLoading={true} />
