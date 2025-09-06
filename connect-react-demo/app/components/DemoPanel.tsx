@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react"
-import { ComponentFormContainer, CustomizeProvider, useFrontendClient } from "@pipedream/connect-react"
+import { ComponentFormContainer, CustomizeProvider, useFrontendClient, type FormContext } from "@pipedream/connect-react"
+import type { ConfigurableProps } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
@@ -46,7 +47,7 @@ export const DemoPanel = () => {
     setDynamicPropsId(dynamicProps.id)
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (ctx: FormContext<ConfigurableProps>) => {
     if (!selectedComponentKey) return
 
     // Validate webhookUrl for triggers
@@ -74,12 +75,16 @@ export const DemoPanel = () => {
     }
 
     try {
+      // Check if component requires stash for file handling
+      const needsStash = ctx.component.stash === "required" || ctx.component.stash === "optional"
+
       const data = selectedComponentType === "action" 
         ? await frontendClient.runAction({
             externalUserId,
             actionId: selectedComponentKey,
             configuredProps,
             dynamicPropsId,
+            ...(needsStash && { stashId: "" })  // Add stashId if component uses file stash
           })
         : await frontendClient.deployTrigger({
             externalUserId,
