@@ -17,6 +17,7 @@ const ClientProviderWithLogger = () => {
 
   const client = externalUserId ? createLoggedFrontendClient(
     createFrontendClient({
+      ...(process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST && { apiHost: process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST }),
       environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT,
       tokenCallback: fetchToken,
       externalUserId,
