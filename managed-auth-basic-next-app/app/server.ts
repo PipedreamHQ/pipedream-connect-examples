@@ -1,10 +1,12 @@
 "use server";
 
 import {
-  createBackendClient,
-  type ConnectTokenCreateOpts,
-  type ConnectTokenResponse,
-  type GetAppResponse
+  PipedreamClient,
+  type CreateTokenOpts,
+  type CreateTokenResponse,
+  type GetAppResponse,
+  type AccountsListRequest,
+  type AccountsRetrieveRequest
 } from "@pipedream/sdk/server";
 
 const {
@@ -24,18 +26,16 @@ if (!PIPEDREAM_PROJECT_ID)
 if (!PIPEDREAM_PROJECT_ENVIRONMENT || !["development", "production"].includes(PIPEDREAM_PROJECT_ENVIRONMENT))
   throw new Error("PIPEDREAM_PROJECT_ENVIRONMENT not set in environment");
 
-const pd = createBackendClient({
+const pd = new PipedreamClient({
   projectId: PIPEDREAM_PROJECT_ID,
-  environment: PIPEDREAM_PROJECT_ENVIRONMENT as "development" | "production",
-  credentials: {
-    clientId: PIPEDREAM_CLIENT_ID,
-    clientSecret: PIPEDREAM_CLIENT_SECRET,
-  },
+  projectEnvironment: PIPEDREAM_PROJECT_ENVIRONMENT as "development" | "production",
+  clientId: PIPEDREAM_CLIENT_ID,
+  clientSecret: PIPEDREAM_CLIENT_SECRET,
 });
 
-export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Promise<ConnectTokenResponse> {
-  if (!opts.external_user_id) {
-    throw new Error("external_user_id is required");
+export async function serverConnectTokenCreate(opts: CreateTokenOpts): Promise<CreateTokenResponse> {
+  if (!opts.externalUserId) {
+    throw new Error("externalUserId is required");
   }
 
   // Add allowed_origins from environment if provided
@@ -51,19 +51,19 @@ export async function serverConnectTokenCreate(opts: ConnectTokenCreateOpts): Pr
     }
   }
   
-  const createOpts = {
-    // Keep snake_case - API expects snake_case parameters
-    external_user_id: opts.external_user_id,
-    ...(allowedOrigins && { allowed_origins: allowedOrigins }),
-    // Include any other parameters from opts
-    ...(opts.success_redirect_uri && { success_redirect_uri: opts.success_redirect_uri }),
-    ...(opts.error_redirect_uri && { error_redirect_uri: opts.error_redirect_uri }),
-    ...(opts.webhook_uri && { webhook_uri: opts.webhook_uri })
+  const createOpts: CreateTokenOpts = {
+    ...opts,
+    externalUserId: opts.externalUserId,
   };
+
+  if (allowedOrigins) {
+    const existingOrigins = createOpts.allowedOrigins ?? [];
+    createOpts.allowedOrigins = Array.from(new Set([...existingOrigins, ...allowedOrigins]));
+  }
   
   try {
     console.log('Creating connect token with options:', createOpts);
-    return await pd.createConnectToken(createOpts);
+    return await pd.tokens.create(createOpts);
   } catch (error) {
     console.error('Error creating connect token:', error);
     throw new Error('Failed to create connect token');
@@ -77,7 +77,7 @@ export async function getAppInfo(nameSlug: string): Promise<GetAppResponse> {
 
   try {
     // Use the SDK's getApp() method which handles auth and path construction
-    const response = await pd.getApp(nameSlug);
+    const response = await pd.apps.retrieve(nameSlug);
     return response;
   } catch (err) {
     console.error("Error fetching app info:", err);
@@ -89,10 +89,13 @@ export async function getUserAccounts(
   externalId: string,
   includeCredentials: boolean = false,
 ) {
-  return pd.getAccounts({
-    external_user_id: externalId,
-    include_credentials: !!includeCredentials,
-  });
+  const params: AccountsListRequest = {
+    externalUserId: externalId,
+    includeCredentials: !!includeCredentials,
+  };
+
+  const page = await pd.accounts.list(params);
+  return page.data;
 
   // Parse and return the data you need. These may contain credentials,
   // which you should never return to the client
@@ -100,7 +103,7 @@ export async function getUserAccounts(
 
 export async function getAccountById(accountId: string) {
   try {
-    const account = await pd.getAccountById(accountId);
+    const account = await pd.accounts.retrieve(accountId);
     // Return only safe fields, no credentials
     return {
       id: account.id,
@@ -132,20 +135,21 @@ export async function makeAppRequest<T>(
   }
 
   try {
-    const account = await pd.getAccountById(accountId, { include_credentials: true });
+    const retrieveOpts: AccountsRetrieveRequest = { includeCredentials: true };
+    const account = await pd.accounts.retrieve(accountId, retrieveOpts);
     
     if (!account.credentials) {
       throw new Error("No credentials found for account");
     }
 
-    const appData = await pd.getApp(nameSlug);
+    const appData = await pd.apps.retrieve(nameSlug);
     
     const headers = {
       authorization: `Bearer ${account.credentials?.oauth_access_token}`,
       "content-type": "application/json",
     }
     
-    if (appData && appData.data.auth_type === "keys") {
+    if (appData && appData.data.authType === "keys") {
       // For basic auth, you would need to implement the logic based on your app's configuration
       // This is a simplified version that assumes basic auth credentials are stored properly
       const username = account.credentials?.username || ""
@@ -179,4 +183,3 @@ export async function makeAppRequest<T>(
     throw error;
   }
 }
-
