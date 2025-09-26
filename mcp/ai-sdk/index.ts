@@ -87,7 +87,7 @@ program.action(async (instruction: string, options: ProgramOptions) => {
       
       // Generate response with AI SDK - key configuration:
       // - tools: Makes MCP tools available to the model
-      // - maxSteps: 1 ensures we handle one step at a time for better control
+      // - stopWhen: stepCountIs(1) stops after one tool-call step so we can refresh tools each loop
       const response = await generateText({
         model: openai(config.options.model as any),
         messages,
