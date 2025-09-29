@@ -25,6 +25,44 @@ import {
   ProgramOptions,
 } from "../shared/cli.js";
 
+type MCPFunctionSchema = Record<string, unknown> | undefined;
+
+const normalizeFunctionParameters = (
+  schema: MCPFunctionSchema,
+): Record<string, unknown> | undefined => {
+  if (!schema || typeof schema !== "object") {
+    return undefined;
+  }
+
+  const cloned = { ...schema } as Record<string, unknown>;
+  const properties = cloned.properties as Record<string, unknown> | undefined;
+
+  if (!cloned.type && properties) {
+    cloned.type = "object";
+  }
+
+  if (cloned.type !== "object" || !properties) {
+    return cloned;
+  }
+
+  const requiredSet = new Set(
+    Array.isArray(cloned.required) ? (cloned.required as string[]) : [],
+  );
+  Object.keys(properties).forEach((key) => requiredSet.add(key));
+
+  cloned.required = Array.from(requiredSet);
+
+  // Leave object-valued additionalProperties intact (for nested schemas).
+  if (typeof cloned.additionalProperties !== "boolean") {
+    return cloned;
+  }
+
+  // Normalize boolean additionalProperties when specified, default false otherwise.
+  cloned.additionalProperties = cloned.additionalProperties ?? false;
+
+  return cloned;
+};
+
 // Load environment variables (especially OPENAI_API_KEY)
 dotenv.config();
 
@@ -88,43 +126,6 @@ program.action(async (instruction: string, options: ProgramOptions) => {
       const mcpTools = toolsResponse.tools || [];
       const toolNames = mcpTools.map((tool) => tool.name).join(", ");
       logAvailableTools(toolNames);
-
-      // Convert MCP tools to Responses function-calling format
-      const normalizeFunctionParameters = (schema: any) => {
-        if (!schema || typeof schema !== "object") {
-          return undefined;
-        }
-
-        const cloned = { ...schema };
-
-        if (cloned.type === undefined && cloned.properties) {
-          cloned.type = "object";
-        }
-
-        if (cloned.type !== "object" || typeof cloned.properties !== "object") {
-          return cloned;
-        }
-
-        const propertyKeys = Object.keys(cloned.properties);
-        const requiredFromSchema = Array.isArray(cloned.required)
-          ? [...cloned.required]
-          : [];
-
-        propertyKeys.forEach((key) => {
-          if (!requiredFromSchema.includes(key)) {
-            requiredFromSchema.push(key);
-          }
-        });
-
-        return {
-          ...cloned,
-          additionalProperties:
-            typeof cloned.additionalProperties === "boolean"
-              ? cloned.additionalProperties
-              : false,
-          required: requiredFromSchema,
-        };
-      };
 
       const functionTools: any[] = mcpTools.map((tool: any) => ({
         type: "function",
