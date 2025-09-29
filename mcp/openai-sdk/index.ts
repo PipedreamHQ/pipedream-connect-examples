@@ -59,15 +59,18 @@ program.action(async (instruction: string, options: ProgramOptions) => {
 
     console.log("✅ MCP client initialized");
 
-    // Set up the conversation with initial system prompt and user instruction
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    // Build conversation state for the Responses API (stateless, local state)
+    // Use EasyInputMessage items as the `input` for each call
+    const inputMessages: OpenAI.Responses.ResponseInputItem[] = [
       {
         role: "system",
         content: SYSTEM_PROMPT,
+        type: "message",
       },
       {
         role: "user",
         content: config.instruction,
+        type: "message",
       },
     ];
 
@@ -86,110 +89,180 @@ program.action(async (instruction: string, options: ProgramOptions) => {
       const toolNames = mcpTools.map((tool) => tool.name).join(", ");
       logAvailableTools(toolNames);
 
-      // Convert MCP tools to OpenAI's function calling format
-      const openaiTools: OpenAI.Chat.Completions.ChatCompletionTool[] =
-        mcpTools.map((tool: any) => ({
-          type: "function",
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.inputSchema,
-          },
-        }));
+      // Convert MCP tools to Responses function-calling format
+      const normalizeFunctionParameters = (schema: any) => {
+        if (!schema || typeof schema !== "object") {
+          return undefined;
+        }
+
+        const cloned = { ...schema };
+
+        if (cloned.type === undefined && cloned.properties) {
+          cloned.type = "object";
+        }
+
+        if (cloned.type !== "object" || typeof cloned.properties !== "object") {
+          return cloned;
+        }
+
+        const propertyKeys = Object.keys(cloned.properties);
+        const requiredFromSchema = Array.isArray(cloned.required)
+          ? [...cloned.required]
+          : [];
+
+        propertyKeys.forEach((key) => {
+          if (!requiredFromSchema.includes(key)) {
+            requiredFromSchema.push(key);
+          }
+        });
+
+        return {
+          ...cloned,
+          additionalProperties:
+            typeof cloned.additionalProperties === "boolean"
+              ? cloned.additionalProperties
+              : false,
+          required: requiredFromSchema,
+        };
+      };
+
+      const functionTools: any[] = mcpTools.map((tool: any) => ({
+        type: "function",
+        name: tool.name,
+        description: tool.description,
+        parameters: normalizeFunctionParameters(tool.inputSchema),
+        strict: true,
+      }));
 
       logAIResponse();
 
-      // Generate response with OpenAI SDK
-      const response = await openai.chat.completions.create({
-        model: config.options.model as any,
-        messages: messages,
-        tools: openaiTools.length > 0 ? openaiTools : undefined,
+      // Create a response via the Responses API
+      const response = await openai.responses.create({
+        model: (config.options.model as any) || "gpt-5",
+        input: inputMessages,
+        tools: (functionTools.length > 0 ? functionTools : undefined) as any,
+        tool_choice: "auto",
+        store: false,
+        include: ["reasoning.encrypted_content"],
+        // Per policy: omit temperature or set to 1
+        temperature: 1,
       });
 
-      const choice = response.choices[0];
-      const assistantMessage = choice.message;
+      // Log assistant text output
+      const outputText = (response as any).output_text ?? "";
+      if (outputText) {
+        logResponse(outputText);
+        // Carry assistant turn in local conversation state
+        inputMessages.push({ role: "assistant", content: outputText, type: "message" });
+      } else {
+        logResponse("(no text content)");
+      }
 
-      logResponse(assistantMessage.content || "(no text content)");
+      // Detect function tool calls from the Responses output
+      type FunctionToolCall = { name: string; arguments: string; call_id: string };
+      const toolCallMap = new Map<string, FunctionToolCall>();
+      const recordToolCall = (call: {
+        name?: string;
+        arguments?: unknown;
+        call_id?: string | null;
+        id?: string | null;
+      }) => {
+        if (!call?.name) {
+          return;
+        }
 
-      // Add assistant message to conversation history
-      // This preserves the conversation context for subsequent turns
-      messages.push(assistantMessage);
+        const callId = call.call_id ?? call.id;
+        if (!callId || toolCallMap.has(callId)) {
+          return;
+        }
 
-      // Handle different completion reasons - this determines conversation flow
-      switch (choice.finish_reason) {
-        case "stop":
-        case "content_filter":
-          // Model completed its response naturally or was filtered
-          ended = true;
-          logConversationComplete();
-          break;
+        const argsString =
+          typeof call.arguments === "string"
+            ? call.arguments
+            : JSON.stringify(call.arguments ?? {});
 
-        case "tool_calls":
-          // Model wants to use tools - we need to manually execute them
-          if (assistantMessage.tool_calls) {
-            logToolCalls();
-            assistantMessage.tool_calls.forEach((toolCall, index) => {
-              console.log(`  ${index + 1}. ${toolCall.function.name}`);
-              console.log(`     Args: ${toolCall.function.arguments}`);
-            });
+        toolCallMap.set(callId, {
+          name: call.name,
+          arguments: argsString,
+          call_id: callId,
+        });
+      };
 
-            logExecutingTools();
-            
-            // Collect tool results to add back to the conversation
-            const toolResults: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
-              [];
+      for (const item of (response as any).output ?? []) {
+        if (!item) {
+          continue;
+        }
 
-            // Execute each tool call sequentially via MCP client
-            for (const toolCall of assistantMessage.tool_calls) {
-              try {
-                const toolName = toolCall.function.name;
-                const toolArgs = JSON.parse(toolCall.function.arguments);
+        // Direct function call item
+        if (item.type === "function_call") {
+          recordToolCall(item);
+          continue;
+        }
 
-                const result = await mcpClient.callTool({
-                  name: toolName,
-                  arguments: toolArgs,
-                });
-
-                // Format the result for OpenAI's expected tool message format
-                toolResults.push({
-                  role: "tool",
-                  tool_call_id: toolCall.id,
-                  content: JSON.stringify(result),
-                });
-
-                console.log(
-                  `  ✅ ${toolName}: ${JSON.stringify(result, null, 2)}`
-                );
-              } catch (error) {
-                // Handle tool execution errors gracefully
-                // We still need to provide a tool result message to maintain conversation flow
-                console.error(
-                  `  ❌ Error executing ${toolCall.function.name}:`,
-                  error
-                );
-                toolResults.push({
-                  role: "tool",
-                  tool_call_id: toolCall.id,
-                  content: `Error: ${
-                    error instanceof Error ? error.message : String(error)
-                  }`,
-                });
-              }
+        // Assistant message wrapper with content parts
+        if (item.type === "message" && item.role === "assistant" && Array.isArray(item.content)) {
+          for (const part of item.content) {
+            if (part && (part.type === "function_call" || part.type === "tool_call")) {
+              recordToolCall({
+                name: part.name,
+                arguments: part.arguments,
+                call_id: part.call_id,
+                id: part.id,
+              });
             }
-
-            // Add tool results to conversation so the model can see what happened
-            messages.push(...toolResults);
           }
-          break;
+        }
+      }
 
-        case "length":
-          console.log("⚠️  Response truncated due to length limit");
-          ended = true;
-          break;
+      const toolCalls = Array.from(toolCallMap.values());
 
-        default:
-          console.log(`🤔 Unknown finish reason: ${choice.finish_reason}`);
-          ended = true;
+      if (toolCalls.length > 0) {
+        logToolCalls();
+        toolCalls.forEach((tc, index) => {
+          console.log(`  ${index + 1}. ${tc.name}`);
+          console.log(`     Args: ${tc.arguments}`);
+        });
+
+        logExecutingTools();
+
+        // Persist tool calls in conversation state before sending outputs back
+        toolCalls.forEach((tc) => {
+          inputMessages.push({
+            type: "function_call",
+            call_id: tc.call_id,
+            name: tc.name,
+            arguments: tc.arguments,
+          });
+        });
+
+        for (const tc of toolCalls) {
+          try {
+            const args = tc.arguments ? JSON.parse(tc.arguments) : {};
+            const result = await mcpClient.callTool({ name: tc.name, arguments: args });
+            console.log(`  ✅ ${tc.name}: ${JSON.stringify(result, null, 2)}`);
+
+            // Provide function_call_output back to the model for the next turn
+            inputMessages.push({
+              type: "function_call_output",
+              call_id: tc.call_id,
+              output: JSON.stringify(result),
+            });
+          } catch (error) {
+            console.error(`  ❌ Error executing ${tc.name}:`, error);
+            inputMessages.push({
+              type: "function_call_output",
+              call_id: tc.call_id,
+              output: JSON.stringify({
+                error: error instanceof Error ? error.message : String(error),
+              }),
+            });
+          }
+        }
+        // Continue to next step after providing tool outputs
+      } else {
+        // No tool calls requested; end the conversation
+        ended = true;
+        logConversationComplete();
       }
 
       steps++;
