@@ -10,7 +10,7 @@ import {
 } from "@pipedream/sdk/server";
 
 const {
-  PIPEDREAM_PROJECT_ID,
+  NEXT_PUBLIC_PIPEDREAM_PROJECT_ID,
   PIPEDREAM_CLIENT_ID,
   PIPEDREAM_CLIENT_SECRET,
   PIPEDREAM_PROJECT_ENVIRONMENT,
@@ -21,13 +21,13 @@ if (!PIPEDREAM_CLIENT_ID)
   throw new Error("PIPEDREAM_CLIENT_ID not set in environment");
 if (!PIPEDREAM_CLIENT_SECRET)
   throw new Error("PIPEDREAM_CLIENT_SECRET not set in environment");
-if (!PIPEDREAM_PROJECT_ID)
+if (!NEXT_PUBLIC_PIPEDREAM_PROJECT_ID)
   throw new Error("PIPEDREAM_PROJECT_ID not set in environment");
 if (!PIPEDREAM_PROJECT_ENVIRONMENT || !["development", "production"].includes(PIPEDREAM_PROJECT_ENVIRONMENT))
   throw new Error("PIPEDREAM_PROJECT_ENVIRONMENT not set in environment");
 
 const pd = new PipedreamClient({
-  projectId: PIPEDREAM_PROJECT_ID,
+  projectId: NEXT_PUBLIC_PIPEDREAM_PROJECT_ID,
   projectEnvironment: PIPEDREAM_PROJECT_ENVIRONMENT as "development" | "production",
   clientId: PIPEDREAM_CLIENT_ID,
   clientSecret: PIPEDREAM_CLIENT_SECRET,

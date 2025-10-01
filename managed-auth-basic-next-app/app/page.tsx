@@ -8,7 +8,8 @@ import { useSearchParams } from "next/navigation";
 import { serverConnectTokenCreate, getAccountById } from "./server"
 import type { GetAppResponse, App, PipedreamClient as FrontendClient } from "@pipedream/sdk/browser";
 
-const frontendHost = process.env.PIPEDREAM_FRONTEND_HOST || "pipedream.com"
+const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"
+const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST || "api.pipedream.com"
 
 export default function Home() {
   // Core Pipedream Connect state
@@ -62,6 +63,7 @@ export default function Home() {
       const { createFrontendClient } = await import('@pipedream/sdk/browser');
       const client = createFrontendClient({
         frontendHost,
+        apiHost,
         externalUserId,
         token,
         tokenCallback: async () => {
@@ -477,7 +479,7 @@ export default function Home() {
   }, [searchTimeout]);
   
   return (
-    <main className="p-8 flex flex-col gap-2 max-w-6xl mb-48 mx-auto">
+    <main className="p-4 md:p-8 flex flex-col gap-2 max-w-6xl mb-48 mx-auto w-full">
       {externalUserId && (
         <div>
           <h1 className="text-title mb-8">Pipedream Connect: Managed Auth Demo App</h1>

@@ -2,31 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html, body {
+    @apply overflow-x-hidden;
+    width: 100%;
+    position: relative;
+  }
+}
+
 @layer components {
   .text-title {
     @apply text-2xl font-bold text-gray-800;
   }
-  
+
   .text-subtitle {
     @apply text-lg font-semibold text-gray-800;
   }
-  
+
   .text-body {
     @apply font-normal text-base text-gray-600;
   }
-  
+
   .text-small {
     @apply font-normal text-sm text-gray-600;
   }
-  
+
   .text-code {
     @apply font-mono text-sm;
   }
-  
+
   .text-error {
     @apply text-red-500;
   }
-  
+
   .text-link {
     @apply text-blue-600 hover:underline;
   }
