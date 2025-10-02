@@ -1,4 +1,4 @@
-import type { ConfigurableProp } from "@/lib/types/pipedream"
+import type { ConfigurableProp } from "@pipedream/sdk"
 
 export interface TypeDescriptionResult {
   syntax: string

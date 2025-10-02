@@ -1,4 +1,3 @@
-import { selectStyles } from "@pipedream/connect-react"
 import Select from "react-select"
 
 interface CustomizationSectionProps {
@@ -30,7 +29,6 @@ export const CustomizationSection = ({
         components={{
           IndicatorSeparator: () => null,
         }}
-        styles={selectStyles}
       />
     </div>
   </div>
