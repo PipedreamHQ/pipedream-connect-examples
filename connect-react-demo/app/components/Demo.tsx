@@ -47,7 +47,7 @@ function DescriptionParagraph({ className }: { className?: string }) {
       >
         Pipedream Connect
       </a>
-      {" "}provides managed authentication for 2,700+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use{" "}
+      {" "}provides managed authentication for 2,800+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use{" "}
       <a 
         href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react" 
         target="_blank" 

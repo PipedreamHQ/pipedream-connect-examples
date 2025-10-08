@@ -1,5 +1,10 @@
 import { openai } from "@ai-sdk/openai";
-import { CoreMessage, experimental_createMCPClient, generateText } from "ai";
+import {
+  ModelMessage,
+  experimental_createMCPClient,
+  generateText,
+  stepCountIs,
+} from "ai";
 import {
   createBaseProgram,
   validateAndParseOptions,
@@ -48,14 +53,19 @@ program.action(async (instruction: string, options: ProgramOptions) => {
 
     console.log("✅ MCP client initialized");
 
-    const messages: CoreMessage[] = [
+    const messages: ModelMessage[] = [
       {
         role: "system",
         content: SYSTEM_PROMPT,
       },
       {
         role: "user",
-        content: config.instruction,
+        content: [
+          {
+            type: "text",
+            text: config.instruction,
+          },
+        ],
       },
     ];
 
@@ -77,12 +87,12 @@ program.action(async (instruction: string, options: ProgramOptions) => {
       
       // Generate response with AI SDK - key configuration:
       // - tools: Makes MCP tools available to the model
-      // - maxSteps: 1 ensures we handle one step at a time for better control
+      // - stopWhen: stepCountIs(1) stops after one tool-call step so we can refresh tools each loop
       const response = await generateText({
         model: openai(config.options.model as any),
         messages,
         tools,
-        maxSteps: 1, // Handle one step at a time so we are able to reload the tools in between steps
+        stopWhen: stepCountIs(1), // Handle one step at a time so we are able to reload the tools in between steps
       });
 
       logResponse(response.text);
@@ -109,26 +119,19 @@ program.action(async (instruction: string, options: ProgramOptions) => {
           response.toolCalls.forEach((toolCall, index) => {
             console.log(`  ${index + 1}. ${toolCall.toolName}`);
             console.log(
-              `     Args: ${JSON.stringify(toolCall.args, null, 2)}`
+              `     Input: ${JSON.stringify(toolCall.input, null, 2)}`
             );
           });
 
           logToolResults();
           response.toolResults.forEach((result, index) => {
-            console.log(`  ${index + 1}. ${JSON.stringify(result, null, 2)}`);
+            console.log(
+              `  ${index + 1}. ${JSON.stringify(result.output, null, 2)}`
+            );
           });
 
           // Add the tool calls and results to conversation history
-          messages.push(
-            {
-              role: "assistant",
-              content: response.toolCalls,
-            },
-            {
-              role: "tool",
-              content: response.toolResults,
-            }
-          );
+          messages.push(...response.response.messages);
           break;
 
         case "length":

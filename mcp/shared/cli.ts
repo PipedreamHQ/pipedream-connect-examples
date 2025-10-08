@@ -32,7 +32,7 @@ export function createBaseProgram(name: string, description: string) {
       "-u, --external_user_id <extuid>",
       "External user ID (required)"
     )
-    .option("-m, --model <model>", "OpenAI model to use", "gpt-4-1106-preview")
+    .option("-m, --model <model>", "OpenAI model to use", "gpt-5")
     .option("-s, --max-steps <steps>", "Maximum conversation steps", "10");
 }
 

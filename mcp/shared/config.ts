@@ -1,5 +1,5 @@
 import { config } from "dotenv"
-import { join } from "path"
+import { dirname, join } from "path"
 import { existsSync } from "fs"
 import { z } from "zod"
 
@@ -8,14 +8,28 @@ import { z } from "zod"
  * Tries to load .env from current working directory first, then from project root
  */
 export function loadConfig(): void {
-  const cwd = process.cwd()
-  
-  // Try to load .env from current working directory first, then from project root
-  const localEnvPath = join(cwd, '.env')
-  const rootEnvPath = join(cwd, '../../.env') // Assumes we're in examples/[example-name]
-  
-  const envPath = existsSync(localEnvPath) ? localEnvPath : rootEnvPath
-  config({ path: envPath })
+  let dir = process.cwd()
+  let envLoaded = false
+
+  while (true) {
+    const envPath = join(dir, '.env')
+    if (existsSync(envPath)) {
+      config({ path: envPath })
+      envLoaded = true
+      break
+    }
+
+    const parent = dirname(dir)
+    if (parent === dir) {
+      break
+    }
+
+    dir = parent
+  }
+
+  if (!envLoaded) {
+    config()
+  }
 }
 
 /**
