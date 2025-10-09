@@ -5,6 +5,7 @@ import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
 import { SDKError } from "@/lib/types/pipedream"
+import { ProxyRequestBuilder } from "./ProxyRequestBuilder"
 
 export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
@@ -177,23 +178,27 @@ export const DemoPanel = () => {
           >
             <PageSkeleton customizationOption={customizationOption}>
               <div className="p-4 sm:p-6 space-y-4">
-                <CustomizeProvider {...customizationOption.customization}>
-                  {selectedComponentKey && (
-                    <ComponentFormContainer
-                      externalUserId={externalUserId}
-                      componentKey={selectedComponentKey}
-                      configuredProps={configuredProps}
-                      onUpdateConfiguredProps={setConfiguredProps}
-                      hideOptionalProps={hideOptionalProps}
-                      propNames={debouncedPropNames}
-                      enableDebugging={enableDebugging}
-                      onSubmit={handleSubmit}
-                      onUpdateDynamicProps={handleDynamicProps}
-                      sdkResponse={sdkErrors}
-                    // oauthAppConfig={oauthAppConfig}
-                    />
-                  )}
-                </CustomizeProvider>
+                {selectedComponentType === "proxy" ? (
+                  <ProxyRequestBuilder />
+                ) : (
+                  <CustomizeProvider {...customizationOption.customization}>
+                    {selectedComponentKey && (
+                      <ComponentFormContainer
+                        externalUserId={externalUserId}
+                        componentKey={selectedComponentKey}
+                        configuredProps={configuredProps}
+                        onUpdateConfiguredProps={setConfiguredProps}
+                        hideOptionalProps={hideOptionalProps}
+                        propNames={debouncedPropNames}
+                        enableDebugging={enableDebugging}
+                        onSubmit={handleSubmit}
+                        onUpdateDynamicProps={handleDynamicProps}
+                        sdkResponse={sdkErrors}
+                      // oauthAppConfig={oauthAppConfig}
+                      />
+                    )}
+                  </CustomizeProvider>
+                )}
               </div>
             </PageSkeleton>
           </div>
