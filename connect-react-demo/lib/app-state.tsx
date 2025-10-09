@@ -82,6 +82,14 @@ const useAppStateProviderValue = () => {
   const [webhookUrl, setWebhookUrl] = useState<string>("")
   const [webhookUrlValidationAttempted, setWebhookUrlValidationAttempted] = useState<boolean>(false)
 
+  // Proxy-specific state
+  const [editableExternalUserId, setEditableExternalUserId] = useState<string>(externalUserId)
+  const [accountId, setAccountId] = useState<string>("")
+  const [proxyUrl, setProxyUrl] = useState<string>("")
+  const [proxyPath, setProxyPath] = useState<string>("")
+  const [proxyMethod, setProxyMethod] = useState<string>("GET")
+  const [proxyBody, setProxyBody] = useState<string>("")
+
   const selectedComponentKey = queryParams.component || "google_sheets-add-single-row"
   const setSelectedComponentKey = (value: string) => {
     // Batch all state updates to prevent multiple configureComponent calls
@@ -220,6 +228,18 @@ export function MyPage() {
 
     fileCode,
     setFileCode,
+
+    // Proxy-specific exports
+    editableExternalUserId,
+    setEditableExternalUserId,
+    accountId,
+    setAccountId,
+    proxyUrl,
+    setProxyUrl,
+    proxyMethod,
+    setProxyMethod,
+    proxyBody,
+    setProxyBody,
 
     code,
   }

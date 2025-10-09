@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils"
-import { IoCubeSharp, IoFlashOutline } from "react-icons/io5"
+import { IoCubeSharp, IoFlashOutline, IoGlobe } from "react-icons/io5"
 import { TOGGLE_STYLES } from "@/lib/constants/ui"
 
 interface ComponentTypeSelectorProps {
-  selectedType: "action" | "trigger"
-  onTypeChange: (type: "action" | "trigger") => void
+  selectedType: "action" | "trigger" | "proxy"
+  onTypeChange: (type: "action" | "trigger" | "proxy") => void
 }
 
 const COMPONENT_TYPES = [
@@ -19,6 +19,12 @@ const COMPONENT_TYPES = [
     label: "Trigger", 
     icon: IoFlashOutline,
     description: "React to events and webhooks"
+  },
+  { 
+    value: "proxy", 
+    label: "Proxy", 
+    icon: IoGlobe,
+    description: "Make direct API requests through authenticated accounts"
   },
 ] as const
 
@@ -42,7 +48,7 @@ export function ComponentTypeSelector({ selectedType, onTypeChange }: ComponentT
               <type.icon className="h-3 w-3" />
               {type.label}
             </button>
-            {index === 0 && <div className={TOGGLE_STYLES.separator} />}
+            {index < COMPONENT_TYPES.length - 1 && <div className={TOGGLE_STYLES.separator} />}
           </div>
         ))}
       </div>
