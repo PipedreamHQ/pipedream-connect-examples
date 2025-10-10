@@ -16,7 +16,12 @@ export const formatPayload = (obj: any, indent = 0): string => {
   if (typeof obj === 'number' || typeof obj === 'boolean') {
     return String(obj)
   }
-  
+
+  // Handle Date objects
+  if (obj instanceof Date) {
+    return `"${obj.toISOString()}"`
+  }
+
   if (Array.isArray(obj)) {
     if (obj.length === 0) return '[]'
     const items = obj.map(item => 
@@ -27,14 +32,16 @@ export const formatPayload = (obj: any, indent = 0): string => {
   
   if (typeof obj === 'object') {
     const entries = Object.entries(obj)
+      // Filter out function properties to avoid displaying garbled bundled code
+      .filter(([, value]) => typeof value !== 'function')
     if (entries.length === 0) return '{}'
-    
+
     const items = entries.map(([key, value]) => {
       const formattedValue = formatPayload(value, indent + 1)
       // Remove quotes from keys for cleaner display
       return `${innerSpaces}${key}: ${formattedValue}`
     }).join(',\n')
-    
+
     return `{\n${items}\n${spaces}}`
   }
   

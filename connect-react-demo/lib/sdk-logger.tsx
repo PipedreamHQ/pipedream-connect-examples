@@ -189,55 +189,69 @@ export function createLoggedFrontendClient(
     updateCall: (id: string, updates: Partial<SDKCall>) => void
   }
 ): PipedreamClient {
-  const handler: ProxyHandler<PipedreamClient> = {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver)
+  function createProxy(target: any, path: string[] = []): any {
+    return new Proxy(target, {
+      get(obj, prop) {
+        const value = Reflect.get(obj, prop)
 
-      if (typeof value === "function") {
-        return async (...args: any[]) => {
-          const startTime = Date.now()
+        // Skip non-public properties
+        if (typeof prop === 'string' && (prop.startsWith('_') || prop === 'constructor')) {
+          return value
+        }
 
-          // Recursively filter out undefined properties from the request object
-          const cleanRequest = args[0] ? cleanUndefinedValues(args[0]) : {}
+        // If it's a function, wrap it with logging
+        if (typeof value === 'function') {
+          return async (...args: any[]) => {
+            const startTime = Date.now()
+            const methodPath = [...path, String(prop)].join('.')
 
-          const callId = logger.addCall({
-            method: String(prop),
-            timestamp: new Date(),
-            request: cleanRequest,
-            status: "pending"
-          })
+            // Recursively filter out undefined properties from the request object
+            const cleanRequest = args[0] ? cleanUndefinedValues(args[0]) : {}
 
-          try {
-            const result = await value.apply(target, args)
-            const duration = Date.now() - startTime
-
-            logger.updateCall(callId, {
-              response: result,
-              status: "success",
-              duration
+            const callId = logger.addCall({
+              method: methodPath,
+              timestamp: new Date(),
+              request: cleanRequest,
+              status: "pending"
             })
 
-            return result
-          } catch (error) {
-            const duration = Date.now() - startTime
+            try {
+              const result = await value.apply(obj, args)
+              const duration = Date.now() - startTime
 
-            logger.updateCall(callId, {
-              error: error instanceof Error ? {
-                message: error.message,
-                stack: error.stack
-              } : error,
-              status: "error",
-              duration
-            })
+              logger.updateCall(callId, {
+                response: result,
+                status: "success",
+                duration
+              })
 
-            throw error
+              return result
+            } catch (error) {
+              const duration = Date.now() - startTime
+
+              logger.updateCall(callId, {
+                error: error instanceof Error ? {
+                  message: error.message,
+                  stack: error.stack
+                } : error,
+                status: "error",
+                duration
+              })
+
+              throw error
+            }
           }
         }
-      }
 
-      return value
-    }
+        // If it's an object (like a nested resource), recursively proxy it
+        if (value !== null && typeof value === 'object') {
+          return createProxy(value, [...path, String(prop)])
+        }
+
+        return value
+      }
+    })
   }
 
-  return new Proxy(client, handler)
+  return createProxy(client)
 }
