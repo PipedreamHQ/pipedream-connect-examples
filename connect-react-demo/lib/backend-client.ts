@@ -7,10 +7,7 @@ const getEnvironment = (): PipedreamEnvironment => {
     return `https://${env.PIPEDREAM_API_HOST}` as PipedreamEnvironment;
   }
 
-  if (env.NODE_ENV === "development") {
-    return PipedreamEnvironment.Dev;
-  }
-
+  // Default to Prod for local development (Dev environment requires DEV_NAMESPACE)
   return PipedreamEnvironment.Prod;
 }
 
@@ -21,6 +18,5 @@ export const backendClient = () => {
     environment: getEnvironment(),
     projectEnvironment: env.PIPEDREAM_PROJECT_ENVIRONMENT,
     projectId: env.PIPEDREAM_PROJECT_ID,
-    workflowDomain: env.PIPEDREAM_WORKFLOW_DOMAIN,
   })
 }

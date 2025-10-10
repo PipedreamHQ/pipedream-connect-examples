@@ -20,14 +20,14 @@ const ClientProviderWithLogger = () => {
   const logger = useSDKLogger()
 
   const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST
-  const environment = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT as PipedreamEnvironment
+  const environment = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT as PipedreamEnvironment || undefined
   const projectEnvironment = process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT as ProjectEnvironment
 
   const client = externalUserId ? createLoggedFrontendClient(
     createFrontendClient({
-      frontendHost,
-      environment,
-      projectEnvironment,
+      ...(frontendHost && { frontendHost }),
+      ...(environment && { environment }),
+      ...(projectEnvironment && { projectEnvironment }),
       tokenCallback: fetchToken,
       externalUserId,
     }),
