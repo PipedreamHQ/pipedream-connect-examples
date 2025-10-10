@@ -19,19 +19,19 @@ import { useState } from "react"
 function AppSelector() {
   const [selectedApp, setSelectedApp] = useState()
   const [selectedComponent, setSelectedComponent] = useState()
-  
+
   return (
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium mb-2">
           Choose an app
         </label>
-        <SelectApp 
-          value={selectedApp} 
-          onChange={setSelectedApp} 
+        <SelectApp
+          value={selectedApp}
+          onChange={setSelectedApp}
         />
       </div>
-      
+
       {selectedApp && (
         <div>
           <label className="block text-sm font-medium mb-2">
@@ -56,8 +56,8 @@ function AppSelector() {
     data.propNames?.length && `        propNames={${JSON.stringify(data.propNames)}}`,
   ].filter(Boolean).join('\n')
 
-  const webhookUrlLine = data.selectedComponentType === "trigger" 
-    ? `\n      webhookUrl: "${data.webhookUrl || 'https://your-app.com/webhook'}",` 
+  const webhookUrlLine = data.selectedComponentType === "trigger"
+    ? `\n      webhookUrl: "${data.webhookUrl || 'https://your-app.com/webhook'}",`
     : ""
 
   return `import { ComponentForm, useFrontendClient, useComponent } from "@pipedream/connect-react"
@@ -72,12 +72,12 @@ function MyComponent() {
   })
 
   const handleSubmit = async (ctx) => {
-    const result = await frontendClient.${data.selectedComponentType === "action" ? "actionRun" : "deployTrigger"}({
+    const result = await frontendClient.${data.selectedComponentType === "action" ? "actions.run" : "triggers.deploy"}({
       externalUserId: "${data.externalUserId}",
-      ${data.selectedComponentType}Id: "${data.componentKey}",
+      id: "${data.componentKey}",
       configuredProps: ctx.configuredProps,${webhookUrlLine}
     })
-    
+
     // Handle success - show toast, redirect, etc.
   }
 
@@ -100,7 +100,7 @@ import { createFrontendClient } from "@pipedream/sdk/browser"
 
 export function ClientProvider({ children }) {
   const client = createFrontendClient({
-    environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT
+    projectEnvironment: process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT,
     tokenCallback: async ({ externalUserId }) => {
       // Call your backend to get a Connect token for this user
       const response = await fetch('/api/connect/token', {
@@ -125,17 +125,15 @@ export const generateApiCode = (externalUserId: string) => `import { NextRequest
 import { createBackendClient } from '@pipedream/sdk/server'
 
 const pd = createBackendClient({
+  clientId: process.env.PIPEDREAM_CLIENT_ID!,
+  clientSecret: process.env.PIPEDREAM_CLIENT_SECRET!,
+  projectEnvironment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT!,
   projectId: process.env.PIPEDREAM_PROJECT_ID!,
-  environment: process.env.PIPEDREAM_PROJECT_ENVIRONMENT!,
-  credentials: {
-    clientId: process.env.PIPEDREAM_CLIENT_ID!,
-    clientSecret: process.env.PIPEDREAM_CLIENT_SECRET!,
-  },
 })
 
 export async function POST(request: NextRequest) {
   const { externalUserId } = await request.json()
-  
+
   // Generate a Connect token for this user
   const { token } = await pd.createConnectToken({
     external_user_id: externalUserId,
@@ -144,26 +142,26 @@ export async function POST(request: NextRequest) {
       'https://your-app.com',
     ],
   })
-  
+
   return NextResponse.json({ token })
 }`
 
 export const CODE_FILES = [
-  { 
-    id: "current", 
-    name: "MyComponent.tsx", 
+  {
+    id: "current",
+    name: "MyComponent.tsx",
     description: "Main React component that renders the integration form and handles user interactions",
     icon: "📄"
   },
-  { 
-    id: "setup", 
-    name: "ClientProvider.tsx", 
+  {
+    id: "setup",
+    name: "ClientProvider.tsx",
     description: "Provider component that configures the Pipedream SDK and wraps your app",
     icon: "⚙️"
   },
-  { 
-    id: "api", 
-    name: "api/connect/token/route.ts", 
+  {
+    id: "api",
+    name: "api/connect/token/route.ts",
     description: "Backend API endpoint that securely generates Connect tokens for frontend authentication",
     icon: "🔗"
   }

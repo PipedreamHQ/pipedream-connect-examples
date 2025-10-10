@@ -1,6 +1,6 @@
-import { CustomizationConfig } from "@pipedream/connect-react/src/hooks/customization-context"
+import { CustomizationConfig } from "@pipedream/connect-react"
 
-const customization: CustomizationConfig = {
+const customization: CustomizationConfig<any, false, any> = {
   styles: {
     controlInput: (base, { theme }) => ({
       ...base,

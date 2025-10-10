@@ -19,9 +19,9 @@ import { useAppState } from "@/lib/app-state"
 import { cn } from "@/lib/utils"
 import Select from "react-select"
 import { IoChevronDown, IoSettingsOutline } from "react-icons/io5"
-import type { ConfigurableProp } from "../../lib/types/pipedream"
 import type { CSSObjectWithLabel } from "react-select"
 import { getTypeDescription } from "../../lib/utils/type-descriptions"
+import { ComponentType, ConfigurablePropType } from "@pipedream/sdk"
 
 const typeBadgeStyles = {
   string:
@@ -36,7 +36,7 @@ const typeBadgeStyles = {
 
 interface PropertyItemProps {
   name: string
-  type: string
+  type: ConfigurablePropType
   description: string
   required?: boolean
   children: React.ReactNode
@@ -186,15 +186,15 @@ export const ConfigPanel = () => {
   const id1 = useId();
   const id2 = useId();
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+
   // Local state for immediate UI updates, separate from router state
   const [localPropNames, setLocalPropNames] = useState(propNames)
-  
+
   // Sync router state to local state
   useEffect(() => {
     setLocalPropNames(propNames)
   }, [propNames])
-  
+
   // Debounced sync from local state to router
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -209,8 +209,9 @@ export const ConfigPanel = () => {
   }, [localPropNames, propNames, setPropNames])
 
   // Fetch component details to get configurable_props for the propNames dropdown
-  const { component, isLoading, error } = useComponent({ 
+  const { component, isLoading, error } = useComponent({
     key: selectedComponent?.key || '',
+  }, {
     useQueryOpts: {
       enabled: !!selectedComponent?.key
     }
@@ -259,8 +260,8 @@ export const ConfigPanel = () => {
           zIndex: 99999,
           position: 'fixed',
         }),
-        menuPortal: (base: CSSObjectWithLabel) => ({ 
-          ...base, 
+        menuPortal: (base: CSSObjectWithLabel) => ({
+          ...base,
           zIndex: 99999,
           position: 'fixed',
         }),
@@ -328,7 +329,7 @@ export const ConfigPanel = () => {
         </div>
 
         <div className="flex items-start">
-          <ComponentTypeSelector 
+          <ComponentTypeSelector
             selectedType={selectedComponentType}
             onTypeChange={setSelectedComponentType}
           />
@@ -345,16 +346,16 @@ export const ConfigPanel = () => {
             value={selectedApp}
             onChange={(app) => {
               app
-                ? setSelectedAppSlug(app.name_slug)
+                ? setSelectedAppSlug(app.nameSlug)
                 : removeSelectedAppSlug()
             }}
           />
         </CustomizeProvider>
       </PropertyItem>
       <PropertyItem
-        name={selectedComponentType === "action" ? "actionId" : "triggerId"}
+        name={selectedComponentType === ComponentType.Action ? "actionId" : "triggerId"}
         type="string"
-        description={`${selectedComponentType === "action" ? "Action" : "Trigger"} to use`}
+        description={`${selectedComponentType === ComponentType.Action ? "Action" : "Trigger"} to use`}
         required={true}
       >
         <CustomizeProvider customization={dropdownCustomization}>
@@ -394,18 +395,17 @@ export const ConfigPanel = () => {
                 }
               }}
               placeholder="https://example.com/webhook"
-              className={`w-full px-3 py-1.5 text-sm font-mono border-2 ${
-                shouldShowWebhookUrlError() 
-                  ? "border-red-500" 
-                  : webhookUrl 
-                  ? "border-gray-200" 
+              className={`w-full px-3 py-1.5 text-sm font-mono border-2 ${shouldShowWebhookUrlError()
+                ? "border-red-500"
+                : webhookUrl
+                  ? "border-gray-200"
                   : "border-blue-500"
-              } rounded bg-zinc-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
+                } rounded bg-zinc-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
             />
             {shouldShowWebhookUrlError() && (
               <p className="text-xs text-red-600 mt-1">
-                {!webhookUrl 
-                  ? "Webhook URL is required for triggers" 
+                {!webhookUrl
+                  ? "Webhook URL is required for triggers"
                   : "Please enter a valid URL"
                 }
               </p>
@@ -449,11 +449,11 @@ export const ConfigPanel = () => {
         />
       </PropertyItem>
       <PropertyItem
-          name="enableDebugging"
-          type="boolean"
-          description="Surface SDK and configuration errors in the form"
-          required={false}
-          defaultValue={false}
+        name="enableDebugging"
+        type="boolean"
+        description="Surface SDK and configuration errors in the form"
+        required={false}
+        defaultValue={false}
       >
         <BooleanToggle
           value={enableDebugging}
@@ -471,21 +471,21 @@ export const ConfigPanel = () => {
         <Select
           instanceId={id1}
           {...commonSelectProps}
-          options={useMemo(() => 
-            (component?.configurable_props || []).map((prop: any) => ({
+          options={useMemo(() =>
+            (component?.configurableProps || []).map((prop: any) => ({
               label: prop.label ? `${prop.label} (${prop.name})` : prop.name,
               value: prop.name,
-            })), [component?.configurable_props]
+            })), [component?.configurableProps]
           )}
           isMulti={true}
-          value={useMemo(() => 
+          value={useMemo(() =>
             localPropNames.map((name) => {
-              const prop = (component?.configurable_props || []).find((p: any) => p.name === name)
+              const prop = (component?.configurableProps || []).find((p: any) => p.name === name)
               return {
                 label: prop?.label ? `${prop.label} (${prop.name})` : name,
                 value: name,
               }
-            }), [localPropNames, component?.configurable_props]
+            }), [localPropNames, component?.configurableProps]
           )}
           onChange={useCallback((vs) => {
             setLocalPropNames((vs || []).map((v) => v.value))
@@ -564,7 +564,7 @@ export const ConfigPanel = () => {
       <div>
         <div className="px-4 md:px-6 py-4">
           {basicFormControls}
-          
+
           {/* Desktop: Show with section header */}
           <div className="hidden md:block mt-6">
             <div className="border-t border-gray-200 pt-6">
@@ -583,13 +583,13 @@ export const ConfigPanel = () => {
                 </div>
                 <IoChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
               </CollapsibleTrigger>
-              
+
               <CollapsibleContent>
                 {advancedFormControls}
               </CollapsibleContent>
             </Collapsible>
           </div>
-          
+
           {triggerInfo}
         </div>
       </div>

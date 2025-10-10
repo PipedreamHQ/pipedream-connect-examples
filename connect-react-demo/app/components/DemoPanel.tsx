@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react"
 import { ComponentFormContainer, CustomizeProvider, useFrontendClient, type FormContext } from "@pipedream/connect-react"
-import type { ConfigurableProps } from "@pipedream/sdk"
+import type { ConfigurableProps, DynamicProps } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
+import { SDKError } from "@/lib/types/pipedream"
 
 export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
@@ -24,18 +25,18 @@ export const DemoPanel = () => {
   } = useAppState()
 
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
-  const [sdkErrors, setSdkErrors] = useState<unknown>()
-  
+  const [sdkErrors, setSdkErrors] = useState<SDKError | undefined>()
+
   // Define OAuth app ID mappings for testing
   // const oauthAppConfig = useMemo(() => ({
   //   'github': 'oa_abc1234',
   //   'google_sheets': 'oa_def4567',
   //   'slack': 'oa_1234567',
   // }), [])
-  
+
   // Debounce propNames to prevent cascading render issues with app props
   const [debouncedPropNames, setDebouncedPropNames] = useState(propNames)
-  
+
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedPropNames(propNames)
@@ -43,7 +44,7 @@ export const DemoPanel = () => {
     return () => clearTimeout(timer)
   }, [propNames])
 
-  const handleDynamicProps = (dynamicProps: { id: string | undefined }) => {
+  const handleDynamicProps = (dynamicProps: Pick<DynamicProps, "id">) => {
     setDynamicPropsId(dynamicProps.id)
   }
 
@@ -60,7 +61,7 @@ export const DemoPanel = () => {
         })
         return
       }
-      
+
       // Validate URL format
       try {
         new URL(webhookUrl)
@@ -78,21 +79,21 @@ export const DemoPanel = () => {
       // Check if component requires stash for file handling
       const needsStash = ctx.component.stash === "required" || ctx.component.stash === "optional"
 
-      const data = selectedComponentType === "action" 
-        ? await frontendClient.runAction({
-            externalUserId,
-            actionId: selectedComponentKey,
-            configuredProps,
-            dynamicPropsId,
-            ...(needsStash && { stashId: "" })  // Add stashId if component uses file stash
-          })
-        : await frontendClient.deployTrigger({
-            externalUserId,
-            triggerId: selectedComponentKey,
-            configuredProps,
-            webhookUrl,
-            dynamicPropsId,
-          })
+      const data = selectedComponentType === "action"
+        ? await frontendClient.actions.run({
+          externalUserId,
+          id: selectedComponentKey,
+          configuredProps,
+          dynamicPropsId,
+          ...(needsStash && { stashId: "" })  // Add stashId if component uses file stash
+        })
+        : await frontendClient.triggers.deploy({
+          externalUserId,
+          id: selectedComponentKey,
+          configuredProps,
+          webhookUrl,
+          dynamicPropsId,
+        })
 
       React.startTransition(() => {
         setSdkErrors(undefined)
@@ -101,7 +102,7 @@ export const DemoPanel = () => {
       })
     } catch (error) {
       React.startTransition(() => {
-        setSdkErrors(error)
+        setSdkErrors(error as SDKError)
         setActionRunOutput(undefined)
       })
     }
@@ -170,7 +171,7 @@ export const DemoPanel = () => {
         </div>
 
         <div className="relative max-w-2xl mx-auto">
-          <div 
+          <div
             className="rounded-lg shadow-sm bg-white overflow-visible border border-neutral-200"
             style={customizationOption.containerStyle}
           >
@@ -189,7 +190,7 @@ export const DemoPanel = () => {
                       onSubmit={handleSubmit}
                       onUpdateDynamicProps={handleDynamicProps}
                       sdkResponse={sdkErrors}
-                      // oauthAppConfig={oauthAppConfig}
+                    // oauthAppConfig={oauthAppConfig}
                     />
                   )}
                 </CustomizeProvider>
@@ -200,7 +201,7 @@ export const DemoPanel = () => {
 
         <TerminalCollapsible
           isOpen={true}
-          onOpenChange={() => {}}
+          onOpenChange={() => { }}
           hasOutput={!!actionRunOutput}
           output={actionRunOutput}
         />

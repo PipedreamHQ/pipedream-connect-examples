@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 // @ts-ignore
 import darkThemeCode from "raw-loader!@/app/components/customization-select/dark-theme.ts"
 import { useQueryParams } from "./use-query-params"
+import { ComponentType } from "@pipedream/sdk"
 
 const customizationOptions = [
   {
@@ -41,7 +42,7 @@ const useAppStateProviderValue = () => {
   )
 
 
-  const {queryParams, setQueryParam, setQueryParams} = useQueryParams()
+  const { queryParams, setQueryParam, setQueryParams } = useQueryParams()
 
   const propNames = queryParams.propNames ? queryParams.propNames.split(",") : []
   const setPropNames = (value: string[]) => setQueryParam("propNames", value?.length ? value.join(",") : undefined)
@@ -72,11 +73,13 @@ const useAppStateProviderValue = () => {
   }
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
-  const { app: fetchedApp } = useApp(selectedAppSlug && externalUserId ? selectedAppSlug : undefined)
+  const { app: fetchedApp } = selectedAppSlug && externalUserId
+    ? useApp(selectedAppSlug)
+    : {}
   const selectedApp = fetchedApp || undefined
 
-  const selectedComponentType = queryParams.type || "action"
-  const setSelectedComponentType = (value: string) => setQueryParam("type", value)
+  const selectedComponentType: ComponentType = queryParams.type as ComponentType || ComponentType.Action
+  const setSelectedComponentType = (value: ComponentType) => setQueryParam("type", String(value))
   const removeSelectedComponentType = () => setQueryParam("type", undefined)
 
   const [webhookUrl, setWebhookUrl] = useState<string>("")
@@ -86,7 +89,7 @@ const useAppStateProviderValue = () => {
   const setSelectedComponentKey = (value: string) => {
     // Batch all state updates to prevent multiple configureComponent calls
     updateStateAsync(() => {
-      setQueryParams([{key: "component", value}, {key: "propNames", value: undefined}])
+      setQueryParams([{ key: "component", value }, { key: "propNames", value: undefined }])
       setConfiguredProps({})
       setActionRunOutput(undefined)
       setWebhookUrlValidationAttempted(false) // Reset validation state when switching components
@@ -126,12 +129,11 @@ const useAppStateProviderValue = () => {
 
   const code = React.useMemo(() => {
     return `import { createFrontendClient } from "@pipedream/sdk"
-import { FrontendClientProvider, ComponentFormContainer } from "@pipedream/connect-react"${
-    customizationOption.file
-      ? `
+import { FrontendClientProvider, ComponentFormContainer } from "@pipedream/connect-react"${customizationOption.file
+        ? `
 import customization from "./customizations/${customizationOption.name}"`
-      : ""
-  }
+        : ""
+      }
 
 const client = createFrontendClient()
 
@@ -140,27 +142,23 @@ export function MyPage() {
     <FrontendClientProvider client={client}>
       <ComponentFormContainer
         externalUserId="${externalUserId}"
-        componentKey="${selectedComponent?.key}"${
-    hideOptionalProps
-      ? `
+        componentKey="${selectedComponent?.key}"${hideOptionalProps
+        ? `
         hideOptionalProps={true}`
-      : ""
-  }${
-      enableDebugging
-          ? `
+        : ""
+      }${enableDebugging
+        ? `
         enableDebugging={true}`
-          : ""
-  }${
-    propNames.length
-      ? `
+        : ""
+      }${propNames.length
+        ? `
         propNames={${JSON.stringify(propNames)}}`
-      : ""
-  }${
-    customizationOption.file
-      ? `
+        : ""
+      }${customizationOption.file
+        ? `
         \{...customization\}`
-      : ""
-  }
+        : ""
+      }
         // Optional: specify OAuth app ID for app-specific account connections
         // oauthAppId="your-oauth-app-id"
       />
@@ -227,7 +225,7 @@ export function MyPage() {
 
 const AppStateContext = createContext<ReturnType<typeof useAppStateProviderValue> | null>(null);
 
-export const AppStateProvider = ({children}: React.PropsWithChildren) => {
+export const AppStateProvider = ({ children }: React.PropsWithChildren) => {
   const providerValue = useAppStateProviderValue();
 
   return <AppStateContext.Provider value={providerValue}>{children}</AppStateContext.Provider>

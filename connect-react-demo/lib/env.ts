@@ -36,6 +36,8 @@ const envSchema = z.object({
   DD_CLIENT_TOKEN: z.optional(z.string()),
   DD_SERVICE: z.optional(z.string()),
   NEXT_PUBLIC_GIT_COMMIT_SHA: z.optional(z.string()),
+
+  NODE_ENV: z.enum(["development", "production"]).default("production"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

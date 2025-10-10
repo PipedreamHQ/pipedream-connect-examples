@@ -1,4 +1,3 @@
-import { selectStyles } from "@pipedream/connect-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { IoAddOutline } from "react-icons/io5"
@@ -76,7 +75,6 @@ export const FormSettingsSection = ({
             components={{
               IndicatorSeparator: () => null,
             }}
-            styles={selectStyles}
           />
         </div>
       )}
