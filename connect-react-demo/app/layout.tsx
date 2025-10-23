@@ -1,15 +1,17 @@
-import type { Metadata } from "next"
-import "./globals.css"
-import { DatadogScript } from "./components/DatadogScript"
-import { GoogleAnalytics } from "./components/GoogleAnalytics"
-import { GeistSans } from "geist/font/sans"
+import type { Metadata } from "next";
+import "./globals.css";
+import { DatadogScript } from "./components/DatadogScript";
+import { GoogleAnalytics } from "./components/GoogleAnalytics";
+import { GeistSans } from "geist/font/sans";
 
 export const metadata: Metadata = {
   title: "One SDK, thousands of API integrations",
-  description: "Pipedream Connect provides managed authentication for 2,800+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
+  description:
+    "Pipedream Connect provides managed authentication for 2,900+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
   openGraph: {
     title: "One SDK, thousands of API integrations",
-    description: "Pipedream Connect provides managed authentication for 2,800+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
+    description:
+      "Pipedream Connect provides managed authentication for 2,900+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
     url: "https://pipedream.com/connect",
     siteName: "Pipedream Connect",
     images: [
@@ -26,24 +28,22 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "One SDK, thousands of API integrations",
-    description: "Pipedream Connect provides managed authentication for 2,800+ APIs and access to 10,000+ prebuilt tools.",
+    description:
+      "Pipedream Connect provides managed authentication for 2,900+ APIs and access to 10,000+ prebuilt tools.",
     images: ["https://pipedream.com/connect/demo/opengraph-image.png"],
   },
-}
+};
 
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
-
   return (
     <html lang="en" className={GeistSans.variable}>
       <DatadogScript />
       <GoogleAnalytics />
-      <body className={`antialiased ${GeistSans.className}`}>
-        {children}
-      </body>
+      <body className={`antialiased ${GeistSans.className}`}>{children}</body>
     </html>
-  )
+  );
 }
