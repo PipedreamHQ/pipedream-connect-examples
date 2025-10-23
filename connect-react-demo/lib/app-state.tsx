@@ -54,7 +54,7 @@ const useAppStateProviderValue = () => {
     })
   }
 
-  const selectedAppSlug = queryParams.app || "google_sheets"
+  const selectedAppSlug = queryParams.app || "slack_v2"
   const setSelectedAppSlug = (value: string) => {
     updateStateAsync(() => {
       setQueryParams([
@@ -85,7 +85,7 @@ const useAppStateProviderValue = () => {
   const [webhookUrl, setWebhookUrl] = useState<string>("")
   const [webhookUrlValidationAttempted, setWebhookUrlValidationAttempted] = useState<boolean>(false)
 
-  const selectedComponentKey = queryParams.component || "google_sheets-add-single-row"
+  const selectedComponentKey = queryParams.component || "slack_v2-send-message-to-channel"
   const setSelectedComponentKey = (value: string) => {
     // Batch all state updates to prevent multiple configureComponent calls
     updateStateAsync(() => {
