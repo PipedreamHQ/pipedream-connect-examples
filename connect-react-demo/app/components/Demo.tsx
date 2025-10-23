@@ -1,24 +1,36 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ConfigPanel } from "./ConfigPanel"
-import { LiveCodePanel } from "./LiveCodePanel"
-import { DemoPanel } from "./DemoPanel"
-import { SDKDebugger } from "./SDKDebugger"
-import { DemoHeader } from "./DemoHeader"
-import { DemoTabTrigger } from "./DemoTabTrigger"
-import { useSDKLoggerCallCount, useSDKLoggerPendingCount } from "@/lib/sdk-logger"
-import { IoSettingsOutline, IoFlashOutline, IoCodeSlashOutline, IoChevronDown } from "react-icons/io5"
-import { cn } from "@/lib/utils"
-import { useQueryParams } from "@/lib/use-query-params"
+import { useState } from "react";
+import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ConfigPanel } from "./ConfigPanel";
+import { LiveCodePanel } from "./LiveCodePanel";
+import { DemoPanel } from "./DemoPanel";
+import { SDKDebugger } from "./SDKDebugger";
+import { DemoHeader } from "./DemoHeader";
+import { DemoTabTrigger } from "./DemoTabTrigger";
+import {
+  useSDKLoggerCallCount,
+  useSDKLoggerPendingCount,
+} from "@/lib/sdk-logger";
+import {
+  IoSettingsOutline,
+  IoFlashOutline,
+  IoCodeSlashOutline,
+  IoChevronDown,
+} from "react-icons/io5";
+import { cn } from "@/lib/utils";
+import { useQueryParams } from "@/lib/use-query-params";
 
 const TABS = [
   { value: "config", icon: IoSettingsOutline, label: "Config" },
   { value: "code", icon: IoCodeSlashOutline, label: "Code" },
   { value: "debug", icon: IoFlashOutline, label: "Debug" },
-] as const
+] as const;
 
 function HeroSection({ children }: { children: React.ReactNode }) {
   return (
@@ -27,44 +39,57 @@ function HeroSection({ children }: { children: React.ReactNode }) {
         <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-6">
           One SDK, thousands of API integrations
         </h1>
-        
-        <div className="space-y-6 text-neutral-700">
-          {children}
-        </div>
+
+        <div className="space-y-6 text-neutral-700">{children}</div>
       </div>
     </div>
-  )
+  );
 }
 
 function DescriptionParagraph({ className }: { className?: string }) {
   return (
     <p className={cn("leading-relaxed", className)}>
-      <a 
-        href="https://pipedream.com/connect" 
-        target="_blank" 
+      <a
+        href="https://pipedream.com/connect"
+        target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 font-medium text-blue-700 hover:text-blue-600 transition-colors border-b border-blue-200 hover:border-blue-300"
       >
         Pipedream Connect
-      </a>
-      {" "}provides managed authentication for 2,800+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use{" "}
-      <a 
-        href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react" 
-        target="_blank" 
+      </a>{" "}
+      provides managed authentication for 2,900+ APIs and access to 10,000+
+      prebuilt tools. Roll your own frontend with the server SDK or use{" "}
+      <a
+        href="https://github.com/PipedreamHQ/pipedream/tree/master/packages/connect-react"
+        target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 font-medium text-blue-700 hover:text-blue-600 transition-colors border-b border-blue-200 hover:border-blue-300"
       >
         @pipedream/connect-react
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        <svg
+          className="w-3 h-3"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+          />
         </svg>
       </a>{" "}
       to get started in minutes.
     </p>
-  )
+  );
 }
 
-function LoadingSkeleton({ withContainer = false }: { withContainer?: boolean }) {
+function LoadingSkeleton({
+  withContainer = false,
+}: {
+  withContainer?: boolean;
+}) {
   const content = (
     <div className="p-6 space-y-6">
       <div className="space-y-3">
@@ -80,41 +105,49 @@ function LoadingSkeleton({ withContainer = false }: { withContainer?: boolean })
         <div className="h-10 bg-gray-200 rounded animate-pulse w-32" />
       </div>
     </div>
-  )
+  );
 
   return withContainer ? (
     <div className="bg-white border border-neutral-200 rounded-lg shadow-sm overflow-hidden">
       {content}
     </div>
-  ) : content
+  ) : (
+    content
+  );
 }
 
-function TabsContainer({ 
-  activeTab, 
-  onTabChange, 
-  callCount, 
-  pendingCount, 
+function TabsContainer({
+  activeTab,
+  onTabChange,
+  callCount,
+  pendingCount,
   isMobile,
   className,
   tabsListClassName,
-  isLoading 
+  isLoading,
 }: {
-  activeTab: string
-  onTabChange: (value: string) => void
-  callCount: number
-  pendingCount: number
-  isMobile?: boolean
-  className?: string
-  tabsListClassName?: string
-  isLoading?: boolean
+  activeTab: string;
+  onTabChange: (value: string) => void;
+  callCount: number;
+  pendingCount: number;
+  isMobile?: boolean;
+  className?: string;
+  tabsListClassName?: string;
+  isLoading?: boolean;
 }) {
   return (
-    <Tabs value={activeTab} onValueChange={onTabChange} className={cn("flex flex-col", className)}>
+    <Tabs
+      value={activeTab}
+      onValueChange={onTabChange}
+      className={cn("flex flex-col", className)}
+    >
       <div className={cn("border-b", isMobile && "flex-shrink-0")}>
-        <TabsList className={cn(
-          "h-12 w-full rounded-none bg-transparent p-0",
-          tabsListClassName
-        )}>
+        <TabsList
+          className={cn(
+            "h-12 w-full rounded-none bg-transparent p-0",
+            tabsListClassName
+          )}
+        >
           {TABS.map((tab) => (
             <DemoTabTrigger
               key={tab.value}
@@ -128,7 +161,7 @@ function TabsContainer({
           ))}
         </TabsList>
       </div>
-      
+
       {isLoading ? (
         <>
           <TabsContent value="config" className="m-0" forceMount>
@@ -145,13 +178,13 @@ function TabsContainer({
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="code" className="m-0" forceMount>
             <div style={{ display: activeTab === "code" ? "block" : "none" }}>
               <LoadingSkeleton />
             </div>
           </TabsContent>
-          
+
           <TabsContent value="debug" className="m-0" forceMount>
             <div style={{ display: activeTab === "debug" ? "block" : "none" }}>
               <LoadingSkeleton />
@@ -174,13 +207,13 @@ function TabsContainer({
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="code" className="m-0" forceMount>
             <div style={{ display: activeTab === "code" ? "block" : "none" }}>
               <LiveCodePanel />
             </div>
           </TabsContent>
-          
+
           <TabsContent value="debug" className="m-0" forceMount>
             <div style={{ display: activeTab === "debug" ? "block" : "none" }}>
               <SDKDebugger />
@@ -189,27 +222,29 @@ function TabsContainer({
         </>
       )}
     </Tabs>
-  )
+  );
 }
 
 export default function Demo({ isLoading = false }: { isLoading?: boolean }) {
-  const { queryParams, setQueryParam } = useQueryParams()
-  const [showMoreInfo, setShowMoreInfo] = useState(false)
-  const callCount = useSDKLoggerCallCount()
-  const pendingCount = useSDKLoggerPendingCount()
-  
-  const validTabs = ["config", "code", "debug"] as const
-  const tabFromQuery = queryParams.tab as string
-  const activeTab = validTabs.includes(tabFromQuery as any) ? tabFromQuery : "config"
-  
+  const { queryParams, setQueryParam } = useQueryParams();
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const callCount = useSDKLoggerCallCount();
+  const pendingCount = useSDKLoggerPendingCount();
+
+  const validTabs = ["config", "code", "debug"] as const;
+  const tabFromQuery = queryParams.tab as string;
+  const activeTab = validTabs.includes(tabFromQuery as any)
+    ? tabFromQuery
+    : "config";
+
   const setActiveTab = (tab: string) => {
-    setQueryParam("tab", tab === "config" ? undefined : tab)
-  }
+    setQueryParam("tab", tab === "config" ? undefined : tab);
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
       <DemoHeader />
-      
+
       <HeroSection>
         <div className="hidden sm:block space-y-6">
           <DescriptionParagraph className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto" />
@@ -219,7 +254,12 @@ export default function Demo({ isLoading = false }: { isLoading?: boolean }) {
           <Collapsible open={showMoreInfo} onOpenChange={setShowMoreInfo}>
             <CollapsibleTrigger className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors">
               <span>More info</span>
-              <IoChevronDown className={cn("h-3 w-3 transition-transform", showMoreInfo && "rotate-180")} />
+              <IoChevronDown
+                className={cn(
+                  "h-3 w-3 transition-transform",
+                  showMoreInfo && "rotate-180"
+                )}
+              />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="pt-3">
@@ -229,7 +269,7 @@ export default function Demo({ isLoading = false }: { isLoading?: boolean }) {
           </Collapsible>
         </div>
       </HeroSection>
-      
+
       <div className="md:hidden flex flex-col">
         <TabsContainer
           activeTab={activeTab}
@@ -266,5 +306,5 @@ export default function Demo({ isLoading = false }: { isLoading?: boolean }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
