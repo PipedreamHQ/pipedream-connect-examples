@@ -59,7 +59,24 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
     }
 
     const resp = await serverClient.makeProxyRequest(proxyOptions, targetRequest);
-    return resp
+    
+    // Log the response structure for debugging
+    console.log('Proxy response structure:', {
+      resp,
+      type: typeof resp,
+      keys: Object.keys(resp || {}),
+      hasHeaders: !!(resp as any)?.headers,
+      hasStatus: !!(resp as any)?.status
+    });
+    
+    // Return both the response data and any available metadata (like headers)
+    // Note: The Pipedream SDK might return headers differently
+    return {
+      data: resp,
+      headers: (resp as any)?.headers || (resp as any)?.response?.headers || {},
+      status: (resp as any)?.status || (resp as any)?.response?.status || 200,
+      rawResponse: resp // Include raw response for debugging
+    }
   } catch (error: any) {
     // Re-throw with structured error info
     throw {

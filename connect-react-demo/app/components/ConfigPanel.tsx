@@ -187,6 +187,9 @@ export const ConfigPanel = () => {
     accountId,
     setAccountId,
   } = useAppState()
+  
+  // Check if proxy input editing is enabled via environment variable
+  const enableProxyInput = process.env.NEXT_PUBLIC_ENABLE_PROXY_INPUT === 'true'
   const id1 = useId();
   const id2 = useId();
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -442,9 +445,14 @@ export const ConfigPanel = () => {
         {selectedComponentType === "proxy" ? (
           <input
             value={editableExternalUserId || ""}
-            onChange={(e) => setEditableExternalUserId(e.target.value)}
-            placeholder="Enter external user ID"
-            className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            onChange={enableProxyInput ? (e) => setEditableExternalUserId(e.target.value) : undefined}
+            placeholder={enableProxyInput ? "Enter external user ID" : "External user ID (read-only)"}
+            className={`w-full px-3 py-1.5 text-sm font-mono border rounded ${
+              enableProxyInput 
+                ? "bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
+                : "bg-zinc-50/50"
+            }`}
+            readOnly={!enableProxyInput}
           />
         ) : (
           <input
@@ -454,7 +462,37 @@ export const ConfigPanel = () => {
           />
         )}
       </PropertyItem>
-      {selectedComponentType === "proxy" && (
+      {selectedApp && (
+        <div className="grid grid-cols-[120px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+          <div className="flex items-start pt-1.5">
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <label className="text-[13px] font-semibold text-neutral-500 border-b border-dotted border-neutral-300 cursor-help">
+                    app metadata
+                  </label>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 flex flex-col gap-1.5 max-w-xs bg-white border border-neutral-200 shadow-sm text-neutral-700 rounded-md p-2.5 font-mono text-[13px] leading-tight tracking-tight"
+                >
+                  <div className="font-sans text-neutral-600 py-1 text-[13px] leading-normal font-normal">
+                    Complete metadata for the selected app
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex items-start">
+            <div className="w-full p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono">
+              <pre className="text-gray-700 whitespace-pre-wrap">
+                {JSON.stringify(selectedApp, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedComponentType === "proxy" && enableProxyInput && (
         <PropertyItem
           name="accountId"
           type="string"

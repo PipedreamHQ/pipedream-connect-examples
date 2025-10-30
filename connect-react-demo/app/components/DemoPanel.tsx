@@ -23,6 +23,11 @@ export const DemoPanel = () => {
     webhookUrl,
     enableDebugging,
     setWebhookUrlValidationAttempted,
+    selectedApp,
+    accountId,
+    setAccountId,
+    editableExternalUserId,
+    setEditableExternalUserId,
   } = useAppState()
 
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
@@ -179,7 +184,48 @@ export const DemoPanel = () => {
             <PageSkeleton customizationOption={customizationOption}>
               <div className="p-4 sm:p-6 space-y-4">
                 {selectedComponentType === "proxy" ? (
-                  <ProxyRequestBuilder />
+                  // For proxy: show connect flow if app selected but no account, otherwise show proxy form
+                  selectedApp && !accountId ? (
+                    <div className="text-center space-y-4">
+                      <h3 className="text-lg font-semibold">Connect {selectedApp.name}</h3>
+                      <p className="text-gray-600">Connect your {selectedApp.name} account to start making API requests</p>
+                      <button 
+                        className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded"
+                        onClick={async () => {
+                          try {
+                            await frontendClient.connectAccount({
+                              app: selectedApp.nameSlug,
+                              onSuccess: ({ id }: { id: string }) => {
+                                console.log('🎉 Account connected successfully!', { accountId: id })
+                                setAccountId(id)
+                                setEditableExternalUserId(externalUserId)
+                              },
+                              onError: (error: Error) => {
+                                console.error('Connection failed:', error)
+                                setSdkErrors(error)
+                              }
+                            })
+                          } catch (error) {
+                            console.error('Error connecting account:', error)
+                            setSdkErrors(error)
+                          }
+                        }}
+                      >
+                        Connect {selectedApp.name}
+                      </button>
+                      {sdkErrors && (
+                        <div className="text-red-600 text-sm mt-2">
+                          {String(sdkErrors)}
+                        </div>
+                      )}
+                    </div>
+                  ) : accountId ? (
+                    <ProxyRequestBuilder />
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      Select an app to get started with proxy requests
+                    </div>
+                  )
                 ) : (
                   <CustomizeProvider {...customizationOption.customization}>
                     {selectedComponentKey && (
