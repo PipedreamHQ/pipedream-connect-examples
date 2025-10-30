@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -32,6 +32,13 @@ export function ProxyRequestBuilder() {
   const [isLoading, setIsLoading] = useState(false)
   const [response, setResponse] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Auto-fill proxy URL when app is selected
+  useEffect(() => {
+    if (selectedApp?.connect?.base_proxy_target_url && !proxyUrl) {
+      setProxyUrl(selectedApp.connect.base_proxy_target_url)
+    }
+  }, [selectedApp, proxyUrl, setProxyUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,19 +76,25 @@ export function ProxyRequestBuilder() {
         }
       }
 
-      // Make the actual proxy request using server action
-      const proxyResponse = await proxyRequest({
+      // Prepare the proxy request object
+      const requestObject = {
         externalUserId: editableExternalUserId,
         accountId: accountId,
         url: proxyUrl,
         method: proxyMethod,
         ...(parsedBody && { data: parsedBody })
-      })
+      }
+
+      // Log the request object to console
+      console.log('🔄 Sending proxy request:', requestObject)
+
+      // Make the actual proxy request using server action
+      const proxyResponse = await proxyRequest(requestObject)
       
       setResponse({
-        status: 200, // Pipedream proxy returns 200 on success
-        data: proxyResponse, // The entire response is the data
-        headers: {}, // Headers might not be included in the response
+        status: proxyResponse.status || 200,
+        data: proxyResponse.data,
+        headers: proxyResponse.headers || {},
         request: {
           url: proxyUrl,
           method: proxyMethod,
@@ -214,16 +227,23 @@ export function ProxyRequestBuilder() {
             </div>
           </div>
           
-          {response.headers && (
-            <div>
-              <h5 className="text-xs font-medium text-gray-700 mb-2">Headers</h5>
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                <pre className="text-gray-600 whitespace-pre-wrap">
-                  {JSON.stringify(response.headers, null, 2)}
-                </pre>
-              </div>
+          {/* Always show headers section, even if empty, for debugging */}
+          <div>
+            <h5 className="text-sm font-medium text-gray-900 mb-2">
+              Response Headers 
+              {response.headers && Object.keys(response.headers).length === 0 && (
+                <span className="text-xs text-gray-500 font-normal ml-2">(No headers captured)</span>
+              )}
+            </h5>
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm font-mono max-h-40 overflow-y-auto">
+              <pre className="text-blue-800 whitespace-pre-wrap">
+                {response.headers && Object.keys(response.headers).length > 0 
+                  ? JSON.stringify(response.headers, null, 2)
+                  : "No headers available in response"
+                }
+              </pre>
             </div>
-          )}
+          </div>
           
           <div>
             <h5 className="text-xs font-medium text-gray-700 mb-2">Response Data</h5>
@@ -241,6 +261,18 @@ export function ProxyRequestBuilder() {
             <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded font-mono">
               <pre className="text-gray-600 whitespace-pre-wrap">
                 {JSON.stringify(response.request, null, 2)}
+              </pre>
+            </div>
+          </details>
+
+          {/* Debug section to see raw response structure */}
+          <details className="text-xs">
+            <summary className="cursor-pointer text-gray-500 hover:text-gray-700 font-medium">
+              Debug: Raw Response Structure
+            </summary>
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded font-mono">
+              <pre className="text-yellow-800 whitespace-pre-wrap">
+                {JSON.stringify(response, null, 2)}
               </pre>
             </div>
           </details>
