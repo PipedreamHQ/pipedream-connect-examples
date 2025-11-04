@@ -47,9 +47,12 @@ window.DD_LOGS.onReady(function() {
 })`
 
 export function DatadogScript() {
-  if (!e.DD_CLIENT_TOKEN) {
-    return null
-  }
+  // Commented out Datadog tracking
+  return null
 
-  return <Script id="datadog-rum">{script}</Script>
+  // if (!e.DD_CLIENT_TOKEN) {
+  //   return null
+  // }
+
+  // return <Script id="datadog-rum">{script}</Script>
 }
