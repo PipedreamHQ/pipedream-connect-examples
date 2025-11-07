@@ -4,7 +4,7 @@
 </a>
 
 <p align="center">
-  Connect provides a developer toolkit that lets you add 2,900+ integrations to your app or AI agent. You can build AI agents, chatbots, workflow builders, and much more, all in a few minutes. You have full, code-level control over how these integrations work in your app.
+  Connect provides a developer toolkit that lets you add 3,000+ integrations to your app or AI agent. You can build AI agents, chatbots, workflow builders, and much more, all in a few minutes. You have full, code-level control over how these integrations work in your app.
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 
 ## Managed Auth
 
-The **[managed-auth-basic-next-app](/managed-auth-basic-next-app/)** shows the foundational managed auth capability, which enables your end users to connect their account for any of the 2,900 apps available on Pipedream. This is an example Next.js app, but Pipedream has [SDKs available in TypeScript, Python, and Java](https://pipedream.com/docs/connect/api-reference/sdks) to go along with the REST API. [Refer to our docs](https://pipedream.com/docs/connect) for more info.
+The **[managed-auth-basic-next-app](/managed-auth-basic-next-app/)** shows the foundational managed auth capability, which enables your end users to connect their account for any of the 3,000 apps available on Pipedream. This is an example Next.js app, but Pipedream has [SDKs available in TypeScript, Python, and Java](https://pipedream.com/docs/connect/api-reference/sdks) to go along with the REST API. [Refer to our docs](https://pipedream.com/docs/connect) for more info.
 
 ## Connect React
 

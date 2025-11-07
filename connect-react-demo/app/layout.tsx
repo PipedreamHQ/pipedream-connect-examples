@@ -7,11 +7,11 @@ import { GeistSans } from "geist/font/sans";
 export const metadata: Metadata = {
   title: "One SDK, thousands of API integrations",
   description:
-    "Pipedream Connect provides managed authentication for 2,900+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
+    "Pipedream Connect provides managed authentication for 3,000+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
   openGraph: {
     title: "One SDK, thousands of API integrations",
     description:
-      "Pipedream Connect provides managed authentication for 2,900+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
+      "Pipedream Connect provides managed authentication for 3,000+ APIs and access to 10,000+ prebuilt tools. Roll your own frontend with the server SDK or use @pipedream/connect-react to get started in minutes.",
     url: "https://pipedream.com/connect",
     siteName: "Pipedream Connect",
     images: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "One SDK, thousands of API integrations",
     description:
-      "Pipedream Connect provides managed authentication for 2,900+ APIs and access to 10,000+ prebuilt tools.",
+      "Pipedream Connect provides managed authentication for 3,000+ APIs and access to 10,000+ prebuilt tools.",
     images: ["https://pipedream.com/connect/demo/opengraph-image.png"],
   },
 };
