@@ -19,7 +19,7 @@ export function ConnectDocs({ externalUserId, docsConnectUrl, docsTokenUrl }: Co
         </p>
         <p>
           When your customers connect accounts with Pipedream, pass their unique user ID from your system. In this example,
-          we generated a random external user ID for you:
+          we will use the following external user ID:
           <span className="text-code font-bold"> {externalUserId}</span>.
         </p>
       </div>

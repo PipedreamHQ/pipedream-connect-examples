@@ -104,10 +104,7 @@ export function SearchSelect({ appSlug, onAppSlugChange, onAppSelected, client }
   };
 
   return (
-    <div className="app-search-container relative max-w-md py-4" ref={containerRef}>
-      <label htmlFor="app-slug" className="block text-sm font-medium text-gray-700 mb-2">
-        Find an app
-      </label>
+    <div className="app-search-container relative max-w-md py-2" ref={containerRef}>
       <input
         id="app-slug"
         className="shadow appearance-none border rounded w-full px-3 py-2 pr-8 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"

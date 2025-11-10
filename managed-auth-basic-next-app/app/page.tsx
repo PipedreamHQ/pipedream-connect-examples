@@ -9,14 +9,9 @@ const docsTokenCreate = "https://pipedream.com/docs/connect/managed-auth/tokens"
 const frontendSDKDocs = "https://pipedream.com/docs/connect/api-reference/sdks#browser-usage";
 const accountsDocsUrl = "https://pipedream.com/docs/connect/api-reference/list-accounts";
 
-interface PageProps {
-  searchParams: {
-    uuid?: string;
-  };
-}
-
-export default async function Home({ searchParams }: PageProps) {
-  const externalUserId = searchParams?.uuid || randomUUID();
+export default async function Home() {
+  const envExternalUserId = process.env.NEXT_PUBLIC_PIPEDREAM_EXTERNAL_USER_ID;
+  const externalUserId = envExternalUserId || randomUUID();
   const tokenResponse = await serverConnectTokenCreate({ externalUserId });
 
   const initialContext: ConnectContext = {
@@ -37,4 +32,3 @@ export default async function Home({ searchParams }: PageProps) {
     </main>
   );
 }
-
