@@ -3,10 +3,13 @@
 @tailwind utilities;
 
 @layer base {
-  html, body {
-    @apply overflow-x-hidden;
+  html {
+    overflow-x: hidden;
     width: 100%;
-    position: relative;
+  }
+  body {
+    width: 100%;
+    min-height: 100vh;
   }
 }
 

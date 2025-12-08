@@ -3,7 +3,7 @@ import { Suspense } from "react"
 import { ClientWrapper } from "./components/ClientWrapper";
 
 export async function generateMetadata(
-  { searchParams: _searchParams }: {searchParams: unknown},
+  { searchParams: _searchParams }: {searchParams: Promise<unknown>},
   parent: ResolvingMetadata
 ): Promise<Metadata> {
 
@@ -14,7 +14,7 @@ export async function generateMetadata(
   };
 }
 
-export default async function Home({searchParams: _searchParams}: {searchParams: unknown}) {
+export default async function Home({searchParams: _searchParams}: {searchParams: Promise<unknown>}) {
   return (
     <Suspense>
       <ClientWrapper/>
