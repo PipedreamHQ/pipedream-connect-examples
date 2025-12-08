@@ -17,31 +17,6 @@ const customization: CustomizationConfig<any, false, any> = {
         backgroundRepeat: "no-repeat",
       }
     },
-    controlSelect: {
-      control: (base, { theme }) => ({
-        ...base,
-        backgroundColor: theme.colors.neutral80,
-        borderColor: "transparent",
-      }),
-      option: (base, { theme }) => ({
-        ...base,
-        color: theme.colors.neutral10,
-        backgroundColor: theme.colors.neutral80,
-      }),
-      menuList: (base, { theme }) => ({
-        ...base,
-        color: theme.colors.neutral10,
-        backgroundColor: theme.colors.neutral80,
-      }),
-      singleValue: (base, { theme }) => ({
-        ...base,
-        color: theme.colors.neutral10,
-      }),
-      valueContainer: (base, { theme }) => ({
-        ...base,
-        backgroundColor: theme.colors.neutral80,
-      }),
-    },
   },
   theme: {
     borderRadius: 4,

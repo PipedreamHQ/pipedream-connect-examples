@@ -1,7 +1,7 @@
 import blueTheme from "@/app/components/customization-select/blue-theme"
 import darkTheme from "@/app/components/customization-select/dark-theme"
 import defaultTheme from "@/app/components/customization-select/default-unstyled"
-import React, { createContext, useContext, useState, startTransition } from "react"
+import React, { createContext, useContext, useState, startTransition, useEffect } from "react"
 // @ts-ignore
 import blueThemeCode from "raw-loader!@/app/components/customization-select/blue-theme.ts"
 import { useFrontendClient, useApp } from "@pipedream/connect-react"
@@ -33,14 +33,36 @@ const customizationOptions = [
   },
 ]
 
+// Helper to get initial customization based on system preference
+const getInitialCustomization = () => {
+  // Default to light theme for SSR, will update client-side
+  if (typeof window === "undefined") {
+    return customizationOptions[0]
+  }
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+  return prefersDark
+    ? customizationOptions.find(o => o.name === "dark") || customizationOptions[0]
+    : customizationOptions[0]
+}
+
 const useAppStateProviderValue = () => {
   const client = useFrontendClient()
   const externalUserId = client.externalUserId || ""
 
-  const [customizationOption, setCustomizationOption] = useState(
-    customizationOptions[0]
-  )
+  const [customizationOption, setCustomizationOption] = useState(getInitialCustomization)
 
+  // Listen for system color scheme changes and update theme accordingly
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const handleChange = (e: MediaQueryListEvent) => {
+      const newOption = e.matches
+        ? customizationOptions.find(o => o.name === "dark") || customizationOptions[0]
+        : customizationOptions[0]
+      setCustomizationOption(newOption)
+    }
+    mediaQuery.addEventListener("change", handleChange)
+    return () => mediaQuery.removeEventListener("change", handleChange)
+  }, [])
 
   const { queryParams, setQueryParam, setQueryParams } = useQueryParams()
 
