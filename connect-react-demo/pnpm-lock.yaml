@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@pipedream/connect-react':
-        specifier: ^2.1.2
-        version: 2.1.2(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^2.3.0
+        version: 2.3.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@pipedream/sdk':
-        specifier: ^2.0.13
-        version: 2.0.13
+        specifier: ^2.3.2
+        version: 2.3.2
       '@radix-ui/react-collapsible':
         specifier: ^1.1.1
         version: 1.1.11(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -338,14 +338,14 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@pipedream/connect-react@2.1.2':
-    resolution: {integrity: sha512-HYGSm4pAvK2n9NRiHH/F0hTYbi+lsxa8H9SxY7pL6tLZRhntT6doNquJ6MBap31Nmuyv5tJZ0yTzXU7hWF0eRw==}
+  '@pipedream/connect-react@2.3.0':
+    resolution: {integrity: sha512-LfNE5CatHsRv/8DPd3XBUo7Ej5RpC6BbzPyDOonWGVwJLCO8iq1EzFsbogWnJD80CHu3PI+bUnDdF2d4kVBTzQ==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@pipedream/sdk@2.0.13':
-    resolution: {integrity: sha512-MVUyLCkx1oVzZ1Ns8L/dohgFySVm7lRMoVe+HKBdU7T/TYVdVEP0gHnQLkmMzimYCT1H1mhJ7H1w1iVPnBeaCg==}
+  '@pipedream/sdk@2.3.2':
+    resolution: {integrity: sha512-VVJWIK5hkvp/cca+8BPU9Wg3VahVtB29AxEY9yLup7+4ehfWUxz+NM3G8JqreTAkp9C5d7avXRaI+xx4kZzWbA==}
     engines: {node: '>=18.0.0'}
 
   '@pkgjs/parseargs@0.11.0':
@@ -2418,9 +2418,9 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@pipedream/connect-react@2.1.2(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@pipedream/connect-react@2.3.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@pipedream/sdk': 2.0.13
+      '@pipedream/sdk': 2.3.2
       '@tanstack/react-query': 5.90.2(react@18.3.1)
       lodash.isequal: 4.5.0
       react: 18.3.1
@@ -2431,7 +2431,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@pipedream/sdk@2.0.13': {}
+  '@pipedream/sdk@2.3.2': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true

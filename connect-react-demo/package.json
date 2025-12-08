@@ -11,8 +11,8 @@
     "validate-env": "node scripts/validate-env.js"
   },
   "dependencies": {
-    "@pipedream/connect-react": "^2.1.2",
-    "@pipedream/sdk": "^2.0.13",
+    "@pipedream/connect-react": "^2.3.0",
+    "@pipedream/sdk": "^2.3.2",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
