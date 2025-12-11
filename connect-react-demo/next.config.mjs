@@ -2,9 +2,7 @@
 const nextConfig = {
   basePath: '/connect/demo',
   assetPrefix: '/connect/demo',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Note: eslint config removed in Next.js 16 - use ESLint CLI directly if needed
   typescript: {
     ignoreBuildErrors: true,
   },

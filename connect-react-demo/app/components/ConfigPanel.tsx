@@ -349,6 +349,7 @@ export const ConfigPanel = () => {
                 ? setSelectedAppSlug(app.nameSlug)
                 : removeSelectedAppSlug()
             }}
+            appsOptions={{ sortKey: "featured_weight", sortDirection: "desc" }}
           />
         </CustomizeProvider>
       </PropertyItem>
