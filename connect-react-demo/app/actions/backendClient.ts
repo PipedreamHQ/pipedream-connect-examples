@@ -19,7 +19,7 @@ const allowedOrigins = ([
   return `https://${origin}`
 });
 
-const _fetchToken = async (opts: FetchTokenOpts) => {
+export const fetchToken = async (opts: FetchTokenOpts) => {
   const serverClient = backendClient()
 
   const resp = await serverClient.tokens.create({
@@ -29,6 +29,3 @@ const _fetchToken = async (opts: FetchTokenOpts) => {
   });
   return resp
 }
-
-// export const fetchToken = unstable_cache(_fetchToken, [], { revalidate: 3600 })
-export const fetchToken = _fetchToken

@@ -182,7 +182,11 @@ export default function IntegrationsPage() {
           <label className="block text-sm font-medium mb-2">
             Select an app to connect
           </label>
-          <SelectApp value={selectedApp} onChange={setSelectedApp} />
+          <SelectApp
+            value={selectedApp}
+            onChange={setSelectedApp}
+            appsOptions={{ sortKey: "featured_weight", sortDirection: "desc" }}
+          />
         </div>
 
         {selectedComponent && (

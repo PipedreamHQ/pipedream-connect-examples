@@ -4,14 +4,14 @@
   "private": true,
   "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "dev": "node scripts/validate-env.js && next dev",
-    "build": "node scripts/validate-env.js && next build",
+    "dev": "node scripts/validate-env.js && next dev --webpack",
+    "build": "node scripts/validate-env.js && next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "validate-env": "node scripts/validate-env.js"
   },
   "dependencies": {
-    "@pipedream/connect-react": "^2.4.0",
+    "@pipedream/connect-react": "^2.4.1",
     "@pipedream/sdk": "^2.3.2",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -32,7 +32,7 @@
     "framer-motion": "^11.11.11",
     "geist": "^1.4.2",
     "lucide-react": "^0.454.0",
-    "next": "15.1.9",
+    "next": "^16.0.9",
     "react": "^19",
     "react-dom": "^19",
     "react-icons": "^5.3.0",
