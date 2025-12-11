@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@pipedream/connect-react':
-        specifier: ^2.3.0
-        version: 2.3.0(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        specifier: ^2.4.0
+        version: 2.4.0(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       '@pipedream/sdk':
         specifier: ^2.3.2
         version: 2.3.2
@@ -427,8 +427,8 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@pipedream/connect-react@2.3.0':
-    resolution: {integrity: sha512-LfNE5CatHsRv/8DPd3XBUo7Ej5RpC6BbzPyDOonWGVwJLCO8iq1EzFsbogWnJD80CHu3PI+bUnDdF2d4kVBTzQ==}
+  '@pipedream/connect-react@2.4.0':
+    resolution: {integrity: sha512-I9S1uJ0rPw6cklK4M6Zs7CHUjTxLr1f6ndCsigneJB45ald+wMonN+APR8CVpKkQ7cqL+AY5WAHa0w1pYHNHUg==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -2497,7 +2497,7 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@pipedream/connect-react@2.3.0(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+  '@pipedream/connect-react@2.4.0(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
       '@pipedream/sdk': 2.3.2
       '@tanstack/react-query': 5.90.12(react@19.2.1)
