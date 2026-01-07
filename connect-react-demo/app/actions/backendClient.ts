@@ -13,6 +13,7 @@ export type ProxyRequestOpts = {
   url: string
   method: string
   data?: any
+  headers?: Record<string, string>
 }
 
 const allowedOrigins = ([
@@ -46,6 +47,7 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
       url: opts.url,
       externalUserId: opts.externalUserId,
       accountId: opts.accountId,
+      ...(opts.headers && { headers: opts.headers }),
     }
 
     let resp
@@ -81,8 +83,7 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
     }
 
     return {
-      data: resp.data,
-      rawResponse: resp.rawResponse,
+      data: resp,
     }
   } catch (error: any) {
     // Re-throw with structured error info

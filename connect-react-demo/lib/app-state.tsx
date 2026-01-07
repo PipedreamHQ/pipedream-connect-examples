@@ -83,6 +83,12 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "app", value },
       ])
+      // Clear proxy-related state when switching apps
+      setAccountId("")
+      setProxyUrl("")
+      setProxyMethod("GET")
+      setProxyBody("")
+      setActionRunOutput(undefined)
     })
   }
   const removeSelectedAppSlug = () => {
@@ -91,6 +97,12 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "app", value: undefined },
       ])
+      // Clear proxy-related state when removing app
+      setAccountId("")
+      setProxyUrl("")
+      setProxyMethod("GET")
+      setProxyBody("")
+      setActionRunOutput(undefined)
     })
   }
 

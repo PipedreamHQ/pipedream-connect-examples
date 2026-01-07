@@ -483,9 +483,9 @@ export const ConfigPanel = () => {
               </Tooltip>
             </TooltipProvider>
           </div>
-          <div className="flex items-start">
-            <div className="w-full p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono">
-              <pre className="text-gray-700 whitespace-pre-wrap">
+          <div className="flex items-start min-w-0">
+            <div className="w-full p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono overflow-auto max-h-96">
+              <pre className="text-gray-700 whitespace-pre w-max">
                 {JSON.stringify(selectedApp, null, 2)}
               </pre>
             </div>

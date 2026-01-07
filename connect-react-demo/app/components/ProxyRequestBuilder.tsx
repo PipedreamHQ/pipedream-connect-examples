@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
+import { useCustomize } from "@pipedream/connect-react"
 import { useAppState } from "@/lib/app-state"
 import { proxyRequest } from "@/app/actions/backendClient"
+import { useSDKLogger } from "@/lib/sdk-logger"
 
 const HTTP_METHODS = [
   "GET",
@@ -13,6 +11,11 @@ const HTTP_METHODS = [
   "PATCH",
   "DELETE",
 ] as const
+
+type KeyValuePair = {
+  key: string
+  value: string
+}
 
 export function ProxyRequestBuilder() {
   const {
@@ -24,19 +27,52 @@ export function ProxyRequestBuilder() {
     setProxyBody,
     editableExternalUserId,
     accountId,
-    selectedApp
+    selectedApp,
+    setActionRunOutput,
   } = useAppState()
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [response, setResponse] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { theme } = useCustomize()
+  const { addCall, updateCall } = useSDKLogger()
 
-  // Auto-fill proxy URL when app is selected
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [headers, setHeaders] = useState<KeyValuePair[]>([{ key: "", value: "" }])
+
+  // Auto-fill proxy URL and reset headers when app changes
   useEffect(() => {
-    if (selectedApp?.connect?.base_proxy_target_url && !proxyUrl) {
+    if (selectedApp?.connect?.base_proxy_target_url) {
       setProxyUrl(selectedApp.connect.base_proxy_target_url)
     }
-  }, [selectedApp, proxyUrl, setProxyUrl])
+    // Reset local state when app changes
+    setHeaders([{ key: "", value: "" }])
+    setError(null)
+  }, [selectedApp?.nameSlug, setProxyUrl])
+
+  const handleHeaderChange = (index: number, field: "key" | "value", newValue: string) => {
+    const newHeaders = [...headers]
+    newHeaders[index] = { ...newHeaders[index], [field]: newValue }
+    setHeaders(newHeaders)
+  }
+
+  const addHeader = () => {
+    setHeaders([...headers, { key: "", value: "" }])
+  }
+
+  const removeHeader = (index: number) => {
+    const newHeaders = headers.filter((_, i) => i !== index)
+    setHeaders(newHeaders.length > 0 ? newHeaders : [{ key: "", value: "" }])
+  }
+
+  // Convert headers array to object for API request
+  const getHeadersObject = () => {
+    const headersObj: Record<string, string> = {}
+    headers.forEach(h => {
+      if (h.key.trim()) {
+        headersObj[h.key] = h.value
+      }
+    })
+    return Object.keys(headersObj).length > 0 ? headersObj : undefined
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,65 +95,74 @@ export function ProxyRequestBuilder() {
 
     setIsLoading(true)
     setError(null)
-    setResponse(null)
+    setActionRunOutput(undefined)
+
+    // Parse body if it's provided for POST/PUT/PATCH requests
+    let parsedBody: any = undefined
+    if (proxyBody.trim() && ["POST", "PUT", "PATCH"].includes(proxyMethod)) {
+      try {
+        parsedBody = JSON.parse(proxyBody)
+      } catch (parseError) {
+        setError("Invalid JSON in request body")
+        setIsLoading(false)
+        return
+      }
+    }
+
+    // Prepare the proxy request object
+    const headersObj = getHeadersObject()
+    const requestObject = {
+      externalUserId: editableExternalUserId,
+      accountId: accountId,
+      url: proxyUrl,
+      method: proxyMethod,
+      ...(parsedBody && { data: parsedBody }),
+      ...(headersObj && { headers: headersObj }),
+    }
+
+    // Log to SDK debugger
+    const callId = addCall({
+      method: `proxy.${proxyMethod.toLowerCase()}`,
+      timestamp: new Date(),
+      request: requestObject,
+      status: "pending"
+    })
+
+    const startTime = Date.now()
 
     try {
-      // Parse body if it's provided for POST/PUT/PATCH requests
-      let parsedBody: any = undefined
-      if (proxyBody.trim() && ["POST", "PUT", "PATCH"].includes(proxyMethod)) {
-        try {
-          parsedBody = JSON.parse(proxyBody)
-        } catch (parseError) {
-          setError("Invalid JSON in request body")
-          setIsLoading(false)
-          return
-        }
-      }
-
-      // Prepare the proxy request object
-      const requestObject = {
-        externalUserId: editableExternalUserId,
-        accountId: accountId,
-        url: proxyUrl,
-        method: proxyMethod,
-        ...(parsedBody && { data: parsedBody })
-      }
-
-      // Log the request object to console
-      console.log('🔄 Sending proxy request:', requestObject)
-
       // Make the actual proxy request using server action
       const proxyResponse = await proxyRequest(requestObject)
 
-      setResponse({
-        success: true,
-        data: proxyResponse.data,
-        request: {
-          url: proxyUrl,
-          method: proxyMethod,
-          body: parsedBody,
-          externalUserId: editableExternalUserId,
-          accountId
-        }
+      // Update SDK debugger with success
+      updateCall(callId, {
+        response: proxyResponse.data,
+        status: "success",
+        duration: Date.now() - startTime
       })
+
+      // Send response data to output
+      setActionRunOutput(proxyResponse.data)
     } catch (err: any) {
+      // Update SDK debugger with error
+      updateCall(callId, {
+        error: {
+          message: err?.message || "Request failed",
+          status: err?.status,
+          data: err?.data,
+        },
+        status: "error",
+        duration: Date.now() - startTime
+      })
+
       setError(err?.message || "Request failed")
 
-      // If there's response data in the error, show it
-      if (err?.status || err?.data) {
-        setResponse({
-          success: false,
-          status: err.status,
-          data: err.data,
-          request: {
-            url: proxyUrl,
-            method: proxyMethod,
-            body: parsedBody,
-            externalUserId: editableExternalUserId,
-            accountId
-          }
-        })
-      }
+      // Show error response data in output
+      setActionRunOutput({
+        error: err?.message || "Request failed",
+        status: err?.status,
+        data: err?.data,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -125,119 +170,234 @@ export function ProxyRequestBuilder() {
 
   const showBodyField = ["POST", "PUT", "PATCH"].includes(proxyMethod)
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">API Request Builder</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Make direct API requests through your authenticated account.
-          </p>
-        </div>
+  // Styles matching ControlHttpRequest from connect-react
+  const inputStyles: React.CSSProperties = {
+    color: theme.colors.neutral80,
+    backgroundColor: theme.colors.neutral0,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: theme.colors.neutral20,
+    padding: 6,
+    borderRadius: theme.borderRadius,
+    boxShadow: theme.boxShadow.input,
+    flex: 1,
+    width: "100%",
+  }
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="proxy-url" className="text-sm font-medium">
-              Request URL or Path
-            </Label>
-            <Input
-              id="proxy-url"
+  const methodSelectStyles: React.CSSProperties = {
+    ...inputStyles,
+    cursor: "pointer",
+    flex: "none",
+    width: "85px",
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    borderRightWidth: 0,
+  }
+
+  const urlInputStyles: React.CSSProperties = {
+    ...inputStyles,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    flex: 1,
+  }
+
+  const textareaStyles: React.CSSProperties = {
+    ...inputStyles,
+    resize: "vertical",
+    minHeight: "80px",
+    fontFamily: "monospace",
+  }
+
+  const buttonStyles: React.CSSProperties = {
+    color: theme.colors.neutral90,
+    backgroundColor: theme.colors.primary,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: `${theme.spacing.baseUnit * 2}px ${theme.spacing.baseUnit * 4}px`,
+    borderWidth: 0,
+    borderRadius: theme.borderRadius,
+    cursor: "pointer",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    width: "100%",
+    boxShadow: theme.boxShadow.button,
+  }
+
+  const disabledButtonStyles: React.CSSProperties = {
+    ...buttonStyles,
+    opacity: 0.5,
+    cursor: "not-allowed",
+  }
+
+  const addButtonStyles: React.CSSProperties = {
+    color: theme.colors.neutral80,
+    backgroundColor: "transparent",
+    display: "inline-flex",
+    alignItems: "center",
+    padding: `${theme.spacing.baseUnit}px ${theme.spacing.baseUnit * 2}px`,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: theme.colors.neutral30,
+    borderRadius: theme.borderRadius,
+    cursor: "pointer",
+    fontSize: "0.8125rem",
+    fontWeight: 450,
+    gap: theme.spacing.baseUnit * 2,
+  }
+
+  const removeButtonStyles: React.CSSProperties = {
+    ...addButtonStyles,
+    flex: "0 0 auto",
+    padding: "6px 8px",
+  }
+
+  const itemStyles: React.CSSProperties = {
+    display: "flex",
+    gap: "0.5rem",
+    alignItems: "center",
+  }
+
+  const labelStyles: React.CSSProperties = {
+    fontSize: "0.75rem",
+    fontWeight: 500,
+    color: theme.colors.neutral70,
+  }
+
+  const sectionStyles: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: `${theme.spacing.baseUnit}px`,
+  }
+
+  const containerStyles: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  }
+
+  const urlRowStyles: React.CSSProperties = {
+    display: "flex",
+    alignItems: "stretch",
+  }
+
+  const isDisabled = isLoading || !proxyUrl.trim() || !editableExternalUserId?.trim() || !accountId?.trim()
+
+  return (
+    <div style={containerStyles}>
+      <div style={sectionStyles}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 600, color: theme.colors.neutral80, margin: 0 }}>
+          API Request Builder
+        </h3>
+        <p style={{ fontSize: "0.875rem", color: theme.colors.neutral60, margin: 0 }}>
+          Make direct API requests through your authenticated account.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} style={containerStyles}>
+        {/* URL + Method Section */}
+        <div style={sectionStyles}>
+          <span style={labelStyles}>URL</span>
+          <div style={urlRowStyles}>
+            <select
+              value={proxyMethod}
+              onChange={(e) => setProxyMethod(e.target.value)}
+              style={methodSelectStyles}
+              aria-label="HTTP method"
+            >
+              {HTTP_METHODS.map((method) => (
+                <option key={method} value={method}>{method}</option>
+              ))}
+            </select>
+            <input
               type="text"
               value={proxyUrl}
               onChange={(e) => setProxyUrl(e.target.value)}
-              placeholder="https://api.example.com/endpoint or /api/v1/users"
-              className="font-mono text-sm"
+              placeholder="https://api.example.com/endpoint"
+              style={urlInputStyles}
+              aria-label="URL"
             />
-            <p className="text-xs text-gray-500">
-              Enter a full URL or a path (e.g., /api/v1/users)
-            </p>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="proxy-method" className="text-sm font-medium">
-              HTTP Method
-            </Label>
-            <Select value={proxyMethod} onValueChange={setProxyMethod}>
-              <SelectTrigger id="proxy-method">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {HTTP_METHODS.map((method) => (
-                  <SelectItem key={method} value={method}>
-                    {method}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {showBodyField && (
-            <div className="space-y-2">
-              <Label htmlFor="proxy-body" className="text-sm font-medium">
-                Request Body
-              </Label>
-              <textarea
-                id="proxy-body"
-                value={proxyBody}
-                onChange={(e) => setProxyBody(e.target.value)}
-                placeholder='{"key": "value"}'
-                className="w-full h-32 px-3 py-2 text-sm font-mono border border-gray-300 rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        {/* Headers Section */}
+        <div style={sectionStyles}>
+          <span style={labelStyles}>Headers</span>
+          {headers.map((header, index) => (
+            <div key={index} style={itemStyles}>
+              <input
+                type="text"
+                value={header.key}
+                onChange={(e) => handleHeaderChange(index, "key", e.target.value)}
+                placeholder="Header name"
+                style={inputStyles}
+                aria-label={`Header ${index + 1} name`}
               />
-              <p className="text-xs text-gray-500">
-                Enter JSON data for the request body
-              </p>
+              <input
+                type="text"
+                value={header.value}
+                onChange={(e) => handleHeaderChange(index, "value", e.target.value)}
+                placeholder="Header value"
+                style={inputStyles}
+                aria-label={`Header ${index + 1} value`}
+              />
+              {headers.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeHeader(index)}
+                  style={removeButtonStyles}
+                  aria-label={`Remove header ${index + 1}`}
+                >
+                  ×
+                </button>
+              )}
             </div>
-          )}
-
-          <Button 
-            type="submit" 
-            disabled={isLoading || !proxyUrl.trim() || !editableExternalUserId?.trim() || !accountId?.trim()}
-            className="w-full"
+          ))}
+          <button
+            type="button"
+            onClick={addHeader}
+            style={addButtonStyles}
           >
-            {isLoading ? "Sending Request..." : `Send ${proxyMethod} Request`}
-          </Button>
-        </form>
-      </div>
+            <span>+</span>
+            <span>Add header</span>
+          </button>
+        </div>
+
+        {/* Body Section */}
+        {showBodyField && (
+          <div style={sectionStyles}>
+            <span style={labelStyles}>Body</span>
+            <textarea
+              value={proxyBody}
+              onChange={(e) => setProxyBody(e.target.value)}
+              placeholder='{"key": "value"}'
+              style={textareaStyles}
+              rows={4}
+              aria-label="Request body"
+            />
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isDisabled}
+          style={isDisabled ? disabledButtonStyles : buttonStyles}
+        >
+          {isLoading ? "Sending Request..." : `Send ${proxyMethod} Request`}
+        </button>
+      </form>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700 font-medium">Error</p>
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
-
-      {response && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-gray-900">Response</h4>
-            <div className={`px-2 py-1 rounded text-xs font-medium ${
-              response.success
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
-            }`}>
-              {response.success ? 'Success' : `Error${response.status ? ` (${response.status})` : ''}`}
-            </div>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-medium text-gray-700 mb-2">Response Data</h5>
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono max-h-64 overflow-y-auto">
-              <pre className="text-gray-700 whitespace-pre-wrap">
-                {JSON.stringify(response.data, null, 2)}
-              </pre>
-            </div>
-          </div>
-
-          <details className="text-xs">
-            <summary className="cursor-pointer text-gray-500 hover:text-gray-700 font-medium">
-              Request Details
-            </summary>
-            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded font-mono">
-              <pre className="text-gray-600 whitespace-pre-wrap">
-                {JSON.stringify(response.request, null, 2)}
-              </pre>
-            </div>
-          </details>
+        <div style={{
+          padding: 12,
+          backgroundColor: theme.colors.dangerLight,
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: theme.colors.danger,
+          borderRadius: theme.borderRadius,
+        }}>
+          <p style={{ fontSize: "0.875rem", fontWeight: 500, color: theme.colors.danger, margin: 0 }}>Error</p>
+          <p style={{ fontSize: "0.875rem", color: theme.colors.danger, margin: "4px 0 0 0" }}>{error}</p>
         </div>
       )}
     </div>
