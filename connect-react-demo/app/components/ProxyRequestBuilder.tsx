@@ -251,7 +251,7 @@ export function ProxyRequestBuilder({
   }
 
   const buttonStyles: React.CSSProperties = {
-    color: theme.colors.neutral90,
+    color: "#ffffff",
     backgroundColor: theme.colors.primary,
     display: "inline-flex",
     alignItems: "center",

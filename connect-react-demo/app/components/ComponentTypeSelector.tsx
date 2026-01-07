@@ -21,11 +21,11 @@ const COMPONENT_TYPES = [
     icon: IoFlashOutline,
     description: "React to events and webhooks"
   },
-  { 
-    value: "proxy", 
-    label: "Proxy", 
+  {
+    value: "proxy",
+    label: "API Proxy",
     icon: IoGlobe,
-    description: "Make direct API requests through authenticated accounts"
+    description: "Make direct API requests with connected accounts"
   },
 ] as const
 
