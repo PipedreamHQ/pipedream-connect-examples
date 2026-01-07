@@ -56,14 +56,15 @@ export function ProxyRequestBuilder({
   const [headers, setHeaders] = useState<KeyValuePair[]>([{ key: "", value: "" }])
 
   // Auto-fill proxy URL and reset headers when app changes
+  const baseProxyTargetUrl = selectedApp?.connect?.base_proxy_target_url
   useEffect(() => {
-    if (selectedApp?.connect?.base_proxy_target_url) {
-      setProxyUrl(selectedApp.connect.base_proxy_target_url)
+    if (baseProxyTargetUrl) {
+      setProxyUrl(baseProxyTargetUrl)
     }
     // Reset local state when app changes
     setHeaders([{ key: "", value: "" }])
     setError(null)
-  }, [selectedApp?.nameSlug, setProxyUrl])
+  }, [baseProxyTargetUrl, setProxyUrl])
 
   const handleHeaderChange = (index: number, field: "key" | "value", newValue: string) => {
     const newHeaders = [...headers]
@@ -91,11 +92,26 @@ export function ProxyRequestBuilder({
     return Object.keys(headersObj).length > 0 ? headersObj : undefined
   }
 
+  // Validate URL format
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!proxyUrl.trim()) {
       setError("URL is required")
+      return
+    }
+
+    if (!isValidUrl(proxyUrl)) {
+      setError("Please enter a valid URL (e.g., https://api.example.com/endpoint)")
       return
     }
 
@@ -120,7 +136,8 @@ export function ProxyRequestBuilder({
       try {
         parsedBody = JSON.parse(proxyBody)
       } catch (parseError) {
-        setError("Invalid JSON in request body")
+        const errorMessage = parseError instanceof Error ? parseError.message : "Unknown error"
+        setError(`Invalid JSON in request body: ${errorMessage}`)
         setIsLoading(false)
         return
       }
@@ -187,6 +204,13 @@ export function ProxyRequestBuilder({
 
   const showBodyField = ["POST", "PUT", "PATCH"].includes(proxyMethod)
 
+  // Font size constants for consistency
+  const fontSize = {
+    sm: "0.75rem",   // 12px - labels, helper text
+    base: "0.875rem", // 14px - inputs, buttons, body text
+    lg: "1rem",       // 16px - headings
+  }
+
   // Styles matching ControlHttpRequest from connect-react
   const inputStyles: React.CSSProperties = {
     color: theme.colors.neutral80,
@@ -197,6 +221,7 @@ export function ProxyRequestBuilder({
     padding: 6,
     borderRadius: theme.borderRadius,
     boxShadow: theme.boxShadow.input,
+    fontSize: fontSize.base,
     flex: 1,
     width: "100%",
   }
@@ -235,7 +260,7 @@ export function ProxyRequestBuilder({
     borderWidth: 0,
     borderRadius: theme.borderRadius,
     cursor: "pointer",
-    fontSize: "0.875rem",
+    fontSize: fontSize.base,
     fontWeight: 500,
     boxShadow: theme.boxShadow.button,
   }
@@ -257,8 +282,8 @@ export function ProxyRequestBuilder({
     borderColor: theme.colors.neutral30,
     borderRadius: theme.borderRadius,
     cursor: "pointer",
-    fontSize: "0.8125rem",
-    fontWeight: 450,
+    fontSize: fontSize.sm,
+    fontWeight: 500,
     gap: theme.spacing.baseUnit * 2,
   }
 
@@ -275,7 +300,7 @@ export function ProxyRequestBuilder({
   }
 
   const labelStyles: React.CSSProperties = {
-    fontSize: "0.75rem",
+    fontSize: fontSize.sm,
     fontWeight: 500,
     color: theme.colors.neutral70,
   }
@@ -309,7 +334,27 @@ export function ProxyRequestBuilder({
     borderRadius: theme.borderRadius,
     boxShadow: theme.boxShadow.input,
     cursor: "pointer",
-    fontSize: "0.875rem",
+    fontSize: fontSize.base,
+  }
+
+  const connectButtonStyles: React.CSSProperties = {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius,
+    border: "solid 1px",
+    borderColor: theme.colors.primary25,
+    color: theme.colors.primary25,
+    padding: "0.5rem 1rem",
+    cursor: "pointer",
+    fontSize: fontSize.base,
+    fontWeight: 500,
+  }
+
+  const credentialsTextStyles: React.CSSProperties = {
+    color: theme.colors.neutral50,
+    fontWeight: 400,
+    fontSize: fontSize.sm,
+    lineHeight: "1.5",
+    margin: 0,
   }
 
   const urlRowStyles: React.CSSProperties = {
@@ -322,19 +367,35 @@ export function ProxyRequestBuilder({
   return (
     <div style={containerStyles}>
       <div style={sectionStyles}>
-        <h3 style={{ fontSize: "1rem", fontWeight: 600, color: theme.colors.neutral80, margin: 0 }}>
+        <h3 style={{ fontSize: fontSize.lg, fontWeight: 600, color: theme.colors.neutral80, margin: 0 }}>
           API Request Builder
         </h3>
-        <p style={{ fontSize: "0.875rem", color: theme.colors.neutral60, margin: 0 }}>
+        <p style={{ fontSize: fontSize.base, color: theme.colors.neutral60, margin: 0 }}>
           Make direct API requests through your authenticated account.
         </p>
       </div>
 
       {/* Account Selector Section */}
-      <div style={sectionStyles}>
-        <span style={labelStyles}>Select {selectedApp?.name} account</span>
+      <div style={{ ...sectionStyles, alignItems: "flex-start" }}>
+        <span style={labelStyles}>
+          {!isLoadingAccounts && accounts.length === 0
+            ? `Connect ${selectedApp?.name} account`
+            : `Select ${selectedApp?.name} account`
+          }
+        </span>
         {isLoadingAccounts ? (
-          <span style={{ fontSize: "0.875rem", color: theme.colors.neutral50 }}>Loading accounts...</span>
+          <span style={{ fontSize: fontSize.base, color: theme.colors.neutral50 }}>Loading accounts...</span>
+        ) : accounts.length === 0 ? (
+          <>
+            <button
+              type="button"
+              onClick={onConnectNewAccount}
+              style={connectButtonStyles}
+            >
+              Connect {selectedApp?.name}
+            </button>
+            <p style={credentialsTextStyles}>Credentials are encrypted.</p>
+          </>
         ) : (
           <select
             value={accountId}
@@ -360,7 +421,7 @@ export function ProxyRequestBuilder({
           </select>
         )}
         {sdkErrors && (
-          <div style={{ fontSize: "0.875rem", color: theme.colors.danger }}>
+          <div style={{ fontSize: fontSize.base, color: theme.colors.danger }}>
             {String(sdkErrors)}
           </div>
         )}
@@ -472,8 +533,8 @@ export function ProxyRequestBuilder({
           borderColor: theme.colors.danger,
           borderRadius: theme.borderRadius,
         }}>
-          <p style={{ fontSize: "0.875rem", fontWeight: 500, color: theme.colors.danger, margin: 0 }}>Error</p>
-          <p style={{ fontSize: "0.875rem", color: theme.colors.danger, margin: "4px 0 0 0" }}>{error}</p>
+          <p style={{ fontSize: fontSize.base, fontWeight: 500, color: theme.colors.danger, margin: 0 }}>Error</p>
+          <p style={{ fontSize: fontSize.base, color: theme.colors.danger, margin: "4px 0 0 0" }}>{error}</p>
         </div>
       )}
     </div>

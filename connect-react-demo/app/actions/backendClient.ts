@@ -86,12 +86,14 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
       data: resp,
     }
   } catch (error: any) {
-    // Re-throw with structured error info
-    throw {
-      message: error.message || 'Proxy request failed',
-      status: error.statusCode,
-      data: error.body,
+    // Create a proper Error object to preserve stack trace
+    const proxyError = new Error(error.message || 'Proxy request failed') as Error & {
+      status?: number
+      data?: any
     }
+    proxyError.status = error.statusCode
+    proxyError.data = error.body
+    throw proxyError
   }
 }
 

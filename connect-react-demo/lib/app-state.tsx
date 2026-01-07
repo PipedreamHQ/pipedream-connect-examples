@@ -123,7 +123,6 @@ const useAppStateProviderValue = () => {
   const [editableExternalUserId, setEditableExternalUserId] = useState<string>(externalUserId)
   const [accountId, setAccountId] = useState<string>("")
   const [proxyUrl, setProxyUrl] = useState<string>("")
-  const [proxyPath, setProxyPath] = useState<string>("")
   const [proxyMethod, setProxyMethod] = useState<string>("GET")
   const [proxyBody, setProxyBody] = useState<string>("")
 
