@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react"
+import React, { useState } from "react"
 import { ComponentFormContainer, CustomizeProvider, useFrontendClient, useCustomize, useAccounts, type FormContext } from "@pipedream/connect-react"
-import type { ConfigurableProps, DynamicProps, App, Account } from "@pipedream/sdk"
+import type { ConfigurableProps, DynamicProps, App } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"

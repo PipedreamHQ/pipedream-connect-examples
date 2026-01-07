@@ -76,6 +76,23 @@ const useAppStateProviderValue = () => {
     })
   }
 
+  // Proxy-specific state (declared early so resetProxyState can reference them)
+  const [editableExternalUserId, setEditableExternalUserId] = useState<string>(externalUserId)
+  const [accountId, setAccountId] = useState<string>("")
+  const [proxyUrl, setProxyUrl] = useState<string>("")
+  const [proxyMethod, setProxyMethod] = useState<string>("GET")
+  const [proxyBody, setProxyBody] = useState<string>("")
+  const [actionRunOutput, setActionRunOutput] = useState<any>()
+
+  // Helper to reset proxy-related state
+  const resetProxyState = () => {
+    setAccountId("")
+    setProxyUrl("")
+    setProxyMethod("GET")
+    setProxyBody("")
+    setActionRunOutput(undefined)
+  }
+
   const selectedAppSlug = queryParams.app || "slack_v2"
   const setSelectedAppSlug = (value: string) => {
     updateStateAsync(() => {
@@ -83,12 +100,7 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "app", value },
       ])
-      // Clear proxy-related state when switching apps
-      setAccountId("")
-      setProxyUrl("")
-      setProxyMethod("GET")
-      setProxyBody("")
-      setActionRunOutput(undefined)
+      resetProxyState()
     })
   }
   const removeSelectedAppSlug = () => {
@@ -97,12 +109,7 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "app", value: undefined },
       ])
-      // Clear proxy-related state when removing app
-      setAccountId("")
-      setProxyUrl("")
-      setProxyMethod("GET")
-      setProxyBody("")
-      setActionRunOutput(undefined)
+      resetProxyState()
     })
   }
 
@@ -118,13 +125,6 @@ const useAppStateProviderValue = () => {
 
   const [webhookUrl, setWebhookUrl] = useState<string>("")
   const [webhookUrlValidationAttempted, setWebhookUrlValidationAttempted] = useState<boolean>(false)
-
-  // Proxy-specific state
-  const [editableExternalUserId, setEditableExternalUserId] = useState<string>(externalUserId)
-  const [accountId, setAccountId] = useState<string>("")
-  const [proxyUrl, setProxyUrl] = useState<string>("")
-  const [proxyMethod, setProxyMethod] = useState<string>("GET")
-  const [proxyBody, setProxyBody] = useState<string>("")
 
   const selectedComponentKey = queryParams.component || "slack_v2-send-message-to-channel"
   const setSelectedComponentKey = (value: string) => {
@@ -160,7 +160,6 @@ const useAppStateProviderValue = () => {
   const [configuredProps, setConfiguredProps] = useState<Record<string, any>>(
     {}
   )
-  const [actionRunOutput, setActionRunOutput] = useState<any>()
 
   const hideOptionalProps = queryParams.hideOptionalProps === "true"
   const setHideOptionalProps = (value: boolean) => setQueryParam("hideOptionalProps", value ? "true" : undefined)
