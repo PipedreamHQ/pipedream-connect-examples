@@ -220,7 +220,6 @@ export function ProxyRequestBuilder() {
     cursor: "pointer",
     fontSize: "0.875rem",
     fontWeight: 500,
-    width: "100%",
     boxShadow: theme.boxShadow.button,
   }
 
@@ -274,6 +273,13 @@ export function ProxyRequestBuilder() {
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
+  }
+
+  const buttonSectionStyles: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: `${theme.spacing.baseUnit}px`,
+    alignItems: "flex-start",
   }
 
   const urlRowStyles: React.CSSProperties = {
@@ -353,14 +359,16 @@ export function ProxyRequestBuilder() {
               )}
             </div>
           ))}
-          <button
-            type="button"
-            onClick={addHeader}
-            style={addButtonStyles}
-          >
-            <span>+</span>
-            <span>Add header</span>
-          </button>
+          <div style={buttonSectionStyles}>
+            <button
+              type="button"
+              onClick={addHeader}
+              style={addButtonStyles}
+            >
+              <span>+</span>
+              <span>Add header</span>
+            </button>
+          </div>
         </div>
 
         {/* Body Section */}
@@ -378,13 +386,15 @@ export function ProxyRequestBuilder() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isDisabled}
-          style={isDisabled ? disabledButtonStyles : buttonStyles}
-        >
-          {isLoading ? "Sending Request..." : `Send ${proxyMethod} Request`}
-        </button>
+        <div style={buttonSectionStyles}>
+          <button
+            type="submit"
+            disabled={isDisabled}
+            style={isDisabled ? disabledButtonStyles : buttonStyles}
+          >
+            {isLoading ? "Sending Request..." : `Send ${proxyMethod} Request`}
+          </button>
+        </div>
       </form>
 
       {error && (

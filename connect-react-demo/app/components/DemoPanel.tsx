@@ -74,7 +74,7 @@ function ProxyConnectFlow({
     padding: 6,
     borderRadius: theme.borderRadius,
     boxShadow: theme.boxShadow.input,
-    width: "100%",
+    alignSelf: "stretch",
     cursor: "pointer",
     fontSize: "0.875rem",
   }
@@ -89,6 +89,7 @@ function ProxyConnectFlow({
     display: "flex",
     flexDirection: "column",
     gap: `${theme.spacing.baseUnit}px`,
+    alignItems: "flex-start",
   }
 
   const containerStyles: React.CSSProperties = {
@@ -117,7 +118,6 @@ function ProxyConnectFlow({
     cursor: "pointer",
     fontSize: "0.875rem",
     fontWeight: 500,
-    width: "100%",
   }
 
   const descriptionStyles: React.CSSProperties = {
@@ -158,7 +158,7 @@ function ProxyConnectFlow({
     <div style={containerStyles}>
       {/* Account Selector */}
       <div style={sectionStyles}>
-        <span style={labelStyles}>Account</span>
+        <span style={labelStyles}>Select {selectedApp.name} account</span>
         {isLoadingAccounts ? (
           <div style={{ color: theme.colors.neutral60, fontSize: "0.875rem" }}>
             Loading {selectedApp.name} accounts...
