@@ -42,48 +42,54 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
   const serverClient = backendClient()
 
   try {
-    const proxyOptions = {
-      searchParams: {
-        external_user_id: opts.externalUserId,
-        account_id: opts.accountId
-      }
-    }
-
-    const targetRequest = {
+    const baseRequest = {
       url: opts.url,
-      options: {
-        method: opts.method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
-        ...(opts.data && { body: JSON.stringify(opts.data) }),
-        ...(opts.data && { headers: { "Content-Type": "application/json" } })
-      }
+      externalUserId: opts.externalUserId,
+      accountId: opts.accountId,
     }
 
-    const resp = await serverClient.makeProxyRequest(proxyOptions, targetRequest);
-    
-    // Log the response structure for debugging
-    console.log('Proxy response structure:', {
-      resp,
-      type: typeof resp,
-      keys: Object.keys(resp || {}),
-      hasHeaders: !!(resp as any)?.headers,
-      hasStatus: !!(resp as any)?.status
-    });
-    
-    // Return both the response data and any available metadata (like headers)
-    // Note: The Pipedream SDK might return headers differently
+    let resp
+    const method = opts.method.toUpperCase()
+
+    switch (method) {
+      case "GET":
+        resp = await serverClient.proxy.get(baseRequest)
+        break
+      case "POST":
+        resp = await serverClient.proxy.post({
+          ...baseRequest,
+          body: opts.data,
+        })
+        break
+      case "PUT":
+        resp = await serverClient.proxy.put({
+          ...baseRequest,
+          body: opts.data,
+        })
+        break
+      case "DELETE":
+        resp = await serverClient.proxy.delete(baseRequest)
+        break
+      case "PATCH":
+        resp = await serverClient.proxy.patch({
+          ...baseRequest,
+          body: opts.data,
+        })
+        break
+      default:
+        throw new Error(`Unsupported HTTP method: ${method}`)
+    }
+
     return {
-      data: resp,
-      headers: (resp as any)?.headers || (resp as any)?.response?.headers || {},
-      status: (resp as any)?.status || (resp as any)?.response?.status || 200,
-      rawResponse: resp // Include raw response for debugging
+      data: resp.data,
+      rawResponse: resp.rawResponse,
     }
   } catch (error: any) {
     // Re-throw with structured error info
     throw {
       message: error.message || 'Proxy request failed',
-      status: error.response?.status,
-      data: error.response?.data,
-      headers: error.response?.headers
+      status: error.statusCode,
+      data: error.body,
     }
   }
 }
