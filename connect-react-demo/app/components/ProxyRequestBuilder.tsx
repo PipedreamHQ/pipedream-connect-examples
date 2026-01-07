@@ -3,6 +3,8 @@ import { useCustomize } from "@pipedream/connect-react"
 import { useAppState } from "@/lib/app-state"
 import { proxyRequest } from "@/app/actions/backendClient"
 import { useSDKLogger } from "@/lib/sdk-logger"
+import type { Account } from "@pipedream/sdk"
+import { SDKError } from "@/lib/types/pipedream"
 
 const HTTP_METHODS = [
   "GET",
@@ -17,7 +19,19 @@ type KeyValuePair = {
   value: string
 }
 
-export function ProxyRequestBuilder() {
+type ProxyRequestBuilderProps = {
+  accounts: Account[]
+  isLoadingAccounts: boolean
+  onConnectNewAccount: () => void
+  sdkErrors?: SDKError
+}
+
+export function ProxyRequestBuilder({
+  accounts,
+  isLoadingAccounts,
+  onConnectNewAccount,
+  sdkErrors,
+}: ProxyRequestBuilderProps) {
   const {
     proxyUrl,
     setProxyUrl,
@@ -26,7 +40,10 @@ export function ProxyRequestBuilder() {
     proxyBody,
     setProxyBody,
     editableExternalUserId,
+    externalUserId,
     accountId,
+    setAccountId,
+    setEditableExternalUserId,
     selectedApp,
     setActionRunOutput,
   } = useAppState()
@@ -282,6 +299,19 @@ export function ProxyRequestBuilder() {
     alignItems: "flex-start",
   }
 
+  const selectStyles: React.CSSProperties = {
+    color: theme.colors.neutral80,
+    backgroundColor: theme.colors.neutral0,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: theme.colors.neutral20,
+    padding: 6,
+    borderRadius: theme.borderRadius,
+    boxShadow: theme.boxShadow.input,
+    cursor: "pointer",
+    fontSize: "0.875rem",
+  }
+
   const urlRowStyles: React.CSSProperties = {
     display: "flex",
     alignItems: "stretch",
@@ -298,6 +328,42 @@ export function ProxyRequestBuilder() {
         <p style={{ fontSize: "0.875rem", color: theme.colors.neutral60, margin: 0 }}>
           Make direct API requests through your authenticated account.
         </p>
+      </div>
+
+      {/* Account Selector Section */}
+      <div style={sectionStyles}>
+        <span style={labelStyles}>Select {selectedApp?.name} account</span>
+        {isLoadingAccounts ? (
+          <span style={{ fontSize: "0.875rem", color: theme.colors.neutral50 }}>Loading accounts...</span>
+        ) : (
+          <select
+            value={accountId}
+            onChange={(e) => {
+              const value = e.target.value
+              if (value === "__connect_new__") {
+                onConnectNewAccount()
+              } else {
+                setAccountId(value)
+                setEditableExternalUserId(externalUserId)
+              }
+            }}
+            style={selectStyles}
+            aria-label="Select account"
+          >
+            <option value="">Select an account</option>
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name || account.id}
+              </option>
+            ))}
+            <option value="__connect_new__">+ Connect new account</option>
+          </select>
+        )}
+        {sdkErrors && (
+          <div style={{ fontSize: "0.875rem", color: theme.colors.danger }}>
+            {String(sdkErrors)}
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} style={containerStyles}>

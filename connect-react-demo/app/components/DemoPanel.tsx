@@ -10,7 +10,6 @@ import { ProxyRequestBuilder } from "./ProxyRequestBuilder"
 // Separate component that uses useCustomize (must be inside CustomizeProvider)
 function ProxyConnectFlow({
   selectedApp,
-  accountId,
   frontendClient,
   externalUserId,
   setAccountId,
@@ -19,7 +18,6 @@ function ProxyConnectFlow({
   setSdkErrors,
 }: {
   selectedApp: App | null
-  accountId: string
   frontendClient: ReturnType<typeof useFrontendClient>
   externalUserId: string
   setAccountId: (id: string) => void
@@ -64,40 +62,6 @@ function ProxyConnectFlow({
     }
   }
 
-  // Styles
-  const selectStyles: React.CSSProperties = {
-    color: theme.colors.neutral80,
-    backgroundColor: theme.colors.neutral0,
-    borderWidth: 1,
-    borderStyle: "solid",
-    borderColor: theme.colors.neutral20,
-    padding: 6,
-    borderRadius: theme.borderRadius,
-    boxShadow: theme.boxShadow.input,
-    alignSelf: "stretch",
-    cursor: "pointer",
-    fontSize: "0.875rem",
-  }
-
-  const labelStyles: React.CSSProperties = {
-    fontSize: "0.75rem",
-    fontWeight: 500,
-    color: theme.colors.neutral70,
-  }
-
-  const sectionStyles: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: `${theme.spacing.baseUnit}px`,
-    alignItems: "flex-start",
-  }
-
-  const containerStyles: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.75rem",
-  }
-
   // No app selected
   if (!selectedApp) {
     return (
@@ -107,97 +71,14 @@ function ProxyConnectFlow({
     )
   }
 
-  // Styles for connect button (matching ControlApp from connect-react)
-  const connectButtonStyles: React.CSSProperties = {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius,
-    border: "solid 1px",
-    borderColor: theme.colors.primary25,
-    color: theme.colors.primary25,
-    padding: "0.5rem 1rem",
-    cursor: "pointer",
-    fontSize: "0.875rem",
-    fontWeight: 500,
-  }
-
-  const descriptionStyles: React.CSSProperties = {
-    color: theme.colors.neutral50,
-    fontWeight: 400,
-    fontSize: "0.75rem",
-    textWrap: "balance",
-    lineHeight: "1.5",
-    margin: 0,
-  }
-
-  // Show fancy connect button when no accounts exist
-  if (!isLoadingAccounts && accounts.length === 0) {
-    return (
-      <div style={containerStyles}>
-        <div style={sectionStyles}>
-          <span style={labelStyles}>Connect {selectedApp.name} account</span>
-          <button
-            type="button"
-            onClick={connectNewAccount}
-            style={connectButtonStyles}
-          >
-            Connect {selectedApp.name}
-          </button>
-          <p style={descriptionStyles}>Credentials are encrypted.</p>
-        </div>
-        {sdkErrors && (
-          <div style={{ fontSize: "0.875rem", color: theme.colors.danger }}>
-            {String(sdkErrors)}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Show account selector and request builder
+  // Show request builder with account selector inside
   return (
-    <div style={containerStyles}>
-      {/* Account Selector */}
-      <div style={sectionStyles}>
-        <span style={labelStyles}>Select {selectedApp.name} account</span>
-        {isLoadingAccounts ? (
-          <div style={{ color: theme.colors.neutral60, fontSize: "0.875rem" }}>
-            Loading {selectedApp.name} accounts...
-          </div>
-        ) : (
-          <select
-            value={accountId || ""}
-            onChange={(e) => {
-              const value = e.target.value
-              if (value === "_new") {
-                connectNewAccount()
-              } else {
-                setAccountId(value)
-                setEditableExternalUserId(externalUserId)
-              }
-            }}
-            style={selectStyles}
-          >
-            <option value="" disabled>
-              Select {selectedApp.name} account...
-            </option>
-            {accounts.map((account: Account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-            <option value="_new">+ Connect new {selectedApp.name} account...</option>
-          </select>
-        )}
-        {sdkErrors && (
-          <div style={{ fontSize: "0.875rem", color: theme.colors.danger }}>
-            {String(sdkErrors)}
-          </div>
-        )}
-      </div>
-
-      {/* Show ProxyRequestBuilder when account is selected */}
-      {accountId && <ProxyRequestBuilder />}
-    </div>
+    <ProxyRequestBuilder
+      accounts={accounts}
+      isLoadingAccounts={isLoadingAccounts}
+      onConnectNewAccount={connectNewAccount}
+      sdkErrors={sdkErrors}
+    />
   )
 }
 
@@ -218,9 +99,7 @@ export const DemoPanel = () => {
     enableDebugging,
     setWebhookUrlValidationAttempted,
     selectedApp,
-    accountId,
     setAccountId,
-    editableExternalUserId,
     setEditableExternalUserId,
   } = useAppState()
 
@@ -382,7 +261,6 @@ export const DemoPanel = () => {
                   <CustomizeProvider {...customizationOption.customization}>
                     <ProxyConnectFlow
                       selectedApp={selectedApp}
-                      accountId={accountId}
                       frontendClient={frontendClient}
                       externalUserId={externalUserId}
                       setAccountId={setAccountId}
