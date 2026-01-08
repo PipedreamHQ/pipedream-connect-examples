@@ -76,6 +76,23 @@ const useAppStateProviderValue = () => {
     })
   }
 
+  // Proxy-specific state (declared early so resetProxyState can reference them)
+  const [editableExternalUserId, setEditableExternalUserId] = useState<string>(externalUserId)
+  const [accountId, setAccountId] = useState<string>("")
+  const [proxyUrl, setProxyUrl] = useState<string>("")
+  const [proxyMethod, setProxyMethod] = useState<string>("GET")
+  const [proxyBody, setProxyBody] = useState<string>("")
+  const [actionRunOutput, setActionRunOutput] = useState<any>()
+
+  // Helper to reset proxy-related state
+  const resetProxyState = () => {
+    setAccountId("")
+    setProxyUrl("")
+    setProxyMethod("GET")
+    setProxyBody("")
+    setActionRunOutput(undefined)
+  }
+
   const selectedAppSlug = queryParams.app || "slack_v2"
   const setSelectedAppSlug = (value: string) => {
     updateStateAsync(() => {
@@ -83,6 +100,7 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "app", value },
       ])
+      resetProxyState()
     })
   }
   const removeSelectedAppSlug = () => {
@@ -91,6 +109,7 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "app", value: undefined },
       ])
+      resetProxyState()
     })
   }
 
@@ -141,7 +160,6 @@ const useAppStateProviderValue = () => {
   const [configuredProps, setConfiguredProps] = useState<Record<string, any>>(
     {}
   )
-  const [actionRunOutput, setActionRunOutput] = useState<any>()
 
   const hideOptionalProps = queryParams.hideOptionalProps === "true"
   const setHideOptionalProps = (value: boolean) => setQueryParam("hideOptionalProps", value ? "true" : undefined)
@@ -240,6 +258,18 @@ export function MyPage() {
 
     fileCode,
     setFileCode,
+
+    // Proxy-specific exports
+    editableExternalUserId,
+    setEditableExternalUserId,
+    accountId,
+    setAccountId,
+    proxyUrl,
+    setProxyUrl,
+    proxyMethod,
+    setProxyMethod,
+    proxyBody,
+    setProxyBody,
 
     code,
   }

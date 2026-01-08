@@ -182,7 +182,14 @@ export const ConfigPanel = () => {
     propNames,
     webhookUrlValidationAttempted,
     setWebhookUrlValidationAttempted,
+    editableExternalUserId,
+    setEditableExternalUserId,
+    accountId,
+    setAccountId,
   } = useAppState()
+  
+  // Check if proxy input editing is enabled via environment variable
+  const enableProxyInput = process.env.NEXT_PUBLIC_ENABLE_PROXY_INPUT === 'true'
   const id1 = useId();
   const id2 = useId();
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -306,7 +313,7 @@ export const ConfigPanel = () => {
                 <div className="pb-1.5 mb-1.5 border-b border-neutral-200 font-medium">
                   <span className="text-[#d73a49]">type</span>{" "}
                   <span className="text-[#6f42c1]">componentType</span> ={" "}
-                  <span className="text-[#d73a49]">'action' | 'trigger'</span>
+                  <span className="text-[#d73a49]">'action' | 'trigger' | 'proxy'</span>
                 </div>
 
                 <div className="font-sans text-neutral-600 py-1 text-[13px] leading-normal font-normal">
@@ -354,36 +361,40 @@ export const ConfigPanel = () => {
               sortDirection: "desc",
               ...(selectedComponentType === ComponentType.Action
                 ? { hasActions: true }
-                : { hasTriggers: true }),
+                : selectedComponentType === ComponentType.Trigger
+                ? { hasTriggers: true }
+                : {}),
             }}
           />
         </CustomizeProvider>
       </PropertyItem>
-      <PropertyItem
-        name={selectedComponentType === ComponentType.Action ? "actionId" : "triggerId"}
-        type="string"
-        description={`${selectedComponentType === ComponentType.Action ? "Action" : "Trigger"} to use`}
-        required={true}
-      >
-        <CustomizeProvider customization={dropdownCustomization}>
-          {selectedApp ? (
-            <SelectComponent
-              app={selectedApp}
-              componentType={selectedComponentType}
-              value={selectedComponent}
-              onChange={(comp) => {
-                comp
-                  ? setSelectedComponentKey(comp.key)
-                  : removeSelectedComponentKey()
-              }}
-            />
-          ) : (
-            <div className="w-full px-3 py-1.5 text-sm text-gray-500 border rounded bg-gray-50">
-              Loading components...
-            </div>
-          )}
-        </CustomizeProvider>
-      </PropertyItem>
+      {selectedComponentType !== "proxy" && (
+        <PropertyItem
+          name={selectedComponentType === ComponentType.Action ? "actionId" : "triggerId"}
+          type="string"
+          description={`${selectedComponentType === ComponentType.Action ? "Action" : "Trigger"} to use`}
+          required={true}
+        >
+          <CustomizeProvider customization={dropdownCustomization}>
+            {selectedApp ? (
+              <SelectComponent
+                app={selectedApp}
+                componentType={selectedComponentType}
+                value={selectedComponent}
+                onChange={(comp) => {
+                  comp
+                    ? setSelectedComponentKey(comp.key)
+                    : removeSelectedComponentKey()
+                }}
+              />
+            ) : (
+              <div className="w-full px-3 py-1.5 text-sm text-gray-500 border rounded bg-gray-50">
+                Loading components...
+              </div>
+            )}
+          </CustomizeProvider>
+        </PropertyItem>
+      )}
       {selectedComponentType === "trigger" && (
         <PropertyItem
           name="webhookUrl"
@@ -431,12 +442,71 @@ export const ConfigPanel = () => {
         description="Authenticated user identifier"
         required={true}
       >
-        <input
-          value={externalUserId || ""}
-          className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
-          readOnly
-        />
+        {selectedComponentType === "proxy" ? (
+          <input
+            value={editableExternalUserId || ""}
+            onChange={enableProxyInput ? (e) => setEditableExternalUserId(e.target.value) : undefined}
+            placeholder={enableProxyInput ? "Enter external user ID" : "External user ID (read-only)"}
+            className={`w-full px-3 py-1.5 text-sm font-mono border rounded ${
+              enableProxyInput 
+                ? "bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
+                : "bg-zinc-50/50"
+            }`}
+            readOnly={!enableProxyInput}
+          />
+        ) : (
+          <input
+            value={externalUserId || ""}
+            className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-zinc-50/50"
+            readOnly
+          />
+        )}
       </PropertyItem>
+      {selectedApp && (
+        <div className="grid grid-cols-[120px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+          <div className="flex items-start pt-1.5">
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <label className="text-[13px] font-semibold text-neutral-500 border-b border-dotted border-neutral-300 cursor-help">
+                    app metadata
+                  </label>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 flex flex-col gap-1.5 max-w-xs bg-white border border-neutral-200 shadow-sm text-neutral-700 rounded-md p-2.5 font-mono text-[13px] leading-tight tracking-tight"
+                >
+                  <div className="font-sans text-neutral-600 py-1 text-[13px] leading-normal font-normal">
+                    Complete metadata for the selected app
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex items-start min-w-0">
+            <div className="w-full p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono overflow-auto max-h-96">
+              <pre className="text-gray-700 whitespace-pre w-max">
+                {JSON.stringify(selectedApp, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedComponentType === "proxy" && enableProxyInput && (
+        <PropertyItem
+          name="accountId"
+          type="string"
+          description="Account ID for authenticated requests"
+          required={true}
+        >
+          <input
+            value={accountId || ""}
+            onChange={(e) => setAccountId(e.target.value)}
+            placeholder="Enter account ID"
+            className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </PropertyItem>
+      )}
     </div>
   )
 
@@ -573,29 +643,33 @@ export const ConfigPanel = () => {
           {basicFormControls}
 
           {/* Desktop: Show with section header */}
-          <div className="hidden md:block mt-6">
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-4">Additional Config Options</h3>
-              {advancedFormControls}
+          {selectedComponentType !== "proxy" && (
+            <div className="hidden md:block mt-6">
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-4">Additional Config Options</h3>
+                {advancedFormControls}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Mobile: Collapsible */}
-          <div className="md:hidden mt-4">
-            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-sm font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150">
-                <div className="flex items-center gap-2">
-                  <IoSettingsOutline className="h-4 w-4" />
-                  More options
-                </div>
-                <IoChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
-              </CollapsibleTrigger>
+          {selectedComponentType !== "proxy" && (
+            <div className="md:hidden mt-4">
+              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 px-3 text-sm font-medium text-neutral-500 hover:text-neutral-600 hover:bg-neutral-25 rounded border border-neutral-150">
+                  <div className="flex items-center gap-2">
+                    <IoSettingsOutline className="h-4 w-4" />
+                    More options
+                  </div>
+                  <IoChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
+                </CollapsibleTrigger>
 
-              <CollapsibleContent>
-                {advancedFormControls}
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+                <CollapsibleContent>
+                  {advancedFormControls}
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          )}
 
           {triggerInfo}
         </div>

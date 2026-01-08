@@ -1,10 +1,86 @@
-import React, { useState, useMemo } from "react"
-import { ComponentFormContainer, CustomizeProvider, useFrontendClient, type FormContext } from "@pipedream/connect-react"
-import type { ConfigurableProps, DynamicProps } from "@pipedream/sdk"
+import React, { useState } from "react"
+import { ComponentFormContainer, CustomizeProvider, useFrontendClient, useCustomize, useAccounts, type FormContext } from "@pipedream/connect-react"
+import type { ConfigurableProps, DynamicProps, App } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
 import { SDKError } from "@/lib/types/pipedream"
+import { ProxyRequestBuilder } from "./ProxyRequestBuilder"
+
+// Separate component that uses useCustomize (must be inside CustomizeProvider)
+function ProxyConnectFlow({
+  selectedApp,
+  frontendClient,
+  externalUserId,
+  setAccountId,
+  setEditableExternalUserId,
+  sdkErrors,
+  setSdkErrors,
+}: {
+  selectedApp: App | null
+  frontendClient: ReturnType<typeof useFrontendClient>
+  externalUserId: string
+  setAccountId: (id: string) => void
+  setEditableExternalUserId: (id: string) => void
+  sdkErrors: SDKError | undefined
+  setSdkErrors: (error: SDKError | undefined) => void
+}) {
+  const { theme } = useCustomize()
+
+  // Fetch accounts for the selected app
+  const { accounts, isLoading: isLoadingAccounts, refetch: refetchAccounts } = useAccounts(
+    {
+      external_user_id: externalUserId,
+      app: selectedApp?.nameSlug,
+    },
+    {
+      useQueryOpts: {
+        enabled: !!selectedApp,
+      },
+    }
+  )
+
+  const connectNewAccount = async () => {
+    if (!selectedApp) return
+    try {
+      await frontendClient.connectAccount({
+        app: selectedApp.nameSlug,
+        onSuccess: async ({ id }: { id: string }) => {
+          console.log('🎉 Account connected successfully!', { accountId: id })
+          await refetchAccounts()
+          setAccountId(id)
+          setEditableExternalUserId(externalUserId)
+        },
+        onError: (error: Error) => {
+          console.error('Connection failed:', error)
+          setSdkErrors(error)
+        }
+      })
+    } catch (error) {
+      console.error('Error connecting account:', error)
+      setSdkErrors(error as SDKError)
+    }
+  }
+
+  // No app selected
+  if (!selectedApp) {
+    return (
+      <div style={{ textAlign: "center", padding: "2rem 0", color: theme.colors.neutral50 }}>
+        Select an app to get started with proxy requests
+      </div>
+    )
+  }
+
+  // Show request builder with account selector inside
+  return (
+    <ProxyRequestBuilder
+      accounts={accounts}
+      isLoadingAccounts={isLoadingAccounts}
+      onConnectNewAccount={connectNewAccount}
+      sdkErrors={sdkErrors}
+    />
+  )
+}
 
 export const DemoPanel = () => {
   const frontendClient = useFrontendClient()
@@ -22,6 +98,9 @@ export const DemoPanel = () => {
     webhookUrl,
     enableDebugging,
     setWebhookUrlValidationAttempted,
+    selectedApp,
+    setAccountId,
+    setEditableExternalUserId,
   } = useAppState()
 
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
@@ -177,23 +256,38 @@ export const DemoPanel = () => {
           >
             <PageSkeleton customizationOption={customizationOption}>
               <div className="p-4 sm:p-6 space-y-4">
-                <CustomizeProvider {...customizationOption.customization}>
-                  {selectedComponentKey && (
-                    <ComponentFormContainer
+                {selectedComponentType === "proxy" ? (
+                  // For proxy: show connect flow if app selected but no account, otherwise show proxy form
+                  <CustomizeProvider {...customizationOption.customization}>
+                    <ProxyConnectFlow
+                      selectedApp={selectedApp}
+                      frontendClient={frontendClient}
                       externalUserId={externalUserId}
-                      componentKey={selectedComponentKey}
-                      configuredProps={configuredProps}
-                      onUpdateConfiguredProps={setConfiguredProps}
-                      hideOptionalProps={hideOptionalProps}
-                      propNames={debouncedPropNames}
-                      enableDebugging={enableDebugging}
-                      onSubmit={handleSubmit}
-                      onUpdateDynamicProps={handleDynamicProps}
-                      sdkResponse={sdkErrors}
-                    // oauthAppConfig={oauthAppConfig}
+                      setAccountId={setAccountId}
+                      setEditableExternalUserId={setEditableExternalUserId}
+                      sdkErrors={sdkErrors}
+                      setSdkErrors={setSdkErrors}
                     />
-                  )}
-                </CustomizeProvider>
+                  </CustomizeProvider>
+                ) : (
+                  <CustomizeProvider {...customizationOption.customization}>
+                    {selectedComponentKey && (
+                      <ComponentFormContainer
+                        externalUserId={externalUserId}
+                        componentKey={selectedComponentKey}
+                        configuredProps={configuredProps}
+                        onUpdateConfiguredProps={setConfiguredProps}
+                        hideOptionalProps={hideOptionalProps}
+                        propNames={debouncedPropNames}
+                        enableDebugging={enableDebugging}
+                        onSubmit={handleSubmit}
+                        onUpdateDynamicProps={handleDynamicProps}
+                        sdkResponse={sdkErrors}
+                      // oauthAppConfig={oauthAppConfig}
+                      />
+                    )}
+                  </CustomizeProvider>
+                )}
               </div>
             </PageSkeleton>
           </div>
