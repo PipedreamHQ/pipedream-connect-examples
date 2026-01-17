@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   FrontendClientProvider,
   CustomizeProvider,
-  FilePickerModal,
-  ConfigureFilePicker,
-  FilePickerIframe,
+  ConfigureFilePickerModal,
   useAccounts,
-  type FileItem,
   type FilePickerItem,
-  type ProxyRequestOptions,
 } from "@pipedream/connect-react";
 import {
   createFrontendClient,
@@ -18,7 +14,7 @@ import {
   type ProjectEnvironment,
 } from "@pipedream/sdk/browser";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fetchToken, proxyRequest, type FetchTokenOpts } from "../actions/backendClient";
+import { fetchToken, type FetchTokenOpts } from "../actions/backendClient";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +110,13 @@ interface NativePickerFile {
   "@sharePoint.endpoint"?: string;
   file?: { mimeType: string };
   folder?: object;
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
 function NativeSharePointPicker() {
@@ -446,10 +449,55 @@ function NativeSharePointPicker() {
 // Configure-Based File Picker (Hybrid)
 // ============================================
 
+// Theme presets for demonstration
+const themePresets = {
+  light: {
+    primary: "#2684FF",
+    primary25: "#DEEBFF",
+    neutral0: "#ffffff",
+    neutral5: "#f2f2f2",
+    neutral10: "#e6e6e6",
+    neutral80: "#333333",
+  },
+  dark: {
+    primary: "#60a5fa",
+    primary25: "#1e3a5f",
+    neutral0: "#1f2937",
+    neutral5: "#374151",
+    neutral10: "#4b5563",
+    neutral20: "#6b7280",
+    neutral30: "#9ca3af",
+    neutral40: "#d1d5db",
+    neutral50: "#e5e7eb",
+    neutral60: "#f3f4f6",
+    neutral80: "#f9fafb",
+  },
+};
+
 function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string }) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FilePickerItem[]>([]);
   const [configuredProps, setConfiguredProps] = useState<Record<string, unknown> | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<keyof typeof themePresets | "custom">("light");
+  const [customPrimaryColor, setCustomPrimaryColor] = useState("#2684FF");
+  const [actionResult, setActionResult] = useState<Record<string, unknown> | null>(null);
+  const [isLoadingAction, setIsLoadingAction] = useState(false);
+
+  const currentTheme = useMemo(() => {
+    if (selectedTheme === "custom") {
+      return {
+        colors: {
+          ...themePresets.light,
+          primary: customPrimaryColor,
+        },
+      };
+    }
+    return { colors: themePresets[selectedTheme] };
+  }, [selectedTheme, customPrimaryColor]);
+
+  const buttonColor = selectedTheme === "custom" ? customPrimaryColor : themePresets[selectedTheme].primary;
+
   const client = useMemo(() => {
     const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST;
     const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST;
@@ -484,6 +532,51 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     console.log("Configured props:", props);
     setSelectedFiles(items);
     setConfiguredProps(props);
+    setActionResult(null); // Reset action result when new selection is made
+    setIsModalOpen(false);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleGetFileUrls = async () => {
+    if (!configuredProps || selectedFiles.length === 0) return;
+
+    setIsLoadingAction(true);
+    try {
+      // Build array of file/folder IDs for the action
+      const fileOrFolderIds = selectedFiles.map((selectedFile) =>
+        JSON.stringify({
+          id: selectedFile.value?.id || selectedFile.id,
+          name: selectedFile.value?.name || selectedFile.label,
+          isFolder: selectedFile.value?.isFolder ?? false,
+        })
+      );
+
+      const propsWithFiles = {
+        ...configuredProps,
+        fileOrFolderIds,
+      };
+
+      console.log("Running action with props:", propsWithFiles);
+
+      // Single action call handles all files
+      const response = await client.actions.run({
+        id: "~/sharepoint-select-files",
+        externalUserId,
+        configuredProps: propsWithFiles as Record<string, unknown>,
+      });
+
+      console.log("Action response:", response);
+      const result = response.ret as Record<string, unknown> | undefined;
+      setActionResult(result ?? { error: "No data returned" });
+    } catch (e) {
+      console.error("Failed to run action:", e);
+      setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
+    } finally {
+      setIsLoadingAction(false);
+    }
   };
 
   return (
@@ -512,206 +605,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         />
       </div>
 
-      {/* File Picker */}
-      {selectedAccountId && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          marginBottom: "20px",
-          backgroundColor: "#fafafa",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            2. Browse & Select Files
-          </h2>
-          <CustomizeProvider>
-            <ConfigureFilePicker
-              componentKey="~/sharepoint-select-file"
-              app="sharepoint"
-              accountId={selectedAccountId}
-              externalUserId={externalUserId}
-              onSelect={handleSelect}
-              confirmText="Select Files"
-              cancelText="Clear"
-              multiSelect={true}
-              selectFolders={true}
-              selectFiles={true}
-            />
-          </CustomizeProvider>
-        </div>
-      )}
-
-      {!selectedAccountId && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          marginBottom: "20px",
-          backgroundColor: "#f5f5f5",
-          opacity: 0.6,
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            2. Browse & Select Files
-          </h2>
-          <p style={{ color: "#999", margin: 0, fontSize: "13px" }}>
-            Connect an account first to browse files.
-          </p>
-        </div>
-      )}
-
-      {/* Selected Files Display */}
-      {selectedFiles.length > 0 && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: "#f0f9ff",
-          marginBottom: "20px",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            Selected Files ({selectedFiles.length})
-          </h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {selectedFiles.map((file) => (
-              <li
-                key={file.id}
-                style={{
-                  padding: "10px 12px",
-                  backgroundColor: "#fff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "6px",
-                  marginBottom: "8px",
-                }}
-              >
-                <strong>{file.label}</strong>
-              </li>
-            ))}
-          </ul>
-
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View selected items
-            </summary>
-            <pre style={{
-              marginTop: "8px",
-              padding: "12px",
-              backgroundColor: "#fff",
-              borderRadius: "6px",
-              overflow: "auto",
-              fontSize: "12px",
-              border: "1px solid #e5e5e5",
-            }}>
-              {JSON.stringify(selectedFiles, null, 2)}
-            </pre>
-          </details>
-        </div>
-      )}
-
-      {/* Configured Props Display */}
-      {configuredProps && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: "#fefce8",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            Configured Props (for persistence)
-          </h2>
-          <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-            Store this JSON to restore the selection later.
-          </p>
-          <pre style={{
-            padding: "12px",
-            backgroundColor: "#fff",
-            borderRadius: "6px",
-            overflow: "auto",
-            fontSize: "12px",
-            border: "1px solid #e5e5e5",
-          }}>
-            {JSON.stringify(configuredProps, null, 2)}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// Pipedream Custom File Picker
-// ============================================
-
-function PipedreamFilePickerDemo({ externalUserId }: { externalUserId: string }) {
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
-  const client = useMemo(() => {
-    const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST;
-    const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST;
-    const environment = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT as PipedreamEnvironment || undefined;
-    const projectEnvironment = process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT as ProjectEnvironment;
-
-    return createFrontendClient({
-      ...(frontendHost && { frontendHost }),
-      ...(apiHost && { apiHost }),
-      ...(environment && { environment }),
-      ...(projectEnvironment && { projectEnvironment }),
-      tokenCallback: deferredTokenCallback,
-      externalUserId,
-    });
-  }, [externalUserId]);
-
-  // Create a proxy request function that uses the server action
-  const handleProxyRequest = useCallback(
-    async (opts: ProxyRequestOptions) => {
-      if (!selectedAccountId) {
-        throw new Error("No account selected");
-      }
-      const result = await proxyRequest({
-        externalUserId,
-        accountId: selectedAccountId,
-        url: opts.url,
-        method: opts.method || "GET",
-        data: opts.body,
-        headers: opts.headers,
-      });
-      return result.data;
-    },
-    [externalUserId, selectedAccountId]
-  );
-
-  const handleConnectNew = async () => {
-    try {
-      const result = await client.connectAccount({
-        app: "sharepoint",
-      });
-      // result is undefined if user closes the modal without connecting
-      if (result?.id) {
-        setSelectedAccountId(result.id);
-      }
-    } catch (e) {
-      console.error("Failed to connect account:", e);
-    }
-  };
-
-  const handleSelect = (items: FileItem[]) => {
-    console.log("Selected items:", items);
-    setSelectedFiles(items);
-    setIsModalOpen(false);
-  };
-
-  const handleCancel = () => {
-    setIsModalOpen(false);
-  };
-
-  return (
-    <div style={{ padding: "24px", maxWidth: "600px" }}>
-      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Pipedream File Picker</h1>
-      <p style={{ color: "#666", marginBottom: "24px" }}>
-        Custom file picker UI with Pipedream Connect for account management.
-      </p>
-
-      {/* Account Selection */}
+      {/* Theme Customization */}
       <div style={{
         padding: "20px",
         border: "1px solid #e5e5e5",
@@ -720,14 +614,60 @@ function PipedreamFilePickerDemo({ externalUserId }: { externalUserId: string })
         backgroundColor: "#fafafa",
       }}>
         <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          1. Connect Account
+          Customize Theme
         </h2>
-        <AccountSelector
-          externalUserId={externalUserId}
-          selectedAccountId={selectedAccountId}
-          onSelectAccount={setSelectedAccountId}
-          onConnectNew={handleConnectNew}
-        />
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={() => setSelectedTheme("light")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "4px",
+              border: selectedTheme === "light" ? "2px solid #333" : "1px solid #ddd",
+              backgroundColor: themePresets.light.primary,
+              color: "#fff",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            Light
+          </button>
+          <button
+            onClick={() => setSelectedTheme("dark")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "4px",
+              border: selectedTheme === "dark" ? "2px solid #333" : "1px solid #ddd",
+              backgroundColor: themePresets.dark.primary,
+              color: "#fff",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            Dark
+          </button>
+          <button
+            onClick={() => setSelectedTheme("custom")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "4px",
+              border: selectedTheme === "custom" ? "2px solid #333" : "1px solid #ddd",
+              backgroundColor: customPrimaryColor,
+              color: "#fff",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            Custom
+          </button>
+          {selectedTheme === "custom" && (
+            <input
+              type="color"
+              value={customPrimaryColor}
+              onChange={(e) => setCustomPrimaryColor(e.target.value)}
+              style={{ width: "32px", height: "32px", cursor: "pointer", border: "none", padding: 0 }}
+            />
+          )}
+        </div>
       </div>
 
       {/* File Picker Trigger */}
@@ -740,14 +680,14 @@ function PipedreamFilePickerDemo({ externalUserId }: { externalUserId: string })
         opacity: selectedAccountId ? 1 : 0.6,
       }}>
         <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          2. Select Files
+          Select Files
         </h2>
         <button
           onClick={() => setIsModalOpen(true)}
           disabled={!selectedAccountId}
           style={{
             padding: "12px 24px",
-            backgroundColor: selectedAccountId ? "#0066cc" : "#ccc",
+            backgroundColor: selectedAccountId ? buttonColor : "#ccc",
             color: "white",
             border: "none",
             borderRadius: "6px",
@@ -772,255 +712,6 @@ function PipedreamFilePickerDemo({ externalUserId }: { externalUserId: string })
           border: "1px solid #e5e5e5",
           borderRadius: "8px",
           backgroundColor: "#f0f9ff",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            Selected Files ({selectedFiles.length})
-          </h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {selectedFiles.map((file) => (
-              <li
-                key={file.id}
-                style={{
-                  padding: "10px 12px",
-                  backgroundColor: "#fff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "6px",
-                  marginBottom: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                }}
-              >
-                <div>
-                  <strong style={{ display: "block" }}>{file.name}</strong>
-                  <small style={{ color: "#666" }}>
-                    {file.type} {file.size ? `• ${formatSize(file.size)}` : ""}
-                  </small>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View raw data
-            </summary>
-            <pre style={{
-              marginTop: "8px",
-              padding: "12px",
-              backgroundColor: "#fff",
-              borderRadius: "6px",
-              overflow: "auto",
-              fontSize: "12px",
-              border: "1px solid #e5e5e5",
-            }}>
-              {JSON.stringify(selectedFiles, null, 2)}
-            </pre>
-          </details>
-        </div>
-      )}
-
-      {/* File Picker Modal */}
-      {selectedAccountId && (
-        <CustomizeProvider>
-          <FilePickerModal
-            isOpen={isModalOpen}
-            title="Select SharePoint Files"
-            app="sharepoint"
-            accountId={selectedAccountId}
-            externalUserId={externalUserId}
-            proxyRequest={handleProxyRequest}
-            onSelect={handleSelect}
-            onCancel={handleCancel}
-            multiSelect={true}
-            selectFiles={true}
-            selectFolders={true}
-            rootLabel="SharePoint"
-            confirmText="Select Files"
-            cancelText="Cancel"
-          />
-        </CustomizeProvider>
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// Iframe-Based File Picker
-// ============================================
-
-function IframeFilePickerDemo({ externalUserId }: { externalUserId: string }) {
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [connectToken, setConnectToken] = useState<string | null>(null);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FilePickerItem[]>([]);
-  const [configuredProps, setConfiguredProps] = useState<Record<string, unknown> | null>(null);
-
-  const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com";
-  const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST;
-  const environment = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT as PipedreamEnvironment || undefined;
-  const projectEnvironment = process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT as ProjectEnvironment || "development";
-  const projectId = process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ID || "";
-
-  const client = useMemo(() => {
-    return createFrontendClient({
-      ...(frontendHost && { frontendHost }),
-      ...(apiHost && { apiHost }),
-      ...(environment && { environment }),
-      ...(projectEnvironment && { projectEnvironment }),
-      tokenCallback: deferredTokenCallback,
-      externalUserId,
-    });
-  }, [externalUserId, frontendHost, apiHost, environment, projectEnvironment]);
-
-  // Fetch a connect token when we need to open the picker
-  const fetchConnectToken = useCallback(async () => {
-    try {
-      const tokenResponse = await deferredTokenCallback({ externalUserId });
-      setConnectToken(tokenResponse.token);
-      return tokenResponse.token;
-    } catch (e) {
-      console.error("Failed to fetch token:", e);
-      return null;
-    }
-  }, [externalUserId]);
-
-  const handleConnectNew = async () => {
-    try {
-      const result = await client.connectAccount({
-        app: "sharepoint",
-      });
-      if (result?.id) {
-        setSelectedAccountId(result.id);
-      }
-    } catch (e) {
-      console.error("Failed to connect account:", e);
-    }
-  };
-
-  const handleOpenPicker = async () => {
-    // Fetch a fresh token before opening the picker
-    const token = await fetchConnectToken();
-    if (token) {
-      setIsPickerOpen(true);
-    }
-  };
-
-  const handleSelect = (items: FilePickerItem[], props: Record<string, unknown>) => {
-    console.log("[IframePicker] Selected items:", items);
-    console.log("[IframePicker] Configured props:", props);
-    setSelectedFiles(items);
-    setConfiguredProps(props);
-    setIsPickerOpen(false);
-  };
-
-  const handleCancel = () => {
-    console.log("[IframePicker] Cancelled");
-    setIsPickerOpen(false);
-  };
-
-  const handleError = (message: string) => {
-    console.error("[IframePicker] Error:", message);
-    setIsPickerOpen(false);
-  };
-
-  return (
-    <div style={{ padding: "24px", maxWidth: "600px" }}>
-      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Iframe File Picker</h1>
-      <p style={{ color: "#666", marginBottom: "24px" }}>
-        File picker rendered in an iframe from <code>frontend-next</code>. Framework-agnostic.
-      </p>
-
-      {/* Account Selection */}
-      <div style={{
-        padding: "20px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        marginBottom: "20px",
-        backgroundColor: "#fafafa",
-      }}>
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          1. Connect Account
-        </h2>
-        <AccountSelector
-          externalUserId={externalUserId}
-          selectedAccountId={selectedAccountId}
-          onSelectAccount={setSelectedAccountId}
-          onConnectNew={handleConnectNew}
-        />
-      </div>
-
-      {/* File Picker Trigger */}
-      <div style={{
-        padding: "20px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        marginBottom: "20px",
-        backgroundColor: selectedAccountId ? "#fafafa" : "#f5f5f5",
-        opacity: selectedAccountId ? 1 : 0.6,
-      }}>
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          2. Select Files
-        </h2>
-        <button
-          onClick={handleOpenPicker}
-          disabled={!selectedAccountId}
-          style={{
-            padding: "12px 24px",
-            backgroundColor: selectedAccountId ? "#7c3aed" : "#ccc",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: selectedAccountId ? "pointer" : "not-allowed",
-            fontSize: "14px",
-            fontWeight: 500,
-          }}
-        >
-          Open Iframe Picker
-        </button>
-        {!selectedAccountId && (
-          <p style={{ marginTop: "8px", fontSize: "13px", color: "#999" }}>
-            Please connect an account first
-          </p>
-        )}
-      </div>
-
-      {/* Iframe Modal */}
-      {isPickerOpen && connectToken && selectedAccountId && projectId && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1000,
-        }}>
-          <FilePickerIframe
-            token={connectToken}
-            app="sharepoint"
-            accountId={selectedAccountId}
-            externalUserId={externalUserId}
-            componentKey="~/sharepoint-select-file"
-            projectId={projectId}
-            projectEnvironment={projectEnvironment}
-            onSelect={handleSelect}
-            onCancel={handleCancel}
-            onError={handleError}
-            multiSelect={true}
-            selectFolders={true}
-            selectFiles={true}
-            frontendHost={frontendHost}
-          />
-        </div>
-      )}
-
-      {/* Selected Files Display */}
-      {selectedFiles.length > 0 && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: "#f0f9ff",
           marginBottom: "20px",
         }}>
           <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
@@ -1043,6 +734,26 @@ function IframeFilePickerDemo({ externalUserId }: { externalUserId: string }) {
             ))}
           </ul>
 
+          {/* Get File URLs Button */}
+          <button
+            onClick={handleGetFileUrls}
+            disabled={isLoadingAction}
+            style={{
+              marginTop: "16px",
+              padding: "10px 20px",
+              backgroundColor: buttonColor,
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: isLoadingAction ? "wait" : "pointer",
+              fontSize: "14px",
+              fontWeight: 500,
+              opacity: isLoadingAction ? 0.7 : 1,
+            }}
+          >
+            {isLoadingAction ? "Loading..." : "Get File URLs"}
+          </button>
+
           <details style={{ marginTop: "12px" }}>
             <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
               View selected items
@@ -1057,6 +768,98 @@ function IframeFilePickerDemo({ externalUserId }: { externalUserId: string }) {
               border: "1px solid #e5e5e5",
             }}>
               {JSON.stringify(selectedFiles, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
+
+      {/* Action Result Display */}
+      {actionResult && (
+        <div style={{
+          padding: "20px",
+          border: "1px solid #e5e5e5",
+          borderRadius: "8px",
+          backgroundColor: actionResult.error ? "#fef2f2" : "#f0fdf4",
+          marginBottom: "20px",
+        }}>
+          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
+            Action Result
+          </h2>
+          {/* Single file result */}
+          {actionResult.downloadUrl && (
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "4px" }}>
+                Download URL (valid ~1 hour):
+              </label>
+              <a
+                href={actionResult.downloadUrl as string}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: buttonColor,
+                  wordBreak: "break-all",
+                  fontSize: "13px",
+                }}
+              >
+                {(actionResult.downloadUrl as string).substring(0, 80)}...
+              </a>
+            </div>
+          )}
+          {/* Multiple files result */}
+          {actionResult.files && Array.isArray(actionResult.files) && (
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "8px" }}>
+                Download URLs (valid ~1 hour):
+              </label>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
+                  <li
+                    key={index}
+                    style={{
+                      padding: "8px 12px",
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e5e5",
+                      borderRadius: "6px",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <strong style={{ fontSize: "13px" }}>{file.name as string}</strong>
+                    {file.downloadUrl && (
+                      <div style={{ marginTop: "4px" }}>
+                        <a
+                          href={file.downloadUrl as string}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: buttonColor,
+                            wordBreak: "break-all",
+                            fontSize: "12px",
+                          }}
+                        >
+                          Download
+                        </a>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <details>
+            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+              View full response
+            </summary>
+            <pre style={{
+              marginTop: "8px",
+              padding: "12px",
+              backgroundColor: "#fff",
+              borderRadius: "6px",
+              overflow: "auto",
+              fontSize: "12px",
+              border: "1px solid #e5e5e5",
+              maxHeight: "300px",
+            }}>
+              {JSON.stringify(actionResult, null, 2)}
             </pre>
           </details>
         </div>
@@ -1088,15 +891,29 @@ function IframeFilePickerDemo({ externalUserId }: { externalUserId: string }) {
           </pre>
         </div>
       )}
+
+      {/* File Picker Modal */}
+      {selectedAccountId && (
+        <CustomizeProvider theme={currentTheme}>
+          <ConfigureFilePickerModal
+            isOpen={isModalOpen}
+            title="Select SharePoint Files"
+            componentKey="~/sharepoint-select-files"
+            app="sharepoint"
+            accountId={selectedAccountId}
+            externalUserId={externalUserId}
+            onSelect={handleSelect}
+            onCancel={handleCancel}
+            confirmText="Select Files"
+            cancelText="Cancel"
+            multiSelect={true}
+            selectFolders={true}
+            selectFiles={true}
+          />
+        </CustomizeProvider>
+      )}
     </div>
   );
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
 export default function FilePickerPage() {
@@ -1124,33 +941,11 @@ export default function FilePickerPage() {
           display: "flex",
           gap: "20px",
           padding: "20px",
-          maxWidth: "2100px",
+          maxWidth: "1400px",
           margin: "0 auto",
           flexWrap: "wrap",
         }}>
-          {/* Left: Pipedream Custom Picker (Proxy-based) */}
-          <div style={{
-            flex: "1 1 400px",
-            borderRight: "1px solid #e5e5e5",
-            paddingRight: "20px",
-            minWidth: "350px",
-          }}>
-            <div style={{
-              display: "inline-block",
-              padding: "4px 12px",
-              backgroundColor: "#e0f2fe",
-              color: "#0369a1",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 500,
-              marginBottom: "8px",
-            }}>
-              Custom UI (Proxy)
-            </div>
-            <PipedreamFilePickerDemo externalUserId={externalUserId} />
-          </div>
-
-          {/* Middle: Configure-Based Picker (Hybrid) */}
+          {/* Left: Configure-Based Picker (Hybrid) */}
           <div style={{
             flex: "1 1 400px",
             borderRight: "1px solid #e5e5e5",
@@ -1170,28 +965,6 @@ export default function FilePickerPage() {
               Hybrid (Configure API)
             </div>
             <ConfigureFilePickerDemo externalUserId={externalUserId} />
-          </div>
-
-          {/* Iframe File Picker */}
-          <div style={{
-            flex: "1 1 400px",
-            borderRight: "1px solid #e5e5e5",
-            paddingRight: "20px",
-            minWidth: "350px",
-          }}>
-            <div style={{
-              display: "inline-block",
-              padding: "4px 12px",
-              backgroundColor: "#f3e8ff",
-              color: "#7c3aed",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 500,
-              marginBottom: "8px",
-            }}>
-              Iframe (frontend-next)
-            </div>
-            <IframeFilePickerDemo externalUserId={externalUserId} />
           </div>
 
           {/* Right: Native Microsoft Picker */}
