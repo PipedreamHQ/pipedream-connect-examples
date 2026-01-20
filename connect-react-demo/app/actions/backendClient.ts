@@ -98,3 +98,32 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
 }
 
 export const proxyRequest = _proxyRequest
+
+export type GetAccountCredentialsOpts = {
+  externalUserId: string
+  accountId: string
+}
+
+export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => {
+  const serverClient = backendClient()
+
+  try {
+    // Use list with filters to get the account with credentials
+    // This ensures we're scoped to the correct external user
+    const accountsPage = await serverClient.accounts.list({
+      externalUserId: opts.externalUserId,
+      includeCredentials: true,
+    })
+
+    // Find the specific account by ID
+    const account = accountsPage.data.find(a => a.id === opts.accountId)
+    if (!account) {
+      throw new Error(`Account ${opts.accountId} not found for user ${opts.externalUserId}`)
+    }
+
+    return account.credentials
+  } catch (error: any) {
+    console.error("Failed to get account credentials:", error)
+    throw new Error(error.message || "Failed to get account credentials")
+  }
+}
