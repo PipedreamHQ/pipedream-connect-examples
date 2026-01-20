@@ -14,7 +14,7 @@ import {
   type ProjectEnvironment,
 } from "@pipedream/sdk/browser";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fetchToken, type FetchTokenOpts } from "../actions/backendClient";
+import { fetchToken, type FetchTokenOpts, getAccountCredentials } from "../actions/backendClient";
 
 const queryClient = new QueryClient();
 
@@ -32,16 +32,24 @@ function AccountSelector({
   selectedAccountId,
   onSelectAccount,
   onConnectNew,
+  app = "sharepoint",
 }: {
   externalUserId: string;
   selectedAccountId: string | null;
   onSelectAccount: (accountId: string) => void;
-  onConnectNew: () => void;
+  onConnectNew: () => Promise<void>;
+  app?: string;
 }) {
-  const { accounts, isLoading } = useAccounts({
-    app: "sharepoint",
+  const { accounts, isLoading, refetch } = useAccounts({
+    app,
     external_user_id: externalUserId,
   });
+
+  const handleConnectNew = async () => {
+    await onConnectNew();
+    // Refetch accounts list after connecting
+    refetch();
+  };
 
   if (isLoading) {
     return <div style={{ padding: "8px 0", color: "#666" }}>Loading accounts...</div>;
@@ -79,7 +87,7 @@ function AccountSelector({
       )}
 
       <button
-        onClick={onConnectNew}
+        onClick={handleConnectNew}
         style={{
           padding: "10px 16px",
           backgroundColor: "#f5f5f5",
@@ -110,6 +118,7 @@ interface NativePickerFile {
   "@sharePoint.endpoint"?: string;
   file?: { mimeType: string };
   folder?: object;
+  downloadUrl?: string;
 }
 
 function formatSize(bytes: number): string {
@@ -119,19 +128,24 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-function NativeSharePointPicker() {
+function NativeSharePointPicker({
+  externalUserId,
+  client,
+}: {
+  externalUserId: string;
+  client: ReturnType<typeof createFrontendClient>;
+}) {
   const [selectedFiles, setSelectedFiles] = useState<NativePickerFile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [sharepointBaseUrl, setSharepointBaseUrl] = useState<string>("");
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
   const popupRef = useRef<Window | null>(null);
   const portRef = useRef<MessagePort | null>(null);
   const channelIdRef = useRef<string>("");
   const messageHandlerRef = useRef<((e: MessageEvent) => void) | null>(null);
-
-  // Get config from env vars
-  const accessToken = process.env.NEXT_PUBLIC_SHAREPOINT_ACCESS_TOKEN;
-  // Base URL: https://tenant.sharepoint.com (not a specific site)
-  const sharepointBaseUrl = process.env.NEXT_PUBLIC_SHAREPOINT_BASE_URL;
 
   useEffect(() => {
     // Clean up on unmount
@@ -145,9 +159,123 @@ function NativeSharePointPicker() {
     };
   }, []);
 
+  // Fetch credentials when account is selected
+  useEffect(() => {
+    if (!selectedAccountId) {
+      setAccessToken(null);
+      return;
+    }
+
+    const fetchCredentials = async () => {
+      setIsLoadingCredentials(true);
+      setError(null);
+      try {
+        const credentials = await getAccountCredentials({
+          externalUserId,
+          accountId: selectedAccountId,
+        });
+        const creds = credentials as Record<string, unknown>;
+
+        // Extract oauth_access_token
+        const token = creds.oauth_access_token as string;
+        if (token) {
+          setAccessToken(token);
+        } else {
+          setError("No access token found in credentials");
+          return;
+        }
+
+        // Extract tenant_name and construct SharePoint URL
+        const tenantName = creds.tenant_name as string;
+        if (tenantName) {
+          setSharepointBaseUrl(`https://${tenantName}.sharepoint.com`);
+        }
+      } catch (e) {
+        console.error("Failed to fetch credentials:", e);
+        setError(e instanceof Error ? e.message : "Failed to fetch credentials");
+      } finally {
+        setIsLoadingCredentials(false);
+      }
+    };
+
+    fetchCredentials();
+  }, [selectedAccountId, externalUserId]);
+
+  const handleConnectNew = async () => {
+    return new Promise<void>((resolve) => {
+      client.connectAccount({
+        app: "microsoft_sharepoint_dev",
+        oauthAppId: "oa_b8iZeV",
+        onSuccess: ({ id }) => {
+          setSelectedAccountId(id);
+          resolve();
+        },
+        onError: (err) => {
+          console.error("Failed to connect account:", err);
+          setError(err instanceof Error ? err.message : "Failed to connect account");
+          resolve();
+        },
+        onClose: ({ successful }) => {
+          if (!successful) {
+            resolve();
+          }
+        },
+      });
+    });
+  };
+
+  // Fetch download URLs for picked files using SharePoint REST API
+  const fetchDownloadUrls = useCallback(async (items: NativePickerFile[]): Promise<NativePickerFile[]> => {
+    if (!accessToken) return items;
+
+    const results = await Promise.all(
+      items.map(async (item) => {
+        try {
+          // Use the SharePoint endpoint from the item, or construct it
+          const endpoint = item["@sharePoint.endpoint"] || `${sharepointBaseUrl}/_api/v2.0`;
+          const driveId = item.parentReference?.driveId;
+
+          if (!driveId) {
+            console.warn("[NativePicker] No driveId for item:", item.name);
+            return item;
+          }
+
+          const url = `${endpoint}/drives/${driveId}/items/${item.id}`;
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            console.error("[NativePicker] Failed to fetch item details:", response.status, response.statusText);
+            return item;
+          }
+
+          const data = await response.json();
+
+          // The download URL is typically in @content.downloadUrl or @microsoft.graph.downloadUrl
+          const downloadUrl = data["@content.downloadUrl"] || data["@microsoft.graph.downloadUrl"];
+
+          return {
+            ...item,
+            downloadUrl,
+          };
+        } catch (err) {
+          console.error("[NativePicker] Error fetching download URL for:", item.name, err);
+          return item;
+        }
+      })
+    );
+
+    return results;
+  }, [accessToken, sharepointBaseUrl]);
+
   const openNativePicker = useCallback(() => {
     if (!accessToken || !sharepointBaseUrl) {
-      setError("Missing NEXT_PUBLIC_SHAREPOINT_ACCESS_TOKEN or NEXT_PUBLIC_SHAREPOINT_BASE_URL");
+      setError("Please connect an account and enter your SharePoint tenant URL");
       return;
     }
 
@@ -216,31 +344,19 @@ function NativeSharePointPicker() {
 
     // Message handler for postMessage communication
     const handleMessage = (event: MessageEvent) => {
-      // Log ALL messages for debugging
-      console.log("[NativePicker] Raw message event:", {
-        origin: event.origin,
-        data: event.data,
-        source: event.source === popup ? "popup" : "other",
-        ports: event.ports?.length || 0,
-      });
-
       if (event.source !== popup) {
-        console.log("[NativePicker] Ignoring message from non-popup source");
         return;
       }
 
       const message = event.data;
-      console.log("[NativePicker] Message received:", message);
 
       // Handle initialization
       if (message.type === "initialize" && message.channelId === channelIdRef.current) {
-        console.log("[NativePicker] Initializing port communication");
         const port = event.ports[0];
         portRef.current = port;
 
         port.addEventListener("message", (portEvent: MessageEvent) => {
           const payload = portEvent.data;
-          console.log("[NativePicker] Port message:", payload);
 
           if (payload.type === "command") {
             const command = payload.data;
@@ -250,7 +366,6 @@ function NativeSharePointPicker() {
 
             switch (command.command) {
               case "authenticate":
-                console.log("[NativePicker] Auth requested for:", command.resource);
                 port.postMessage({
                   type: "result",
                   id: payload.id,
@@ -259,8 +374,10 @@ function NativeSharePointPicker() {
                 break;
 
               case "pick":
-                console.log("[NativePicker] Files picked:", command.items);
-                setSelectedFiles(command.items || []);
+                // Fetch download URLs for each file
+                fetchDownloadUrls(command.items || []).then((filesWithUrls) => {
+                  setSelectedFiles(filesWithUrls);
+                });
                 port.postMessage({
                   type: "result",
                   id: payload.id,
@@ -271,13 +388,11 @@ function NativeSharePointPicker() {
                 break;
 
               case "close":
-                console.log("[NativePicker] Closed");
                 popup.close();
                 setIsPickerOpen(false);
                 break;
 
               default:
-                console.log("[NativePicker] Unknown command:", command.command);
                 port.postMessage({
                   type: "result",
                   id: payload.id,
@@ -315,45 +430,26 @@ function NativeSharePointPicker() {
         Native SharePoint Picker
       </h1>
       <p style={{ color: "#666", marginBottom: "24px" }}>
-        Microsoft&apos;s native file picker UI (v8) - requires a <strong>SharePoint-audience</strong> token.
+        Microsoft&apos;s native file picker UI (v8) - requires passing the SharePoint OAuth access token from the client browser.
       </p>
-      <div style={{
-        padding: "12px 16px",
-        backgroundColor: "#fef3c7",
-        border: "1px solid #f59e0b",
-        borderRadius: "6px",
-        marginBottom: "20px",
-        fontSize: "13px",
-      }}>
-        <strong>Note:</strong> The token must have <code>aud: &quot;https://tenant.sharepoint.com&quot;</code>,
-        not Graph (<code>00000003-0000-0000-c000-000000000000</code>).
-        Request token with scope <code>https://tenant.sharepoint.com/.default</code>.
-      </div>
-
-      {/* Config Status */}
+      {/* Account Selection */}
       <div style={{
         padding: "20px",
         border: "1px solid #e5e5e5",
         borderRadius: "8px",
         marginBottom: "20px",
-        backgroundColor: hasConfig ? "#f0fff4" : "#fff5f5",
+        backgroundColor: "#fafafa",
       }}>
         <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          Configuration
+          1. Connect Account
         </h2>
-        <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px" }}>
-          <li style={{ color: accessToken ? "green" : "red" }}>
-            NEXT_PUBLIC_SHAREPOINT_ACCESS_TOKEN: {accessToken ? "Set" : "Missing"}
-          </li>
-          <li style={{ color: sharepointBaseUrl ? "green" : "red" }}>
-            NEXT_PUBLIC_SHAREPOINT_BASE_URL: {sharepointBaseUrl || "Missing"}
-          </li>
-        </ul>
-        {!hasConfig && (
-          <p style={{ marginTop: "12px", fontSize: "13px", color: "#666" }}>
-            Add these to your .env.local file to test the native picker.
-          </p>
-        )}
+        <AccountSelector
+          externalUserId={externalUserId}
+          selectedAccountId={selectedAccountId}
+          onSelectAccount={setSelectedAccountId}
+          onConnectNew={handleConnectNew}
+          app="microsoft_sharepoint_dev"
+        />
       </div>
 
       {/* Picker Trigger */}
@@ -366,7 +462,7 @@ function NativeSharePointPicker() {
         opacity: hasConfig ? 1 : 0.6,
       }}>
         <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          Open Native Picker
+          2. Select Files
         </h2>
         <button
           onClick={openNativePicker}
@@ -384,6 +480,11 @@ function NativeSharePointPicker() {
         >
           {isPickerOpen ? "Picker Open..." : "Open Microsoft Picker"}
         </button>
+        {!hasConfig && selectedAccountId && !isLoadingCredentials && (
+          <p style={{ marginTop: "8px", fontSize: "13px", color: "#999" }}>
+            {!accessToken ? "Waiting for credentials..." : "Please enter your SharePoint tenant URL"}
+          </p>
+        )}
         {error && (
           <p style={{ marginTop: "8px", fontSize: "13px", color: "red" }}>
             {error}
@@ -419,6 +520,22 @@ function NativeSharePointPicker() {
                 <small style={{ color: "#666" }}>
                   {file.size ? formatSize(file.size) : "File"}
                 </small>
+                {file.downloadUrl && (
+                  <div style={{ marginTop: "6px" }}>
+                    <a
+                      href={file.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "#0078d4",
+                        fontSize: "13px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Download
+                    </a>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -483,6 +600,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const [customPrimaryColor, setCustomPrimaryColor] = useState("#2684FF");
   const [actionResult, setActionResult] = useState<Record<string, unknown> | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [showIcons, setShowIcons] = useState(true);
 
   const currentTheme = useMemo(() => {
     if (selectedTheme === "custom") {
@@ -515,21 +633,27 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   }, [externalUserId]);
 
   const handleConnectNew = async () => {
-    try {
-      const result = await client.connectAccount({
+    return new Promise<void>((resolve) => {
+      client.connectAccount({
         app: "sharepoint",
+        onSuccess: ({ id }) => {
+          setSelectedAccountId(id);
+          resolve();
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Failed to connect account");
+          resolve();
+        },
+        onClose: ({ successful }) => {
+          if (!successful) {
+            resolve();
+          }
+        },
       });
-      if (result?.id) {
-        setSelectedAccountId(result.id);
-      }
-    } catch (e) {
-      console.error("Failed to connect account:", e);
-    }
+    });
   };
 
   const handleSelect = (items: FilePickerItem[], props: Record<string, unknown>) => {
-    console.log("Selected items:", items);
-    console.log("Configured props:", props);
     setSelectedFiles(items);
     setConfiguredProps(props);
     setActionResult(null); // Reset action result when new selection is made
@@ -546,20 +670,19 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setIsLoadingAction(true);
     try {
       // Build array of file/folder IDs for the action
-      const fileOrFolderIds = selectedFiles.map((selectedFile) =>
-        JSON.stringify({
-          id: selectedFile.value?.id || selectedFile.id,
-          name: selectedFile.value?.name || selectedFile.label,
-          isFolder: selectedFile.value?.isFolder ?? false,
-        })
-      );
+      const fileOrFolderIds = selectedFiles.map((selectedFile) => {
+        const value = selectedFile.value as { id?: string; name?: string; isFolder?: boolean } | undefined;
+        return JSON.stringify({
+          id: value?.id || selectedFile.id,
+          name: value?.name || selectedFile.label,
+          isFolder: value?.isFolder ?? false,
+        });
+      });
 
       const propsWithFiles = {
         ...configuredProps,
         fileOrFolderIds,
       };
-
-      console.log("Running action with props:", propsWithFiles);
 
       // Single action call handles all files
       const response = await client.actions.run({
@@ -568,7 +691,6 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         configuredProps: propsWithFiles as Record<string, unknown>,
       });
 
-      console.log("Action response:", response);
       const result = response.ret as Record<string, unknown> | undefined;
       setActionResult(result ?? { error: "No data returned" });
     } catch (e) {
@@ -581,9 +703,9 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
   return (
     <div style={{ padding: "24px", maxWidth: "600px" }}>
-      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Configure-Based Picker</h1>
+      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Pipedream Connect File Picker</h1>
       <p style={{ color: "#666", marginBottom: "24px" }}>
-        Uses SDK&apos;s <code>/configure</code> endpoint to fetch options. Reuses existing component prop definitions.
+        Uses Pipedream&apos;s Connect React SDK to populate the file picker and retrieve the selected files.
       </p>
 
       {/* Account Selection */}
@@ -602,72 +724,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           selectedAccountId={selectedAccountId}
           onSelectAccount={setSelectedAccountId}
           onConnectNew={handleConnectNew}
+          app="sharepoint"
         />
-      </div>
-
-      {/* Theme Customization */}
-      <div style={{
-        padding: "20px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        marginBottom: "20px",
-        backgroundColor: "#fafafa",
-      }}>
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          Customize Theme
-        </h2>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-          <button
-            onClick={() => setSelectedTheme("light")}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "4px",
-              border: selectedTheme === "light" ? "2px solid #333" : "1px solid #ddd",
-              backgroundColor: themePresets.light.primary,
-              color: "#fff",
-              fontSize: "12px",
-              cursor: "pointer",
-            }}
-          >
-            Light
-          </button>
-          <button
-            onClick={() => setSelectedTheme("dark")}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "4px",
-              border: selectedTheme === "dark" ? "2px solid #333" : "1px solid #ddd",
-              backgroundColor: themePresets.dark.primary,
-              color: "#fff",
-              fontSize: "12px",
-              cursor: "pointer",
-            }}
-          >
-            Dark
-          </button>
-          <button
-            onClick={() => setSelectedTheme("custom")}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "4px",
-              border: selectedTheme === "custom" ? "2px solid #333" : "1px solid #ddd",
-              backgroundColor: customPrimaryColor,
-              color: "#fff",
-              fontSize: "12px",
-              cursor: "pointer",
-            }}
-          >
-            Custom
-          </button>
-          {selectedTheme === "custom" && (
-            <input
-              type="color"
-              value={customPrimaryColor}
-              onChange={(e) => setCustomPrimaryColor(e.target.value)}
-              style={{ width: "32px", height: "32px", cursor: "pointer", border: "none", padding: 0 }}
-            />
-          )}
-        </div>
       </div>
 
       {/* File Picker Trigger */}
@@ -680,7 +738,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         opacity: selectedAccountId ? 1 : 0.6,
       }}>
         <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          Select Files
+          2. Select Files
         </h2>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -703,6 +761,71 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             Please connect an account first
           </p>
         )}
+
+        {/* Theme Customization - subtle style */}
+        <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", color: "#666" }}>Theme:</span>
+            <button
+              onClick={() => setSelectedTheme("light")}
+              style={{
+                padding: "4px 10px",
+                borderRadius: "4px",
+                border: selectedTheme === "light" ? "2px solid #333" : "1px solid #ddd",
+                backgroundColor: themePresets.light.primary,
+                color: "#fff",
+                fontSize: "11px",
+                cursor: "pointer",
+              }}
+            >
+              Light
+            </button>
+            <button
+              onClick={() => setSelectedTheme("dark")}
+              style={{
+                padding: "4px 10px",
+                borderRadius: "4px",
+                border: selectedTheme === "dark" ? "2px solid #333" : "1px solid #ddd",
+                backgroundColor: themePresets.dark.primary,
+                color: "#fff",
+                fontSize: "11px",
+                cursor: "pointer",
+              }}
+            >
+              Dark
+            </button>
+            <button
+              onClick={() => setSelectedTheme("custom")}
+              style={{
+                padding: "4px 10px",
+                borderRadius: "4px",
+                border: selectedTheme === "custom" ? "2px solid #333" : "1px solid #ddd",
+                backgroundColor: customPrimaryColor,
+                color: "#fff",
+                fontSize: "11px",
+                cursor: "pointer",
+              }}
+            >
+              Custom
+            </button>
+            {selectedTheme === "custom" && (
+              <input
+                type="color"
+                value={customPrimaryColor}
+                onChange={(e) => setCustomPrimaryColor(e.target.value)}
+                style={{ width: "24px", height: "24px", cursor: "pointer", border: "none", padding: 0 }}
+              />
+            )}
+            <label style={{ marginLeft: "8px", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#666", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={showIcons}
+                onChange={(e) => setShowIcons(e.target.checked)}
+              />
+              Show folder and file icons
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Selected Files Display */}
@@ -786,7 +909,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             Action Result
           </h2>
           {/* Single file result */}
-          {actionResult.downloadUrl && (
+          {typeof actionResult.downloadUrl === "string" && (
             <div style={{ marginBottom: "12px" }}>
               <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "4px" }}>
                 Download URL (valid ~1 hour):
@@ -823,7 +946,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                       marginBottom: "6px",
                     }}
                   >
-                    <strong style={{ fontSize: "13px" }}>{file.name as string}</strong>
+                    <strong style={{ fontSize: "13px" }}>{String(file.name)}</strong>
                     {file.downloadUrl && (
                       <div style={{ marginTop: "4px" }}>
                         <a
@@ -909,6 +1032,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             multiSelect={true}
             selectFolders={true}
             selectFiles={true}
+            showIcons={showIcons}
           />
         </CustomizeProvider>
       )}
@@ -962,7 +1086,7 @@ export default function FilePickerPage() {
               fontWeight: 500,
               marginBottom: "8px",
             }}>
-              Hybrid (Configure API)
+              Pipedream connect-react
             </div>
             <ConfigureFilePickerDemo externalUserId={externalUserId} />
           </div>
@@ -984,7 +1108,7 @@ export default function FilePickerPage() {
             }}>
               Native Microsoft UI
             </div>
-            <NativeSharePointPicker />
+            <NativeSharePointPicker externalUserId={externalUserId} client={client} />
           </div>
         </div>
       </FrontendClientProvider>
