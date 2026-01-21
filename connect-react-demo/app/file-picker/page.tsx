@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useStableUuid } from "@/lib/stable-uuid";
 import {
   FrontendClientProvider,
   CustomizeProvider,
@@ -1041,13 +1042,14 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 }
 
 export default function FilePickerPage() {
-  const externalUserId = process.env.NEXT_PUBLIC_EXTERNAL_USER_ID || "file-picker-test-user";
+  const [externalUserId] = useStableUuid();
   const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST;
   const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST;
   const environment = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT as PipedreamEnvironment || undefined;
   const projectEnvironment = process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT as ProjectEnvironment;
 
   const client = useMemo(() => {
+    if (!externalUserId) return null;
     return createFrontendClient({
       ...(frontendHost && { frontendHost }),
       ...(apiHost && { apiHost }),
@@ -1057,6 +1059,10 @@ export default function FilePickerPage() {
       externalUserId,
     });
   }, [externalUserId, frontendHost, apiHost, environment, projectEnvironment]);
+
+  if (!client) {
+    return <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>Loading...</div>;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
