@@ -600,7 +600,9 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const [selectedTheme, setSelectedTheme] = useState<keyof typeof themePresets | "custom">("light");
   const [customPrimaryColor, setCustomPrimaryColor] = useState("#2684FF");
   const [actionResult, setActionResult] = useState<Record<string, unknown> | null>(null);
+  const [permissionsResult, setPermissionsResult] = useState<Record<string, unknown> | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [showIcons, setShowIcons] = useState(true);
 
   const currentTheme = useMemo(() => {
@@ -658,6 +660,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setSelectedFiles(items);
     setConfiguredProps(props);
     setActionResult(null); // Reset action result when new selection is made
+    setPermissionsResult(null); // Reset permissions result when new selection is made
     setIsModalOpen(false);
   };
 
@@ -687,7 +690,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       // Single action call handles all files
       const response = await client.actions.run({
-        id: "~/sharepoint-select-files",
+        id: "sharepoint-select-files",
         externalUserId,
         configuredProps: propsWithFiles as Record<string, unknown>,
       });
@@ -699,6 +702,44 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
     } finally {
       setIsLoadingAction(false);
+    }
+  };
+
+  const handleGetPermissions = async () => {
+    if (!configuredProps || selectedFiles.length === 0) return;
+
+    setIsLoadingPermissions(true);
+    setPermissionsResult(null);
+    try {
+      // Build array of file/folder IDs for the action
+      const fileOrFolderIds = selectedFiles.map((selectedFile) => {
+        const value = selectedFile.value as { id?: string; name?: string; isFolder?: boolean } | undefined;
+        return JSON.stringify({
+          id: value?.id || selectedFile.id,
+          name: value?.name || selectedFile.label,
+          isFolder: value?.isFolder ?? false,
+        });
+      });
+
+      const propsWithFiles = {
+        ...configuredProps,
+        fileOrFolderIds,
+        includeFileMetadata: true, // Also fetch download URLs
+      };
+
+      const response = await client.actions.run({
+        id: "~/sharepoint-get-file-permissions",
+        externalUserId,
+        configuredProps: propsWithFiles as Record<string, unknown>,
+      });
+
+      const result = response.ret as Record<string, unknown> | undefined;
+      setPermissionsResult(result ?? { error: "No data returned" });
+    } catch (e) {
+      console.error("Failed to get permissions:", e);
+      setPermissionsResult({ error: e instanceof Error ? e.message : "Unknown error" });
+    } finally {
+      setIsLoadingPermissions(false);
     }
   };
 
@@ -858,25 +899,43 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             ))}
           </ul>
 
-          {/* Get File URLs Button */}
-          <button
-            onClick={handleGetFileUrls}
-            disabled={isLoadingAction}
-            style={{
-              marginTop: "16px",
-              padding: "10px 20px",
-              backgroundColor: buttonColor,
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: isLoadingAction ? "wait" : "pointer",
-              fontSize: "14px",
-              fontWeight: 500,
-              opacity: isLoadingAction ? 0.7 : 1,
-            }}
-          >
-            {isLoadingAction ? "Loading..." : "Get File URLs"}
-          </button>
+          {/* Action Buttons */}
+          <div style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
+            <button
+              onClick={handleGetFileUrls}
+              disabled={isLoadingAction || isLoadingPermissions}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: buttonColor,
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: isLoadingAction || isLoadingPermissions ? "wait" : "pointer",
+                fontSize: "14px",
+                fontWeight: 500,
+                opacity: isLoadingAction ? 0.7 : 1,
+              }}
+            >
+              {isLoadingAction ? "Loading..." : "Get File URLs"}
+            </button>
+            <button
+              onClick={handleGetPermissions}
+              disabled={isLoadingAction || isLoadingPermissions}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#6366f1",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: isLoadingAction || isLoadingPermissions ? "wait" : "pointer",
+                fontSize: "14px",
+                fontWeight: 500,
+                opacity: isLoadingPermissions ? 0.7 : 1,
+              }}
+            >
+              {isLoadingPermissions ? "Loading..." : "Get Permissions"}
+            </button>
+          </div>
 
           <details style={{ marginTop: "12px" }}>
             <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
@@ -989,6 +1048,173 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         </div>
       )}
 
+      {/* Permissions Result Display */}
+      {permissionsResult && (
+        <div style={{
+          padding: "20px",
+          border: "1px solid #e5e5e5",
+          borderRadius: "8px",
+          backgroundColor: permissionsResult.error ? "#fef2f2" : "#f5f3ff",
+          marginBottom: "20px",
+        }}>
+          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
+            Permissions
+          </h2>
+          {permissionsResult.error && (
+            <p style={{ color: "#dc2626", margin: 0 }}>{String(permissionsResult.error)}</p>
+          )}
+          {/* Single item permissions */}
+          {permissionsResult.permissions && Array.isArray(permissionsResult.permissions) && (
+            <div>
+              <p style={{ fontSize: "13px", color: "#666", marginBottom: "8px" }}>
+                <strong>{String(permissionsResult.itemName)}</strong> - {(permissionsResult.permissions as unknown[]).length} permission(s)
+              </p>
+              {permissionsResult.downloadUrl && (
+                <p style={{ fontSize: "13px", marginBottom: "12px" }}>
+                  <a
+                    href={String(permissionsResult.downloadUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#6366f1" }}
+                  >
+                    Download file
+                  </a>
+                  <span style={{ color: "#999", marginLeft: "8px", fontSize: "11px" }}>
+                    (URL valid ~1 hour)
+                  </span>
+                </p>
+              )}
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {(permissionsResult.permissions as Array<Record<string, unknown>>).map((perm, index) => (
+                  <li
+                    key={index}
+                    style={{
+                      padding: "8px 12px",
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e5e5",
+                      borderRadius: "6px",
+                      marginBottom: "6px",
+                      fontSize: "13px",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{
+                        padding: "2px 8px",
+                        backgroundColor: "#e0e7ff",
+                        borderRadius: "4px",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                      }}>
+                        {((perm.roles as string[]) || []).join(", ")}
+                      </span>
+                      {perm.user && (
+                        <span>{String((perm.user as Record<string, unknown>).displayName || (perm.user as Record<string, unknown>).email)}</span>
+                      )}
+                      {perm.group && (
+                        <span>{String((perm.group as Record<string, unknown>).displayName)}</span>
+                      )}
+                      {perm.link && (
+                        <span style={{ color: "#666" }}>
+                          Sharing link ({String((perm.link as Record<string, unknown>).type)} - {String((perm.link as Record<string, unknown>).scope)})
+                        </span>
+                      )}
+                      {perm.inheritedFrom && (
+                        <span style={{ fontSize: "11px", color: "#999" }}>(inherited)</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/* Multiple items permissions */}
+          {permissionsResult.items && Array.isArray(permissionsResult.items) && (
+            <div>
+              <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
+                {String(permissionsResult.totalPermissions)} total permission(s) across {(permissionsResult.items as unknown[]).length} item(s)
+              </p>
+              {(permissionsResult.items as Array<Record<string, unknown>>).map((item, itemIndex) => (
+                <div key={itemIndex} style={{ marginBottom: "16px" }}>
+                  <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}>
+                    {String(item.itemName)} ({((item.permissions as unknown[]) || []).length} permissions)
+                  </h4>
+                  {item.downloadUrl && (
+                    <p style={{ fontSize: "12px", marginBottom: "8px", marginTop: 0 }}>
+                      <a
+                        href={String(item.downloadUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#6366f1" }}
+                      >
+                        Download
+                      </a>
+                    </p>
+                  )}
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {((item.permissions as Array<Record<string, unknown>>) || []).map((perm, permIndex) => (
+                      <li
+                        key={permIndex}
+                        style={{
+                          padding: "8px 12px",
+                          backgroundColor: "#fff",
+                          border: "1px solid #e5e5e5",
+                          borderRadius: "6px",
+                          marginBottom: "6px",
+                          fontSize: "13px",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                          <span style={{
+                            padding: "2px 8px",
+                            backgroundColor: "#e0e7ff",
+                            borderRadius: "4px",
+                            fontSize: "11px",
+                            fontWeight: 500,
+                          }}>
+                            {((perm.roles as string[]) || []).join(", ")}
+                          </span>
+                          {perm.user && (
+                            <span>{String((perm.user as Record<string, unknown>).displayName || (perm.user as Record<string, unknown>).email)}</span>
+                          )}
+                          {perm.group && (
+                            <span>{String((perm.group as Record<string, unknown>).displayName)}</span>
+                          )}
+                          {perm.link && (
+                            <span style={{ color: "#666" }}>
+                              Sharing link ({String((perm.link as Record<string, unknown>).type)} - {String((perm.link as Record<string, unknown>).scope)})
+                            </span>
+                          )}
+                          {perm.inheritedFrom && (
+                            <span style={{ fontSize: "11px", color: "#999" }}>(inherited)</span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+          <details style={{ marginTop: "12px" }}>
+            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+              View full response
+            </summary>
+            <pre style={{
+              marginTop: "8px",
+              padding: "12px",
+              backgroundColor: "#fff",
+              borderRadius: "6px",
+              overflow: "auto",
+              fontSize: "12px",
+              border: "1px solid #e5e5e5",
+              maxHeight: "300px",
+            }}>
+              {JSON.stringify(permissionsResult, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
+
       {/* Configured Props Display */}
       {configuredProps && (
         <div style={{
@@ -1022,7 +1248,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <ConfigureFilePickerModal
             isOpen={isModalOpen}
             title="Select SharePoint Files"
-            componentKey="~/sharepoint-select-files"
+            componentKey="sharepoint-select-files"
             app="sharepoint"
             accountId={selectedAccountId}
             externalUserId={externalUserId}
