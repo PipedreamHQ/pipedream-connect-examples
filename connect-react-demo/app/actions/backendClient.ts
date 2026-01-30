@@ -5,6 +5,7 @@ import { backendClient } from "@/lib/backend-client";
 
 export type FetchTokenOpts = {
   externalUserId: string
+  successRedirectUri?: string
 }
 
 export type ProxyRequestOpts = {
@@ -35,6 +36,7 @@ export const fetchToken = async (opts: FetchTokenOpts) => {
     externalUserId: opts.externalUserId,
     allowedOrigins: allowedOrigins, // TODO set this to the correct origin
     webhookUri: process.env.PIPEDREAM_CONNECT_WEBHOOK_URI,
+    ...(opts.successRedirectUri && { successRedirectUri: opts.successRedirectUri }),
   });
   return resp
 }
@@ -98,6 +100,13 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
 }
 
 export const proxyRequest = _proxyRequest
+
+export const validateConnectToken = async (opts: { token: string; appId: string }) => {
+  const serverClient = backendClient()
+  return serverClient.tokens.validate(opts.token, {
+    appId: opts.appId,
+  })
+}
 
 export type GetAccountCredentialsOpts = {
   externalUserId: string
