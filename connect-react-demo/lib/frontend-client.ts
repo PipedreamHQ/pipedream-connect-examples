@@ -17,6 +17,8 @@ export const deferredTokenCallback = (opts: FetchTokenOpts) => {
   });
 };
 
+export const CONNECT_BASE_URL = `https://${process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST || "pipedream.com"}`;
+
 export function createClient(externalUserId: string) {
   const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST;
   const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST;

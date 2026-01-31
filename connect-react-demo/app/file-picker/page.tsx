@@ -14,6 +14,106 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { getAccountCredentials } from "../actions/backendClient";
 import { queryClient, deferredTokenCallback, createClient } from "@/lib/frontend-client";
 
+// ============================================
+// Shared Styles
+// ============================================
+
+const sectionStyle: React.CSSProperties = {
+  padding: "20px",
+  border: "1px solid #e5e5e5",
+  borderRadius: "8px",
+  marginBottom: "20px",
+  backgroundColor: "#fafafa",
+};
+
+const sectionHeadingStyle: React.CSSProperties = {
+  margin: "0 0 16px 0",
+  fontSize: "1rem",
+  fontWeight: 600,
+};
+
+const listItemStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  backgroundColor: "#fff",
+  border: "1px solid #e5e5e5",
+  borderRadius: "6px",
+  marginBottom: "6px",
+  fontSize: "13px",
+};
+
+const resetListStyle: React.CSSProperties = {
+  listStyle: "none",
+  padding: 0,
+  margin: 0,
+};
+
+const badgeStyle: React.CSSProperties = {
+  padding: "2px 8px",
+  borderRadius: "4px",
+  fontSize: "11px",
+  fontWeight: 500,
+};
+
+function actionButtonStyle(color: string, loading: boolean, disabled: boolean): React.CSSProperties {
+  return {
+    padding: "10px 20px",
+    backgroundColor: disabled ? "#ccc" : color,
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: disabled ? "not-allowed" : loading ? "wait" : "pointer",
+    fontSize: "14px",
+    fontWeight: 500,
+    opacity: loading ? 0.7 : 1,
+  };
+}
+
+function disabledSectionStyle(enabled: boolean): React.CSSProperties {
+  return {
+    ...sectionStyle,
+    backgroundColor: enabled ? "#fafafa" : "#f5f5f5",
+    opacity: enabled ? 1 : 0.6,
+  };
+}
+
+// ============================================
+// Shared Utilities
+// ============================================
+
+function connectAccountPromise(
+  client: ReturnType<typeof createFrontendClient>,
+  opts: {
+    app: string;
+    oauthAppId?: string;
+    hideClose?: boolean;
+    onSuccess: (id: string) => void;
+    onError: (message: string) => void;
+  },
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    client.connectAccount({
+      app: opts.app,
+      ...(opts.oauthAppId && { oauthAppId: opts.oauthAppId }),
+      ...(opts.hideClose && { hideClose: true }),
+      onSuccess: ({ id }) => {
+        opts.onSuccess(id);
+        resolve();
+      },
+      onError: (err) => {
+        opts.onError(err instanceof Error ? err.message : "Failed to connect account");
+        resolve();
+      },
+      onClose: ({ successful }) => {
+        if (!successful) resolve();
+      },
+    });
+  });
+}
+
+// ============================================
+// Shared Components
+// ============================================
+
 // Copy button component for JSON displays
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -56,6 +156,37 @@ function CopyButton({ text }: { text: string }) {
         </svg>
       )}
     </button>
+  );
+}
+
+// Permission list (used in single-item and multi-item views)
+function PermissionList({ permissions }: { permissions: Array<Record<string, unknown>> }) {
+  return (
+    <ul style={resetListStyle}>
+      {permissions.map((perm, index) => (
+        <li key={index} style={listItemStyle}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ ...badgeStyle, backgroundColor: "#e0e7ff" }}>
+              {((perm.roles as string[]) || []).join(", ")}
+            </span>
+            {perm.user && (
+              <span>{String((perm.user as Record<string, unknown>).displayName || (perm.user as Record<string, unknown>).email)}</span>
+            )}
+            {perm.group && (
+              <span>{String((perm.group as Record<string, unknown>).displayName)}</span>
+            )}
+            {perm.link && (
+              <span style={{ color: "#666" }}>
+                Sharing link ({String((perm.link as Record<string, unknown>).type)} - {String((perm.link as Record<string, unknown>).scope)})
+              </span>
+            )}
+            {perm.inheritedFrom && (
+              <span style={{ fontSize: "11px", color: "#999" }}>(inherited)</span>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -260,28 +391,13 @@ function NativeSharePointPicker({
     fetchCredentials();
   }, [selectedAccountId, externalUserId]);
 
-  const handleConnectNew = async () => {
-    return new Promise<void>((resolve) => {
-      client.connectAccount({
-        app: "microsoft_sharepoint_dev",
-        oauthAppId: "oa_49i2rd",
-        onSuccess: ({ id }) => {
-          setSelectedAccountId(id);
-          resolve();
-        },
-        onError: (err) => {
-          console.error("Failed to connect account:", err);
-          setError(err instanceof Error ? err.message : "Failed to connect account");
-          resolve();
-        },
-        onClose: ({ successful }) => {
-          if (!successful) {
-            resolve();
-          }
-        },
-      });
+  const handleConnectNew = () =>
+    connectAccountPromise(client, {
+      app: "microsoft_sharepoint_dev",
+      oauthAppId: "oa_49i2rd",
+      onSuccess: (id) => setSelectedAccountId(id),
+      onError: (msg) => setError(msg),
     });
-  };
 
   // Fetch download URLs for picked files using SharePoint REST API
   const fetchDownloadUrls = useCallback(async (items: NativePickerFile[]): Promise<NativePickerFile[]> => {
@@ -484,24 +600,10 @@ function NativeSharePointPicker({
   const hasConfig = accessToken && sharepointBaseUrl;
 
   return (
-    <div style={{ padding: "24px", maxWidth: "600px" }}>
-      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>
-        Native SharePoint Picker
-      </h1>
-      <p style={{ color: "#666", marginBottom: "24px" }}>
-        Microsoft&apos;s native file picker UI (v8) - requires passing the SharePoint OAuth access token from the client browser.
-      </p>
+    <div style={{ maxWidth: "600px" }}>
       {/* Account Selection */}
-      <div style={{
-        padding: "20px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        marginBottom: "20px",
-        backgroundColor: "#fafafa",
-      }}>
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          1. Connect Account
-        </h2>
+      <div style={sectionStyle}>
+        <h2 style={sectionHeadingStyle}>1. Connect Account</h2>
         <AccountSelector
           externalUserId={externalUserId}
           selectedAccountId={selectedAccountId}
@@ -512,17 +614,8 @@ function NativeSharePointPicker({
       </div>
 
       {/* Picker Trigger */}
-      <div style={{
-        padding: "20px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        marginBottom: "20px",
-        backgroundColor: hasConfig ? "#fafafa" : "#f5f5f5",
-        opacity: hasConfig ? 1 : 0.6,
-      }}>
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          2. Select Files
-        </h2>
+      <div style={disabledSectionStyle(!!hasConfig)}>
+        <h2 style={sectionHeadingStyle}>2. Select Files</h2>
         <button
           onClick={openNativePicker}
           disabled={!hasConfig || isPickerOpen}
@@ -553,27 +646,13 @@ function NativeSharePointPicker({
 
       {/* Selected Files */}
       {selectedFiles.length > 0 && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: "#f0f9ff",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
+        <div style={{ ...sectionStyle, backgroundColor: "#f0f9ff" }}>
+          <h2 style={sectionHeadingStyle}>
             Selected Files ({selectedFiles.length})
           </h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          <ul style={resetListStyle}>
             {selectedFiles.map((file) => (
-              <li
-                key={file.id}
-                style={{
-                  padding: "10px 12px",
-                  backgroundColor: "#fff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "6px",
-                  marginBottom: "8px",
-                }}
-              >
+              <li key={file.id} style={{ ...listItemStyle, marginBottom: "8px" }}>
                 <strong>{file.name}</strong>
                 <br />
                 <small style={{ color: "#666" }}>
@@ -673,26 +752,12 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
   const client = useMemo(() => createClient(externalUserId), [externalUserId]);
 
-  const handleConnectNew = async () => {
-    return new Promise<void>((resolve) => {
-      client.connectAccount({
-        app: "sharepoint",
-        onSuccess: ({ id }) => {
-          setSelectedAccountId(id);
-          resolve();
-        },
-        onError: (err) => {
-          setError(err instanceof Error ? err.message : "Failed to connect account");
-          resolve();
-        },
-        onClose: ({ successful }) => {
-          if (!successful) {
-            resolve();
-          }
-        },
-      });
+  const handleConnectNew = () =>
+    connectAccountPromise(client, {
+      app: "sharepoint",
+      onSuccess: (id) => setSelectedAccountId(id),
+      onError: (msg) => console.error(msg),
     });
-  };
 
   const handleSelect = (items: FilePickerItem[], props: Record<string, unknown>) => {
     setSelectedFiles(items);
@@ -708,35 +773,27 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setIsModalOpen(false);
   };
 
+  const buildFileOrFolderIds = () =>
+    selectedFiles.map((f) => {
+      const value = f.value as { id?: string; name?: string; isFolder?: boolean } | undefined;
+      return JSON.stringify({
+        id: value?.id || f.id,
+        name: value?.name || f.label,
+        isFolder: value?.isFolder ?? false,
+      });
+    });
+
   const handleGetFileUrls = async () => {
     if (!configuredProps || selectedFiles.length === 0) return;
 
     setIsLoadingAction(true);
     try {
-      // Build array of file/folder IDs for the action
-      const fileOrFolderIds = selectedFiles.map((selectedFile) => {
-        const value = selectedFile.value as { id?: string; name?: string; isFolder?: boolean } | undefined;
-        return JSON.stringify({
-          id: value?.id || selectedFile.id,
-          name: value?.name || selectedFile.label,
-          isFolder: value?.isFolder ?? false,
-        });
-      });
-
-      const propsWithFiles = {
-        ...configuredProps,
-        fileOrFolderIds,
-      };
-
-      // Single action call handles all files
       const response = await client.actions.run({
         id: "sharepoint-select-files",
         externalUserId,
-        configuredProps: propsWithFiles as Record<string, unknown>,
+        configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() } as Record<string, unknown>,
       });
-
-      const result = response.ret as Record<string, unknown> | undefined;
-      setActionResult(result ?? { error: "No data returned" });
+      setActionResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
     } catch (e) {
       console.error("Failed to run action:", e);
       setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
@@ -751,31 +808,17 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setIsLoadingPermissions(true);
     setPermissionsResult(null);
     try {
-      // Build array of file/folder IDs for the action
-      const fileOrFolderIds = selectedFiles.map((selectedFile) => {
-        const value = selectedFile.value as { id?: string; name?: string; isFolder?: boolean } | undefined;
-        return JSON.stringify({
-          id: value?.id || selectedFile.id,
-          name: value?.name || selectedFile.label,
-          isFolder: value?.isFolder ?? false,
-        });
-      });
-
-      const propsWithFiles = {
-        ...configuredProps,
-        fileOrFolderIds,
-        includeFileMetadata: true, // Also fetch download URLs
-        expandGroupsToUsers: true, // Expand permission groups to individual users
-      };
-
       const response = await client.actions.run({
         id: "~/sharepoint-get-file-permissions",
         externalUserId,
-        configuredProps: propsWithFiles as Record<string, unknown>,
+        configuredProps: {
+          ...configuredProps,
+          fileOrFolderIds: buildFileOrFolderIds(),
+          includeFileMetadata: true,
+          expandGroupsToUsers: true,
+        } as Record<string, unknown>,
       });
-
-      const result = response.ret as Record<string, unknown> | undefined;
-      setPermissionsResult(result ?? { error: "No data returned" });
+      setPermissionsResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
     } catch (e) {
       console.error("Failed to get permissions:", e);
       setPermissionsResult({ error: e instanceof Error ? e.message : "Unknown error" });
@@ -897,23 +940,10 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   };
 
   return (
-    <div style={{ padding: "24px", maxWidth: "600px" }}>
-      <h1 style={{ marginBottom: "8px", fontSize: "1.5rem" }}>Pipedream Connect File Picker</h1>
-      <p style={{ color: "#666", marginBottom: "24px" }}>
-        Uses Pipedream&apos;s Connect React SDK to populate the file picker and retrieve the selected files.
-      </p>
-
+    <div style={{ maxWidth: "600px" }}>
       {/* Account Selection */}
-      <div style={{
-        padding: "20px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        marginBottom: "20px",
-        backgroundColor: "#fafafa",
-      }}>
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          1. Connect Account
-        </h2>
+      <div style={sectionStyle}>
+        <h2 style={sectionHeadingStyle}>1. Connect Account</h2>
         <AccountSelector
           externalUserId={externalUserId}
           selectedAccountId={selectedAccountId}
@@ -924,17 +954,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       </div>
 
       {/* File Picker Trigger */}
-      <div style={{
-        padding: "20px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        marginBottom: "20px",
-        backgroundColor: selectedAccountId ? "#fafafa" : "#f5f5f5",
-        opacity: selectedAccountId ? 1 : 0.6,
-      }}>
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-          2. Select Files
-        </h2>
+      <div style={disabledSectionStyle(!!selectedAccountId)}>
+        <h2 style={sectionHeadingStyle}>2. Select Files</h2>
         <button
           onClick={() => setIsModalOpen(true)}
           disabled={!selectedAccountId}
@@ -1025,28 +1046,13 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Selected Files Display */}
       {selectedFiles.length > 0 && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: "#f0f9ff",
-          marginBottom: "20px",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
+        <div style={{ ...sectionStyle, backgroundColor: "#f0f9ff" }}>
+          <h2 style={sectionHeadingStyle}>
             Selected Files ({selectedFiles.length})
           </h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          <ul style={resetListStyle}>
             {selectedFiles.map((file) => (
-              <li
-                key={file.id}
-                style={{
-                  padding: "10px 12px",
-                  backgroundColor: "#fff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "6px",
-                  marginBottom: "8px",
-                }}
-              >
+              <li key={file.id} style={{ ...listItemStyle, marginBottom: "8px" }}>
                 <strong>{file.label}</strong>
               </li>
             ))}
@@ -1057,34 +1063,14 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             <button
               onClick={handleGetFileUrls}
               disabled={isLoadingAction || isLoadingPermissions}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: buttonColor,
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: isLoadingAction || isLoadingPermissions ? "wait" : "pointer",
-                fontSize: "14px",
-                fontWeight: 500,
-                opacity: isLoadingAction ? 0.7 : 1,
-              }}
+              style={actionButtonStyle(buttonColor, isLoadingAction, false)}
             >
               {isLoadingAction ? "Loading..." : "Get File URLs"}
             </button>
             <button
               onClick={handleGetPermissions}
               disabled={isLoadingAction || isLoadingPermissions}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#6366f1",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: isLoadingAction || isLoadingPermissions ? "wait" : "pointer",
-                fontSize: "14px",
-                fontWeight: 500,
-                opacity: isLoadingPermissions ? 0.7 : 1,
-              }}
+              style={actionButtonStyle("#6366f1", isLoadingPermissions, false)}
             >
               {isLoadingPermissions ? "Loading..." : "Get Permissions"}
             </button>
@@ -1101,16 +1087,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Action Result Display */}
       {actionResult && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: actionResult.error ? "#fef2f2" : "#f0fdf4",
-          marginBottom: "20px",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            Action Result
-          </h2>
+        <div style={{ ...sectionStyle, backgroundColor: actionResult.error ? "#fef2f2" : "#f0fdf4" }}>
+          <h2 style={sectionHeadingStyle}>Action Result</h2>
           {/* Single file result */}
           {typeof actionResult.downloadUrl === "string" && (
             <div style={{ marginBottom: "12px" }}>
@@ -1137,18 +1115,9 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "8px" }}>
                 Download URLs (valid ~1 hour):
               </label>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ul style={resetListStyle}>
                 {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
-                  <li
-                    key={index}
-                    style={{
-                      padding: "8px 12px",
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e5e5",
-                      borderRadius: "6px",
-                      marginBottom: "6px",
-                    }}
-                  >
+                  <li key={index} style={listItemStyle}>
                     <strong style={{ fontSize: "13px" }}>{String(file.name)}</strong>
                     {file.downloadUrl && (
                       <div style={{ marginTop: "4px" }}>
@@ -1182,16 +1151,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Permissions Result Display */}
       {permissionsResult && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: permissionsResult.error ? "#fef2f2" : "#f5f3ff",
-          marginBottom: "20px",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            Permissions
-          </h2>
+        <div style={{ ...sectionStyle, backgroundColor: permissionsResult.error ? "#fef2f2" : "#f5f3ff" }}>
+          <h2 style={sectionHeadingStyle}>Permissions</h2>
           {permissionsResult.error && (
             <p style={{ color: "#dc2626", margin: 0 }}>{String(permissionsResult.error)}</p>
           )}
@@ -1216,47 +1177,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                   </span>
                 </p>
               )}
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {(permissionsResult.permissions as Array<Record<string, unknown>>).map((perm, index) => (
-                  <li
-                    key={index}
-                    style={{
-                      padding: "8px 12px",
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e5e5",
-                      borderRadius: "6px",
-                      marginBottom: "6px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                      <span style={{
-                        padding: "2px 8px",
-                        backgroundColor: "#e0e7ff",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                      }}>
-                        {((perm.roles as string[]) || []).join(", ")}
-                      </span>
-                      {perm.user && (
-                        <span>{String((perm.user as Record<string, unknown>).displayName || (perm.user as Record<string, unknown>).email)}</span>
-                      )}
-                      {perm.group && (
-                        <span>{String((perm.group as Record<string, unknown>).displayName)}</span>
-                      )}
-                      {perm.link && (
-                        <span style={{ color: "#666" }}>
-                          Sharing link ({String((perm.link as Record<string, unknown>).type)} - {String((perm.link as Record<string, unknown>).scope)})
-                        </span>
-                      )}
-                      {perm.inheritedFrom && (
-                        <span style={{ fontSize: "11px", color: "#999" }}>(inherited)</span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <PermissionList permissions={permissionsResult.permissions as Array<Record<string, unknown>>} />
             </div>
           )}
           {/* Multiple items permissions */}
@@ -1282,47 +1203,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                       </a>
                     </p>
                   )}
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {((item.permissions as Array<Record<string, unknown>>) || []).map((perm, permIndex) => (
-                      <li
-                        key={permIndex}
-                        style={{
-                          padding: "8px 12px",
-                          backgroundColor: "#fff",
-                          border: "1px solid #e5e5e5",
-                          borderRadius: "6px",
-                          marginBottom: "6px",
-                          fontSize: "13px",
-                        }}
-                      >
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                          <span style={{
-                            padding: "2px 8px",
-                            backgroundColor: "#e0e7ff",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: 500,
-                          }}>
-                            {((perm.roles as string[]) || []).join(", ")}
-                          </span>
-                          {perm.user && (
-                            <span>{String((perm.user as Record<string, unknown>).displayName || (perm.user as Record<string, unknown>).email)}</span>
-                          )}
-                          {perm.group && (
-                            <span>{String((perm.group as Record<string, unknown>).displayName)}</span>
-                          )}
-                          {perm.link && (
-                            <span style={{ color: "#666" }}>
-                              Sharing link ({String((perm.link as Record<string, unknown>).type)} - {String((perm.link as Record<string, unknown>).scope)})
-                            </span>
-                          )}
-                          {perm.inheritedFrom && (
-                            <span style={{ fontSize: "11px", color: "#999" }}>(inherited)</span>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <PermissionList permissions={(item.permissions as Array<Record<string, unknown>>) || []} />
                 </div>
               ))}
             </div>
@@ -1333,18 +1214,11 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               <h3 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", fontWeight: 600, color: "#10b981" }}>
                 Users with Access ({((permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) as Array<Record<string, unknown>>).length})
               </h3>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ul style={resetListStyle}>
                 {((permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) as Array<Record<string, unknown>>).map((user, index) => (
                   <li
                     key={user.email as string || index}
-                    style={{
-                      padding: "10px 12px",
-                      backgroundColor: "#fff",
-                      border: "1px solid #d1fae5",
-                      borderRadius: "6px",
-                      marginBottom: "6px",
-                      fontSize: "13px",
-                    }}
+                    style={{ ...listItemStyle, border: "1px solid #d1fae5" }}
                   >
                     <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
                       <strong>{String(user.displayName)}</strong>
@@ -1352,11 +1226,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                         <span style={{ color: "#666" }}>{String(user.email)}</span>
                       )}
                       <span style={{
-                        padding: "2px 8px",
+                        ...badgeStyle,
                         backgroundColor: user.accessLevel === "owner" ? "#fef3c7" : user.accessLevel === "write" ? "#dbeafe" : "#d1fae5",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        fontWeight: 500,
                       }}>
                         {String(user.accessLevel)}
                       </span>
@@ -1378,34 +1249,14 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                 <button
                   onClick={handleGetUsersWithReadAccess}
                   disabled={isLoadingUsers || isLoadingSiteMembers}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#10b981",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: isLoadingUsers || isLoadingSiteMembers ? "wait" : "pointer",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    opacity: isLoadingUsers ? 0.7 : 1,
-                  }}
+                  style={actionButtonStyle("#10b981", isLoadingUsers, false)}
                 >
                   {isLoadingUsers ? "Loading..." : "Expand Groups to Users"}
                 </button>
                 <button
                   onClick={handleGetSiteMembers}
                   disabled={isLoadingUsers || isLoadingSiteMembers}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#8b5cf6",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: isLoadingUsers || isLoadingSiteMembers ? "wait" : "pointer",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    opacity: isLoadingSiteMembers ? 0.7 : 1,
-                  }}
+                  style={actionButtonStyle("#8b5cf6", isLoadingSiteMembers, false)}
                 >
                   {isLoadingSiteMembers ? "Loading..." : "List All Site Members"}
                 </button>
@@ -1426,14 +1277,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Users with Read Access Display */}
       {usersWithReadAccess && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: "#ecfdf5",
-          marginBottom: "20px",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
+        <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
+          <h2 style={sectionHeadingStyle}>
             Users with Read Access ({usersWithReadAccess.length})
           </h2>
           {usersWithReadAccess.length === 0 ? (
@@ -1444,32 +1289,16 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           ) : usersWithReadAccess[0]?.error ? (
             <p style={{ color: "#dc2626", margin: 0 }}>{String(usersWithReadAccess[0].error)}</p>
           ) : (
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            <ul style={resetListStyle}>
               {usersWithReadAccess.map((user, index) => (
-                <li
-                  key={user.id as string || index}
-                  style={{
-                    padding: "10px 12px",
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e5e5",
-                    borderRadius: "6px",
-                    marginBottom: "6px",
-                    fontSize: "13px",
-                  }}
-                >
+                <li key={user.id as string || index} style={listItemStyle}>
                   <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
                     <strong>{String(user.displayName)}</strong>
                     {user.email && (
                       <span style={{ color: "#666" }}>{String(user.email)}</span>
                     )}
                     {user.role && (
-                      <span style={{
-                        padding: "2px 8px",
-                        backgroundColor: "#d1fae5",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                      }}>
+                      <span style={{ ...badgeStyle, backgroundColor: "#d1fae5" }}>
                         {String(user.role)}
                       </span>
                     )}
@@ -1493,16 +1322,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Site Members Display */}
       {siteMembersResult && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: siteMembersResult.error ? "#fef2f2" : "#f5f3ff",
-          marginBottom: "20px",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            Site Members
-          </h2>
+        <div style={{ ...sectionStyle, backgroundColor: siteMembersResult.error ? "#fef2f2" : "#f5f3ff" }}>
+          <h2 style={sectionHeadingStyle}>Site Members</h2>
           {siteMembersResult.error ? (
             <p style={{ color: "#dc2626", margin: 0 }}>{String(siteMembersResult.error)}</p>
           ) : (
@@ -1535,19 +1356,9 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                       <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "#7c3aed" }}>
                         Owners
                       </h4>
-                      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                      <ul style={resetListStyle}>
                         {((siteMembersResult.byRole as Record<string, unknown>).owners as Array<Record<string, unknown>>).map((user, index) => (
-                          <li
-                            key={user.id as string || index}
-                            style={{
-                              padding: "8px 12px",
-                              backgroundColor: "#fff",
-                              border: "1px solid #e5e5e5",
-                              borderRadius: "6px",
-                              marginBottom: "4px",
-                              fontSize: "13px",
-                            }}
-                          >
+                          <li key={user.id as string || index} style={{ ...listItemStyle, marginBottom: "4px" }}>
                             <strong>{String(user.displayName)}</strong>
                             {user.email && <span style={{ color: "#666", marginLeft: "8px" }}>{String(user.email)}</span>}
                           </li>
@@ -1562,19 +1373,9 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                       <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "#7c3aed" }}>
                         Members
                       </h4>
-                      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                      <ul style={resetListStyle}>
                         {((siteMembersResult.byRole as Record<string, unknown>).members as Array<Record<string, unknown>>).map((user, index) => (
-                          <li
-                            key={user.id as string || index}
-                            style={{
-                              padding: "8px 12px",
-                              backgroundColor: "#fff",
-                              border: "1px solid #e5e5e5",
-                              borderRadius: "6px",
-                              marginBottom: "4px",
-                              fontSize: "13px",
-                            }}
-                          >
+                          <li key={user.id as string || index} style={{ ...listItemStyle, marginBottom: "4px" }}>
                             <strong>{String(user.displayName)}</strong>
                             {user.email && <span style={{ color: "#666", marginLeft: "8px" }}>{String(user.email)}</span>}
                           </li>
@@ -1586,29 +1387,16 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               )}
               {/* Flat users list if no byRole */}
               {siteMembersResult.users && Array.isArray(siteMembersResult.users) && !siteMembersResult.byRole && (
-                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                <ul style={resetListStyle}>
                   {(siteMembersResult.users as Array<Record<string, unknown>>).map((user, index) => (
-                    <li
-                      key={user.id as string || index}
-                      style={{
-                        padding: "10px 12px",
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e5e5",
-                        borderRadius: "6px",
-                        marginBottom: "6px",
-                        fontSize: "13px",
-                      }}
-                    >
+                    <li key={user.id as string || index} style={listItemStyle}>
                       <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
                         <strong>{String(user.displayName)}</strong>
                         {user.email && <span style={{ color: "#666" }}>{String(user.email)}</span>}
                         {user.role && (
                           <span style={{
-                            padding: "2px 8px",
+                            ...badgeStyle,
                             backgroundColor: user.role === "owner" ? "#ddd6fe" : "#e0e7ff",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: 500,
                           }}>
                             {String(user.role)}
                           </span>
@@ -1666,15 +1454,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Configured Props Display */}
       {configuredProps && (
-        <div style={{
-          padding: "20px",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          backgroundColor: "#fefce8",
-        }}>
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>
-            Configured Props (for persistence)
-          </h2>
+        <div style={{ ...sectionStyle, backgroundColor: "#fefce8" }}>
+          <h2 style={sectionHeadingStyle}>Configured Props (for persistence)</h2>
           <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
             Store this JSON to restore the selection later.
           </p>
@@ -1770,71 +1551,77 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
     marginBottom: "4px",
   };
 
+  const isFormValid = callbackUri && successRedirectUri;
+
   return (
-    <div style={{
-      padding: "16px",
-      backgroundColor: "#f8fafc",
-      border: "1px solid #e2e8f0",
-      borderRadius: "8px",
-      marginBottom: "16px",
-    }}>
-      <h3 style={{ margin: "0 0 12px", fontSize: "14px", fontWeight: 600, color: "#1e293b" }}>
-        Hosted File Picker Link
-      </h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <div>
-          <label style={labelStyle}>Callback URI (receives POST with selected files)</label>
-          <input
-            type="url"
-            value={callbackUri}
-            onChange={(e) => setCallbackUri(e.target.value)}
-            placeholder="https://example.com/api/file-picker-callback"
-            style={inputStyle}
-          />
-        </div>
-        <div>
-          <label style={labelStyle}>Success Redirect URI (where user goes after selection)</label>
-          <input
-            type="url"
-            value={successRedirectUri}
-            onChange={(e) => setSuccessRedirectUri(e.target.value)}
-            placeholder="https://example.com/success"
-            style={inputStyle}
-          />
-        </div>
-        {!accountsLoading && accounts.length > 0 && (
+    <div style={{ maxWidth: "600px" }}>
+      {/* 1. Configure */}
+      <div style={sectionStyle}>
+        <h2 style={sectionHeadingStyle}>1. Configure</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div>
-            <label style={labelStyle}>Account (optional — skip connect flow)</label>
-            <select
-              value={selectedAccountId}
-              onChange={(e) => setSelectedAccountId(e.target.value)}
-              style={{
-                ...inputStyle,
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              <option value="">None (show connect flow)</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name || account.id}
-                </option>
-              ))}
-            </select>
+            <label style={labelStyle}>Callback URI (receives POST with selected files)</label>
+            <input
+              type="url"
+              value={callbackUri}
+              onChange={(e) => setCallbackUri(e.target.value)}
+              placeholder="https://example.com/api/file-picker-callback"
+              style={inputStyle}
+            />
           </div>
-        )}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div>
+            <label style={labelStyle}>Success Redirect URI (where user goes after selection)</label>
+            <input
+              type="url"
+              value={successRedirectUri}
+              onChange={(e) => setSuccessRedirectUri(e.target.value)}
+              placeholder="https://example.com/success"
+              style={inputStyle}
+            />
+          </div>
+          {!accountsLoading && accounts.length > 0 && (
+            <div>
+              <label style={labelStyle}>Account (optional — skip connect flow)</label>
+              <select
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+                style={{
+                  ...inputStyle,
+                  fontFamily: "system-ui, sans-serif",
+                }}
+              >
+                <option value="">None (show connect flow)</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name || account.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Generate & Open */}
+      <div style={{
+        ...sectionStyle,
+        backgroundColor: isFormValid ? "#fafafa" : "#f5f5f5",
+        opacity: isFormValid ? 1 : 0.6,
+      }}>
+        <h2 style={sectionHeadingStyle}>2. Generate Link</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: generatedUrl ? "12px" : 0 }}>
           <button
             onClick={handleGenerate}
-            disabled={loading || !callbackUri || !successRedirectUri}
+            disabled={loading || !isFormValid}
             style={{
-              padding: "7px 16px",
-              backgroundColor: loading || !callbackUri || !successRedirectUri ? "#94a3b8" : "#2684FF",
+              padding: "8px 20px",
+              backgroundColor: loading || !isFormValid ? "#94a3b8" : "#2684FF",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
               fontSize: "13px",
               fontWeight: 500,
-              cursor: loading || !callbackUri || !successRedirectUri ? "not-allowed" : "pointer",
+              cursor: loading || !isFormValid ? "not-allowed" : "pointer",
               opacity: loading ? 0.7 : 1,
             }}
           >
@@ -1844,75 +1631,77 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
             externalUserId: {externalUserId}
           </span>
         </div>
+        {generatedUrl && (
+          <div style={{
+            display: "flex",
+            alignItems: "stretch",
+            gap: "8px",
+          }}>
+            <a
+              href={generatedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                padding: "8px 10px",
+                backgroundColor: "#fff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "5px",
+                fontSize: "11px",
+                fontFamily: "monospace",
+                wordBreak: "break-all",
+                color: "#2563eb",
+                textDecoration: "none",
+                display: "block",
+                lineHeight: "1.4",
+              }}
+            >
+              {generatedUrl}
+            </a>
+            <button
+              onClick={handleCopy}
+              style={{
+                padding: "6px 12px",
+                backgroundColor: copied ? "#10b981" : "#f1f5f9",
+                color: copied ? "#fff" : "#475569",
+                border: "1px solid #e2e8f0",
+                borderRadius: "5px",
+                fontSize: "12px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                alignSelf: "flex-start",
+              }}
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+            <button
+              onClick={() => { if (generatedUrl) window.location.href = generatedUrl; }}
+              style={{
+                padding: "6px 12px",
+                backgroundColor: "#2684FF",
+                color: "#fff",
+                border: "1px solid #2684FF",
+                borderRadius: "5px",
+                fontSize: "12px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                alignSelf: "flex-start",
+              }}
+            >
+              Open
+            </button>
+          </div>
+        )}
       </div>
-      {generatedUrl && (
-        <div style={{
-          marginTop: "12px",
-          display: "flex",
-          alignItems: "stretch",
-          gap: "8px",
-        }}>
-          <a
-            href={generatedUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1,
-              padding: "8px 10px",
-              backgroundColor: "#fff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "5px",
-              fontSize: "11px",
-              fontFamily: "monospace",
-              wordBreak: "break-all",
-              color: "#2563eb",
-              textDecoration: "none",
-              display: "block",
-              lineHeight: "1.4",
-            }}
-          >
-            {generatedUrl}
-          </a>
-          <button
-            onClick={handleCopy}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: copied ? "#10b981" : "#f1f5f9",
-              color: copied ? "#fff" : "#475569",
-              border: "1px solid #e2e8f0",
-              borderRadius: "5px",
-              fontSize: "12px",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              alignSelf: "flex-start",
-            }}
-          >
-            {copied ? "Copied!" : "Copy"}
-          </button>
-          <button
-            onClick={() => { if (generatedUrl) window.location.href = generatedUrl; }}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "#2684FF",
-              color: "#fff",
-              border: "1px solid #2684FF",
-              borderRadius: "5px",
-              fontSize: "12px",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              alignSelf: "flex-start",
-            }}
-          >
-            Open
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
+type ConnectReactMode = "in-app" | "hosted-link";
+
 export default function FilePickerPage() {
   const [externalUserId] = useStableUuid();
+  const [connectReactMode, setConnectReactMode] = useState<ConnectReactMode>("hosted-link");
 
   const client = useMemo(() => {
     if (!externalUserId) return null;
@@ -1923,16 +1712,34 @@ export default function FilePickerPage() {
     return <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>Loading...</div>;
   }
 
+  const modeStyle = (isActive: boolean): React.CSSProperties => ({
+    padding: "6px 14px",
+    fontSize: "12px",
+    fontWeight: 500,
+    color: isActive ? "#fff" : "#374151",
+    backgroundColor: isActive ? "#2684FF" : "#f3f4f6",
+    border: "1px solid " + (isActive ? "#2684FF" : "#e5e7eb"),
+    borderRadius: "6px",
+    cursor: "pointer",
+  });
+
+  const cardStyle: React.CSSProperties = {
+    flex: "1 1 400px",
+    minWidth: "350px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+    overflow: "hidden",
+  };
+
+  const cardHeaderStyle: React.CSSProperties = {
+    padding: "16px 20px",
+    borderBottom: "1px solid #e5e7eb",
+    backgroundColor: "#fafafa",
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <FrontendClientProvider client={client}>
-        <div style={{
-          padding: "20px 20px 0",
-          maxWidth: "1400px",
-          margin: "0 auto",
-        }}>
-          <FilePickerLinkGenerator externalUserId={externalUserId} />
-        </div>
         <div style={{
           display: "flex",
           gap: "20px",
@@ -1940,47 +1747,54 @@ export default function FilePickerPage() {
           maxWidth: "1400px",
           margin: "0 auto",
           flexWrap: "wrap",
+          alignItems: "flex-start",
         }}>
-          {/* Left: Configure-Based Picker (Hybrid) */}
-          <div style={{
-            flex: "1 1 400px",
-            borderRight: "1px solid #e5e5e5",
-            paddingRight: "20px",
-            minWidth: "350px",
-          }}>
-            <div style={{
-              display: "inline-block",
-              padding: "4px 12px",
-              backgroundColor: "#dcfce7",
-              color: "#166534",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 500,
-              marginBottom: "8px",
-            }}>
-              Pipedream connect-react
+          {/* Pipedream connect-react */}
+          <div style={cardStyle}>
+            <div style={cardHeaderStyle}>
+              <h2 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600, color: "#111827" }}>
+                Pipedream Connect File Picker
+              </h2>
+              <p style={{ margin: "0 0 12px", fontSize: "13px", color: "#6b7280" }}>
+                Uses Pipedream&apos;s Connect React SDK to populate the file picker and retrieve the selected files.
+              </p>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                <button onClick={() => setConnectReactMode("hosted-link")} style={modeStyle(connectReactMode === "hosted-link")}>
+                  Hosted link
+                </button>
+                <button onClick={() => setConnectReactMode("in-app")} style={modeStyle(connectReactMode === "in-app")}>
+                  In-app
+                </button>
+              </div>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6b7280", lineHeight: "1.5" }}>
+                {connectReactMode === "hosted-link"
+                  ? "Opens the file picker on a hosted Pipedream page via a URL. Users connect their account and select files without any UI in your app."
+                  : "Embeds the file picker directly in your app using React components. Account connection and file selection happen inline."}
+              </p>
             </div>
-            <ConfigureFilePickerDemo externalUserId={externalUserId} />
+            <div style={{ padding: "20px" }}>
+              {connectReactMode === "in-app" && (
+                <ConfigureFilePickerDemo externalUserId={externalUserId} />
+              )}
+              {connectReactMode === "hosted-link" && (
+                <FilePickerLinkGenerator externalUserId={externalUserId} />
+              )}
+            </div>
           </div>
 
-          {/* Right: Native Microsoft Picker */}
-          <div style={{
-            flex: "1 1 400px",
-            minWidth: "350px",
-          }}>
-            <div style={{
-              display: "inline-block",
-              padding: "4px 12px",
-              backgroundColor: "#fef3c7",
-              color: "#92400e",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 500,
-              marginBottom: "8px",
-            }}>
-              Native Microsoft UI
+          {/* Native Microsoft Picker */}
+          <div style={cardStyle}>
+            <div style={cardHeaderStyle}>
+              <h2 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600, color: "#111827" }}>
+                Native Microsoft Picker
+              </h2>
+              <p style={{ margin: 0, fontSize: "13px", color: "#6b7280" }}>
+                Microsoft&apos;s native file picker UI (v8) — requires passing the SharePoint OAuth access token from the client browser.
+              </p>
             </div>
-            <NativeSharePointPicker externalUserId={externalUserId} client={client} />
+            <div style={{ padding: "20px" }}>
+              <NativeSharePointPicker externalUserId={externalUserId} client={client} />
+            </div>
           </div>
         </div>
       </FrontendClientProvider>

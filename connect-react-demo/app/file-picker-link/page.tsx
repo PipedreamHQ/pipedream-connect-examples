@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FrontendClientProvider,
@@ -12,7 +12,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { validateConnectToken } from "../actions/backendClient";
 import { queryClient, createClient } from "@/lib/frontend-client";
 
-type FlowState = "init" | "connecting" | "picking" | "error";
+type FlowState = "init" | "picking" | "error";
 
 function FilePickerLinkFlow() {
   const searchParams = useSearchParams();
@@ -36,28 +36,22 @@ function FilePickerLinkFlow() {
   if (!app) missingParams.push("app");
   if (!token) missingParams.push("token");
 
-  const startConnect = useCallback(() => {
-    setFlowState("connecting");
+  const startConnect = () => {
     client.connectAccount({
       app,
-      onSuccess: ({ id }) => {
-        setAccountId(id);
+      hideClose: true,
+      onSuccess: (res) => {
+        setAccountId(res.id);
         setFlowState("picking");
       },
       onError: (err) => {
-        setError(err instanceof Error ? err.message : "Failed to connect account");
+        setError(err.message || "Connection failed");
         setFlowState("error");
       },
-      onClose: ({ successful }) => {
-        if (!successful) {
-          setError("Account connection was cancelled. Please try again.");
-          setFlowState("error");
-        }
-      },
     });
-  }, [client, app]);
+  };
 
-  // Validate token in the background and kick off connect if needed
+  // Validate token and kick off connect or file picker
   useEffect(() => {
     if (missingParams.length > 0) return;
 
@@ -76,7 +70,7 @@ function FilePickerLinkFlow() {
         if (res.successRedirectUri) {
           successRedirectUriRef.current = res.successRedirectUri;
         }
-        // If no accountId, start connect flow once validation completes
+        // If no accountId, show connect overlay
         if (!accountId) {
           startConnect();
         }
@@ -133,11 +127,6 @@ function FilePickerLinkFlow() {
               <code key={p} style={styles.code}>{p}</code>
             ))}
           </p>
-          <p style={styles.textMuted}>
-            Example: <code style={styles.codeBlock}>
-              ?token=xxx&app=sharepoint&externalUserId=user-123&callbackUri=https://example.com/api/files
-            </code>
-          </p>
         </div>
       </div>
     );
@@ -185,7 +174,7 @@ function FilePickerLinkFlow() {
     );
   }
 
-  // init / connecting — the SDK's connect overlay handles its own UI
+  // init — blank page while connecting or validating
   return null;
 }
 
@@ -221,14 +210,7 @@ function FilePickerLinkWithProviders() {
 
 export default function FilePickerLinkPage() {
   return (
-    <Suspense fallback={
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={styles.spinner} />
-          <h2 style={styles.heading}>Loading...</h2>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={null}>
       <FilePickerLinkWithProviders />
     </Suspense>
   );
@@ -269,12 +251,6 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: "1.5",
     margin: "0 0 16px",
   },
-  textMuted: {
-    color: "#6b7280",
-    fontSize: "13px",
-    lineHeight: "1.5",
-    margin: 0,
-  },
   code: {
     backgroundColor: "#f3f4f6",
     padding: "2px 6px",
@@ -282,17 +258,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "13px",
     fontFamily: "monospace",
     margin: "0 2px",
-  },
-  codeBlock: {
-    display: "block",
-    backgroundColor: "#f3f4f6",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    fontSize: "11px",
-    fontFamily: "monospace",
-    marginTop: "8px",
-    wordBreak: "break-all" as const,
-    textAlign: "left" as const,
   },
   button: {
     padding: "10px 24px",
@@ -316,15 +281,6 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     fontSize: "24px",
     fontWeight: 700,
-    margin: "0 auto",
-  },
-  spinner: {
-    width: "32px",
-    height: "32px",
-    border: "3px solid #e5e7eb",
-    borderTop: "3px solid #2684FF",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
     margin: "0 auto",
   },
   overlay: {
