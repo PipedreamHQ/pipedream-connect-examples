@@ -8,11 +8,52 @@ import {
   ConfigureFilePicker,
   type FilePickerItem,
 } from "@pipedream/connect-react";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { validateConnectToken } from "../actions/backendClient";
-import { queryClient, createClient } from "@/lib/frontend-client";
+import { createFrontendClient } from "@pipedream/sdk/browser";
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
+const PIPEDREAM_API_BASE = "https://api.pipedream.com";
 
 type FlowState = "init" | "picking" | "error";
+
+// Validate token and get successRedirectUri (endpoint is public, no auth needed)
+async function validateToken(
+  token: string,
+  appId: string,
+  oauthAppId?: string,
+  signal?: AbortSignal,
+): Promise<{
+  success: boolean;
+  successRedirectUri?: string;
+  error?: string;
+}> {
+  const params = new URLSearchParams({ app_id: appId });
+  if (oauthAppId) params.set("oauth_app_id", oauthAppId);
+
+  try {
+    const resp = await fetch(
+      `${PIPEDREAM_API_BASE}/v1/connect/tokens/${encodeURIComponent(token)}/validate?${params}`,
+      { signal },
+    );
+
+    if (!resp.ok) {
+      const body = await resp.text();
+      return { success: false, error: body || `Validation failed (${resp.status})` };
+    }
+
+    const data = await resp.json();
+    return {
+      success: true,
+      successRedirectUri: data.success_redirect_uri,
+    };
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return { success: false, error: "Aborted" };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Validation failed" };
+  }
+}
 
 function FilePickerLinkFlow() {
   const searchParams = useSearchParams();
@@ -20,14 +61,15 @@ function FilePickerLinkFlow() {
 
   const token = searchParams.get("token") || "";
   const app = searchParams.get("app") || "sharepoint";
+  const oauthAppId = searchParams.get("oauthAppId") || undefined;
   const externalUserId = searchParams.get("externalUserId") || "";
   const callbackUri = searchParams.get("callbackUri") || "";
   const initialAccountId = searchParams.get("accountId") || null;
 
   const [flowState, setFlowState] = useState<FlowState>("init");
   const [accountId, setAccountId] = useState<string | null>(initialAccountId);
-  const successRedirectUriRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const successRedirectUriRef = useRef<string | null>(null);
 
   // Validate required params
   const missingParams: string[] = [];
@@ -39,6 +81,7 @@ function FilePickerLinkFlow() {
   const startConnect = () => {
     client.connectAccount({
       app,
+      ...(oauthAppId && { oauthAppId }),
       hideClose: true,
       onSuccess: (res) => {
         setAccountId(res.id);
@@ -55,30 +98,28 @@ function FilePickerLinkFlow() {
   useEffect(() => {
     if (missingParams.length > 0) return;
 
-    // If we already have an accountId, go straight to picking
+    const abortController = new AbortController();
+
+    // Validate to get successRedirectUri
+    validateToken(token, app, oauthAppId, abortController.signal)
+      .then((result) => {
+        if (abortController.signal.aborted) return;
+
+        if (result.success && result.successRedirectUri) {
+          successRedirectUriRef.current = result.successRedirectUri;
+        } else if (!result.success) {
+          console.warn("Token validation failed:", result.error);
+        }
+      });
+
+    // Proceed with connect or file picker
     if (accountId) {
       setFlowState("picking");
+    } else {
+      startConnect();
     }
 
-    validateConnectToken({ token, appId: app })
-      .then((res) => {
-        if (res.error || !res.success) {
-          setError(res.error || "Token validation failed");
-          setFlowState("error");
-          return;
-        }
-        if (res.successRedirectUri) {
-          successRedirectUriRef.current = res.successRedirectUri;
-        }
-        // If no accountId, show connect overlay
-        if (!accountId) {
-          startConnect();
-        }
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Token validation failed");
-        setFlowState("error");
-      });
+    return () => abortController.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelect = async (items: FilePickerItem[], configuredProps: Record<string, unknown>) => {
@@ -180,23 +221,41 @@ function FilePickerLinkFlow() {
 
 function FilePickerLinkWithProviders() {
   const searchParams = useSearchParams();
+  const token = searchParams.get("token") || "";
   const externalUserId = searchParams.get("externalUserId") || "";
 
   const client = useMemo(() => {
-    if (!externalUserId) return null;
-    return createClient(externalUserId);
-  }, [externalUserId]);
+    if (!externalUserId || !token) return null;
+    return createFrontendClient({
+      tokenCallback: async () => ({
+        token,
+        expiresAt: new Date(Date.now() + 3600000), // 1 hour (dummy, token already has real expiry)
+      }),
+      externalUserId,
+    });
+  }, [externalUserId, token]);
 
-  if (!client) {
+  if (!token || !externalUserId) {
+    const missing = [];
+    if (!token) missing.push("token");
+    if (!externalUserId) missing.push("externalUserId");
     return (
       <div style={styles.container}>
         <div style={styles.card}>
           <div style={styles.errorIcon}>!</div>
-          <h2 style={styles.heading}>Missing externalUserId</h2>
-          <p style={styles.text}>The <code style={styles.code}>externalUserId</code> URL parameter is required.</p>
+          <h2 style={styles.heading}>Missing Required Parameters</h2>
+          <p style={styles.text}>
+            The following URL parameters are required: {missing.map((p) => (
+              <code key={p} style={styles.code}>{p}</code>
+            ))}
+          </p>
         </div>
       </div>
     );
+  }
+
+  if (!client) {
+    return null;
   }
 
   return (
