@@ -3,6 +3,7 @@ import { useCustomize } from "@pipedream/connect-react"
 import { useAppState } from "@/lib/app-state"
 import { proxyRequest } from "@/app/actions/backendClient"
 import { useSDKLogger } from "@/lib/sdk-logger"
+import { isValidUrl } from "@/lib/utils"
 import type { Account } from "@pipedream/sdk"
 import { SDKError } from "@/lib/types/pipedream"
 
@@ -90,16 +91,6 @@ export function ProxyRequestBuilder({
       }
     })
     return Object.keys(headersObj).length > 0 ? headersObj : undefined
-  }
-
-  // Validate URL format
-  const isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url)
-      return true
-    } catch {
-      return false
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

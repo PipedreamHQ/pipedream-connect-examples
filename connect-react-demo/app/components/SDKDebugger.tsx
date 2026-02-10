@@ -36,15 +36,65 @@ const formatTimestamp = (date: Date) =>
 
 const useCopyToClipboard = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null)
-  
+
   const copyToClipboard = useCallback(async (text: string, field: string) => {
     await navigator.clipboard.writeText(text)
     setCopiedField(field)
     setTimeout(() => setCopiedField(null), 2000)
   }, [])
-  
+
   return { copiedField, copyToClipboard }
 }
+
+interface PayloadSectionProps {
+  title: string
+  payload: unknown
+  fieldId: string
+  copiedField: string | null
+  onCopy: (text: string, field: string) => void
+  variant?: "default" | "error"
+}
+
+const PayloadSection = memo(function PayloadSection({
+  title,
+  payload,
+  fieldId,
+  copiedField,
+  onCopy,
+  variant = "default",
+}: PayloadSectionProps) {
+  const isError = variant === "error"
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h4 className={cn("text-sm font-medium", isError ? "text-red-700" : "text-gray-700")}>
+          {title}
+        </h4>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onCopy(formatPayload(payload), fieldId)}
+          className="h-7 px-2"
+        >
+          {copiedField === fieldId ? (
+            <IoCheckmarkOutline className="h-3 w-3" />
+          ) : (
+            <IoCopyOutline className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+      <pre className={cn(
+        "text-xs rounded-md p-3 overflow-x-auto border",
+        isError
+          ? "bg-red-50 text-red-900 border-red-200"
+          : "bg-white max-h-96 overflow-y-auto"
+      )}>
+        <code>{formatPayload(payload)}</code>
+      </pre>
+    </div>
+  )
+})
 
 const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -54,28 +104,28 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
         <div className="group flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b">
-          <IoChevronForward 
+          <IoChevronForward
             className={cn(
               "h-4 w-4 transition-transform text-gray-400",
               isOpen && "rotate-90"
             )}
           />
-          
-          <Badge 
-            variant="secondary" 
+
+          <Badge
+            variant="secondary"
             className={cn("text-xs", STATUS_COLORS[call.status])}
           >
             {call.status}
           </Badge>
-          
+
           <code className="text-sm font-mono text-gray-900 font-medium">
             {call.method}
           </code>
-          
+
           <span className="text-xs text-gray-500 ml-auto">
             {formatTimestamp(call.timestamp)}
           </span>
-          
+
           {call.duration && (
             <span className="text-xs text-gray-500">
               {formatDuration(call.duration)}
@@ -83,77 +133,36 @@ const SDKCallItem = memo(function SDKCallItem({ call }: { call: SDKCall }) {
           )}
         </div>
       </CollapsibleTrigger>
-      
+
       <CollapsibleContent>
         <div className="p-4 bg-gray-50 border-b space-y-4">
-          {/* Request */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-gray-700">Request</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard(formatPayload(call.request), "request")}
-                className="h-7 px-2"
-              >
-                {copiedField === "request" ? (
-                  <IoCheckmarkOutline className="h-3 w-3" />
-                ) : (
-                  <IoCopyOutline className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
-            <pre className="text-xs bg-white rounded-md p-3 overflow-x-auto border">
-              <code>{formatPayload(call.request)}</code>
-            </pre>
-          </div>
+          <PayloadSection
+            title="Request"
+            payload={call.request}
+            fieldId="request"
+            copiedField={copiedField}
+            onCopy={copyToClipboard}
+          />
 
-          {/* Response */}
           {call.response && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-gray-700">Response</h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(formatPayload(call.response), "response")}
-                  className="h-7 px-2"
-                >
-                  {copiedField === "response" ? (
-                    <IoCheckmarkOutline className="h-3 w-3" />
-                  ) : (
-                    <IoCopyOutline className="h-3 w-3" />
-                  )}
-                </Button>
-              </div>
-              <pre className="text-xs bg-white rounded-md p-3 overflow-x-auto border max-h-96 overflow-y-auto">
-                <code>{formatPayload(call.response)}</code>
-              </pre>
-            </div>
+            <PayloadSection
+              title="Response"
+              payload={call.response}
+              fieldId="response"
+              copiedField={copiedField}
+              onCopy={copyToClipboard}
+            />
           )}
 
-          {/* Error */}
           {call.error && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-red-700">Error</h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(formatPayload(call.error), "error")}
-                  className="h-7 px-2"
-                >
-                  {copiedField === "error" ? (
-                    <IoCheckmarkOutline className="h-3 w-3" />
-                  ) : (
-                    <IoCopyOutline className="h-3 w-3" />
-                  )}
-                </Button>
-              </div>
-              <pre className="text-xs bg-red-50 text-red-900 rounded-md p-3 overflow-x-auto border border-red-200">
-                <code>{formatPayload(call.error)}</code>
-              </pre>
-            </div>
+            <PayloadSection
+              title="Error"
+              payload={call.error}
+              fieldId="error"
+              copiedField={copiedField}
+              onCopy={copyToClipboard}
+              variant="error"
+            />
           )}
         </div>
       </CollapsibleContent>

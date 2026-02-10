@@ -16,7 +16,7 @@ import {
 import { BooleanToggle } from "./ui/boolean-toggle"
 import { ComponentTypeSelector } from "./ComponentTypeSelector"
 import { useAppState } from "@/lib/app-state"
-import { cn } from "@/lib/utils"
+import { cn, isValidUrl } from "@/lib/utils"
 import Select from "react-select"
 import { IoChevronDown, IoSettingsOutline } from "react-icons/io5"
 import type { CSSObjectWithLabel } from "react-select"
@@ -281,18 +281,8 @@ export const ConfigPanel = () => {
     },
   }
 
-  const isValidWebhookUrl = () => {
-    if (!webhookUrl) return false
-    try {
-      new URL(webhookUrl)
-      return true
-    } catch {
-      return false
-    }
-  }
-
   const shouldShowWebhookUrlError = () => {
-    return webhookUrlValidationAttempted && (!webhookUrl || !isValidWebhookUrl())
+    return webhookUrlValidationAttempted && (!webhookUrl || !isValidUrl(webhookUrl))
   }
 
   const basicFormControls = (
