@@ -789,7 +789,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setIsLoadingAction(true);
     try {
       const response = await client.actions.run({
-        id: "sharepoint-select-files",
+        id: "~/sharepoint-select-files",
         externalUserId,
         configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() } as Record<string, unknown>,
       });
@@ -1459,7 +1459,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
             Store this JSON to restore the selection later.
           </p>
-          <JsonDisplay data={configuredProps} maxHeight="400px" />
+          <JsonDisplay data={{ ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() }} maxHeight="400px" />
         </div>
       )}
 
@@ -1469,7 +1469,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <ConfigureFilePickerModal
             isOpen={isModalOpen}
             title="Select SharePoint Files"
-            componentKey="sharepoint-select-files"
+            componentKey="~/sharepoint-select-files"
             app="sharepoint"
             accountId={selectedAccountId}
             externalUserId={externalUserId}
@@ -1478,9 +1478,10 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             confirmText="Select Files"
             cancelText="Cancel"
             multiSelect={true}
-            selectFolders={true}
+            selectFolders={false}
             selectFiles={true}
             showIcons={showIcons}
+            debug={true}
           />
         </CustomizeProvider>
       )}
