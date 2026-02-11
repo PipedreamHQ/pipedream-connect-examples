@@ -1,0 +1,2 @@
+overrides:
+  '@pipedream/connect-react': link:../../pipedream/packages/connect-react

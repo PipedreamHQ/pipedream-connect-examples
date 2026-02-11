@@ -294,22 +294,8 @@ function AccountSelector({
 }
 
 // ============================================
-// Native SharePoint File Picker (Microsoft v8)
+// Utility Functions
 // ============================================
-
-interface NativePickerFile {
-  id: string;
-  name: string;
-  size?: number;
-  webUrl?: string;
-  parentReference?: {
-    driveId: string;
-  };
-  "@sharePoint.endpoint"?: string;
-  file?: { mimeType: string };
-  folder?: object;
-  downloadUrl?: string;
-}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -318,381 +304,21 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-function NativeSharePointPicker({
-  externalUserId,
-  client,
-}: {
-  externalUserId: string;
-  client: ReturnType<typeof createFrontendClient>;
-}) {
-  const [selectedFiles, setSelectedFiles] = useState<NativePickerFile[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [sharepointBaseUrl, setSharepointBaseUrl] = useState<string>("");
-  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
-  const popupRef = useRef<Window | null>(null);
-  const portRef = useRef<MessagePort | null>(null);
-  const channelIdRef = useRef<string>("");
-  const messageHandlerRef = useRef<((e: MessageEvent) => void) | null>(null);
-
-  useEffect(() => {
-    // Clean up on unmount
-    return () => {
-      if (popupRef.current && !popupRef.current.closed) {
-        popupRef.current.close();
-      }
-      if (messageHandlerRef.current) {
-        window.removeEventListener("message", messageHandlerRef.current);
-      }
-    };
-  }, []);
-
-  // Fetch credentials when account is selected
-  useEffect(() => {
-    if (!selectedAccountId) {
-      setAccessToken(null);
-      return;
-    }
-
-    const fetchCredentials = async () => {
-      setIsLoadingCredentials(true);
-      setError(null);
-      try {
-        const credentials = await getAccountCredentials({
-          externalUserId,
-          accountId: selectedAccountId,
-        });
-        const creds = credentials as Record<string, unknown>;
-
-        // Extract oauth_access_token
-        const token = creds.oauth_access_token as string;
-        if (token) {
-          setAccessToken(token);
-        } else {
-          setError("No access token found in credentials");
-          return;
-        }
-
-        // Extract tenant_name and construct SharePoint URL
-        const tenantName = creds.tenant_name as string;
-        if (tenantName) {
-          setSharepointBaseUrl(`https://${tenantName}.sharepoint.com`);
-        }
-      } catch (e) {
-        console.error("Failed to fetch credentials:", e);
-        setError(e instanceof Error ? e.message : "Failed to fetch credentials");
-      } finally {
-        setIsLoadingCredentials(false);
-      }
-    };
-
-    fetchCredentials();
-  }, [selectedAccountId, externalUserId]);
-
-  const handleConnectNew = () =>
-    connectAccountPromise(client, {
-      app: "microsoft_sharepoint_dev",
-      oauthAppId: "oa_49i2rd",
-      onSuccess: (id) => setSelectedAccountId(id),
-      onError: (msg) => setError(msg),
-    });
-
-  // Fetch download URLs for picked files using SharePoint REST API
-  const fetchDownloadUrls = useCallback(async (items: NativePickerFile[]): Promise<NativePickerFile[]> => {
-    if (!accessToken) return items;
-
-    const results = await Promise.all(
-      items.map(async (item) => {
-        try {
-          // Use the SharePoint endpoint from the item, or construct it
-          const endpoint = item["@sharePoint.endpoint"] || `${sharepointBaseUrl}/_api/v2.0`;
-          const driveId = item.parentReference?.driveId;
-
-          if (!driveId) {
-            console.warn("[NativePicker] No driveId for item:", item.name);
-            return item;
-          }
-
-          const url = `${endpoint}/drives/${driveId}/items/${item.id}`;
-
-          const response = await fetch(url, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: "application/json",
-            },
-          });
-
-          if (!response.ok) {
-            console.error("[NativePicker] Failed to fetch item details:", response.status, response.statusText);
-            return item;
-          }
-
-          const data = await response.json();
-
-          // The download URL is typically in @content.downloadUrl or @microsoft.graph.downloadUrl
-          const downloadUrl = data["@content.downloadUrl"] || data["@microsoft.graph.downloadUrl"];
-
-          return {
-            ...item,
-            downloadUrl,
-          };
-        } catch (err) {
-          console.error("[NativePicker] Error fetching download URL for:", item.name, err);
-          return item;
-        }
-      })
-    );
-
-    return results;
-  }, [accessToken, sharepointBaseUrl]);
-
-  const openNativePicker = useCallback(() => {
-    if (!accessToken || !sharepointBaseUrl) {
-      setError("Please connect an account and enter your SharePoint tenant URL");
-      return;
-    }
-
-    setError(null);
-    setIsPickerOpen(true);
-
-    // Generate unique channel ID
-    channelIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-    // v8 Picker configuration
-    const pickerConfig = {
-      sdk: "8.0",
-      entry: {
-        sharePoint: {},
-      },
-      authentication: {},
-      messaging: {
-        origin: window.location.origin,
-        channelId: channelIdRef.current,
-      },
-      selection: {
-        mode: "multiple",
-      },
-      typesAndSources: {
-        mode: "all",
-        pivots: {
-          oneDrive: true,           // My files
-          recent: true,             // Recent files
-          shared: true,             // Shared with me
-          sharedLibraries: true,    // Quick access / shared libraries
-        },
-      },
-    };
-
-    // Build picker URL
-    const queryParams = new URLSearchParams({
-      filePicker: JSON.stringify(pickerConfig),
-    });
-    const pickerUrl = `${sharepointBaseUrl}/_layouts/15/FilePicker.aspx?${queryParams}`;
-
-    // Create a form in the current document and target the popup
-    // This avoids cross-origin issues with accessing popup.document
-    const popup = window.open("about:blank", "SharePointPicker", "width=1080,height=680");
-    if (!popup) {
-      setError("Popup blocked. Please allow popups.");
-      setIsPickerOpen(false);
-      return;
-    }
-    popupRef.current = popup;
-
-    // Create form in current document, target the popup window
-    const form = document.createElement("form");
-    form.action = pickerUrl;
-    form.method = "POST";
-    form.target = "SharePointPicker"; // Target the popup by name
-
-    const tokenInput = document.createElement("input");
-    tokenInput.type = "hidden";
-    tokenInput.name = "access_token";
-    tokenInput.value = accessToken;
-    form.appendChild(tokenInput);
-
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form); // Clean up
-
-    // Message handler for postMessage communication
-    const handleMessage = (event: MessageEvent) => {
-      if (event.source !== popup) {
-        return;
-      }
-
-      const message = event.data;
-
-      // Handle initialization
-      if (message.type === "initialize" && message.channelId === channelIdRef.current) {
-        const port = event.ports[0];
-        portRef.current = port;
-
-        port.addEventListener("message", (portEvent: MessageEvent) => {
-          const payload = portEvent.data;
-
-          if (payload.type === "command") {
-            const command = payload.data;
-
-            // Acknowledge command
-            port.postMessage({ type: "acknowledge", id: payload.id });
-
-            switch (command.command) {
-              case "authenticate":
-                port.postMessage({
-                  type: "result",
-                  id: payload.id,
-                  data: { result: "token", token: accessToken },
-                });
-                break;
-
-              case "pick":
-                // Fetch download URLs for each file
-                fetchDownloadUrls(command.items || []).then((filesWithUrls) => {
-                  setSelectedFiles(filesWithUrls);
-                });
-                port.postMessage({
-                  type: "result",
-                  id: payload.id,
-                  data: { result: "success" },
-                });
-                popup.close();
-                setIsPickerOpen(false);
-                break;
-
-              case "close":
-                popup.close();
-                setIsPickerOpen(false);
-                break;
-
-              default:
-                port.postMessage({
-                  type: "result",
-                  id: payload.id,
-                  data: { result: "error", error: { code: "unsupportedCommand" } },
-                });
-            }
-          }
-        });
-
-        port.start();
-        port.postMessage({ type: "activate" });
-      }
-    };
-
-    messageHandlerRef.current = handleMessage;
-    window.addEventListener("message", handleMessage);
-
-    // Poll for popup close
-    const pollTimer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(pollTimer);
-        window.removeEventListener("message", handleMessage);
-        setIsPickerOpen(false);
-        popupRef.current = null;
-        portRef.current = null;
-      }
-    }, 500);
-  }, [accessToken, sharepointBaseUrl]);
-
-  const hasConfig = accessToken && sharepointBaseUrl;
-
-  return (
-    <div style={{ maxWidth: "600px" }}>
-      {/* Account Selection */}
-      <div style={sectionStyle}>
-        <h2 style={sectionHeadingStyle}>1. Connect Account</h2>
-        <AccountSelector
-          externalUserId={externalUserId}
-          selectedAccountId={selectedAccountId}
-          onSelectAccount={setSelectedAccountId}
-          onConnectNew={handleConnectNew}
-          app="microsoft_sharepoint_dev"
-        />
-      </div>
-
-      {/* Picker Trigger */}
-      <div style={disabledSectionStyle(!!hasConfig)}>
-        <h2 style={sectionHeadingStyle}>2. Select Files</h2>
-        <button
-          onClick={openNativePicker}
-          disabled={!hasConfig || isPickerOpen}
-          style={{
-            padding: "12px 24px",
-            backgroundColor: hasConfig && !isPickerOpen ? "#0078d4" : "#ccc",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: hasConfig && !isPickerOpen ? "pointer" : "not-allowed",
-            fontSize: "14px",
-            fontWeight: 500,
-          }}
-        >
-          {isPickerOpen ? "Picker Open..." : "Open Microsoft Picker"}
-        </button>
-        {!hasConfig && selectedAccountId && !isLoadingCredentials && (
-          <p style={{ marginTop: "8px", fontSize: "13px", color: "#999" }}>
-            {!accessToken ? "Waiting for credentials..." : "Please enter your SharePoint tenant URL"}
-          </p>
-        )}
-        {error && (
-          <p style={{ marginTop: "8px", fontSize: "13px", color: "red" }}>
-            {error}
-          </p>
-        )}
-      </div>
-
-      {/* Selected Files */}
-      {selectedFiles.length > 0 && (
-        <div style={{ ...sectionStyle, backgroundColor: "#f0f9ff" }}>
-          <h2 style={sectionHeadingStyle}>
-            Selected Files ({selectedFiles.length})
-          </h2>
-          <ul style={resetListStyle}>
-            {selectedFiles.map((file) => (
-              <li key={file.id} style={{ ...listItemStyle, marginBottom: "8px" }}>
-                <strong>{file.name}</strong>
-                <br />
-                <small style={{ color: "#666" }}>
-                  {file.size ? formatSize(file.size) : "File"}
-                </small>
-                {file.downloadUrl && (
-                  <div style={{ marginTop: "6px" }}>
-                    <a
-                      href={file.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: "#0078d4",
-                        fontSize: "13px",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Download
-                    </a>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View raw data
-            </summary>
-            <JsonDisplay data={selectedFiles} />
-          </details>
-        </div>
-      )}
-    </div>
-  );
+function formatDate(isoDate: string): string {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 // ============================================
 // Configure-Based File Picker (Hybrid)
 // ============================================
+
+// Removed NativeSharePointPicker - now available at /file-picker-sharepoint
 
 // Theme presets for demonstration
 const themePresets = {
@@ -735,6 +361,9 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingSiteMembers, setIsLoadingSiteMembers] = useState(false);
   const [showIcons, setShowIcons] = useState(true);
+  const [webhookUri, setWebhookUri] = useState("");
+  const [triggerResult, setTriggerResult] = useState<Record<string, unknown> | null>(null);
+  const [isLoadingTrigger, setIsLoadingTrigger] = useState(false);
 
   const currentTheme = useMemo(() => {
     if (selectedTheme === "custom") {
@@ -759,22 +388,42 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       onError: (msg) => console.error(msg),
     });
 
-  const handleSelect = (items: FilePickerItem[], props: Record<string, unknown>) => {
+  const handleSelect = async (items: FilePickerItem[], props: Record<string, unknown>) => {
     setSelectedFiles(items);
     setConfiguredProps(props);
-    setActionResult(null); // Reset action result when new selection is made
     setPermissionsResult(null); // Reset permissions result when new selection is made
     setUsersWithReadAccess(null); // Reset users when new selection is made
     setSiteMembersResult(null); // Reset site members when new selection is made
     setIsModalOpen(false);
+
+    // Immediately fetch metadata for selected files
+    if (items.length > 0) {
+      setIsLoadingAction(true);
+      setActionResult(null);
+      try {
+        const response = await client.actions.run({
+          id: "~/sharepoint-retrieve-file-metadata",
+          externalUserId,
+          configuredProps: { ...props, fileOrFolderIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
+        });
+        setActionResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
+      } catch (e) {
+        console.error("Failed to retrieve metadata:", e);
+        setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
+      } finally {
+        setIsLoadingAction(false);
+      }
+    } else {
+      setActionResult(null);
+    }
   };
 
   const handleCancel = () => {
     setIsModalOpen(false);
   };
 
-  const buildFileOrFolderIds = () =>
-    selectedFiles.map((f) => {
+  const buildFileOrFolderIds = (itemsToUse = selectedFiles) =>
+    itemsToUse.map((f) => {
       const value = f.value as { id?: string; name?: string; isFolder?: boolean } | undefined;
       return JSON.stringify({
         id: value?.id || f.id,
@@ -789,7 +438,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setIsLoadingAction(true);
     try {
       const response = await client.actions.run({
-        id: "~/sharepoint-select-files",
+        id: "~/sharepoint-download-files",
         externalUserId,
         configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() } as Record<string, unknown>,
       });
@@ -939,6 +588,41 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     }
   };
 
+  // Deploy trigger to listen for file changes
+  const handleDeployTrigger = async () => {
+    if (!configuredProps || !webhookUri) {
+      setTriggerResult({ error: "Please provide a webhook URI" });
+      return;
+    }
+
+    setIsLoadingTrigger(true);
+    setTriggerResult(null);
+
+    try {
+      // TODO: This would call a deploy-trigger action or API endpoint
+      // For now, just show what the payload would be
+      const payload = {
+        webhookUri,
+        configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() },
+      };
+
+      // Simulate deployment
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setTriggerResult({
+        success: true,
+        message: "Trigger deployed successfully",
+        webhookUri,
+        listening: true,
+      });
+    } catch (e) {
+      console.error("Failed to deploy trigger:", e);
+      setTriggerResult({ error: e instanceof Error ? e.message : "Unknown error" });
+    } finally {
+      setIsLoadingTrigger(false);
+    }
+  };
+
   return (
     <div style={{ maxWidth: "600px" }}>
       {/* Account Selection */}
@@ -1044,118 +728,254 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         </div>
       </div>
 
-      {/* Selected Files Display */}
-      {selectedFiles.length > 0 && (
+      {/* Loading State */}
+      {isLoadingAction && !actionResult && (
         <div style={{ ...sectionStyle, backgroundColor: "#f0f9ff" }}>
-          <h2 style={sectionHeadingStyle}>
-            Selected Files ({selectedFiles.length})
-          </h2>
-          <ul style={resetListStyle}>
-            {selectedFiles.map((file) => (
-              <li key={file.id} style={{ ...listItemStyle, marginBottom: "8px" }}>
-                <strong>{file.label}</strong>
-              </li>
-            ))}
-          </ul>
-
-          {/* Action Buttons */}
-          <div style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
-            <button
-              onClick={handleGetFileUrls}
-              disabled={isLoadingAction || isLoadingPermissions}
-              style={actionButtonStyle(buttonColor, isLoadingAction, false)}
-            >
-              {isLoadingAction ? "Loading..." : "Get File URLs"}
-            </button>
-            <button
-              onClick={handleGetPermissions}
-              disabled={isLoadingAction || isLoadingPermissions}
-              style={actionButtonStyle("#6366f1", isLoadingPermissions, false)}
-            >
-              {isLoadingPermissions ? "Loading..." : "Get Permissions"}
-            </button>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "20px",
+          }}>
+            <div style={{
+              width: "20px",
+              height: "20px",
+              border: "3px solid #e5e7eb",
+              borderTopColor: "#2684FF",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }}></div>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 500, color: "#1e40af", marginBottom: "4px" }}>
+                Retrieving file metadata...
+              </div>
+              <div style={{ fontSize: "12px", color: "#3b82f6" }}>
+                Fetching file details from SharePoint
+              </div>
+            </div>
           </div>
-
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View selected items
-            </summary>
-            <JsonDisplay data={selectedFiles} />
-          </details>
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       )}
 
-      {/* Action Result Display */}
+      {/* File Metadata Display */}
       {actionResult && (
         <div style={{ ...sectionStyle, backgroundColor: actionResult.error ? "#fef2f2" : "#f0fdf4" }}>
-          <h2 style={sectionHeadingStyle}>Action Result</h2>
-          {/* Single file result */}
-          {typeof actionResult.downloadUrl === "string" && (
-            <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "4px" }}>
-                Download URL (valid ~1 hour):
-              </label>
-              <a
-                href={actionResult.downloadUrl as string}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: buttonColor,
-                  wordBreak: "break-all",
-                  fontSize: "13px",
-                }}
-              >
-                {(actionResult.downloadUrl as string).substring(0, 80)}...
-              </a>
-            </div>
-          )}
-          {/* Multiple files result */}
-          {actionResult.files && Array.isArray(actionResult.files) && (
-            <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "8px" }}>
-                Download URLs (valid ~1 hour):
-              </label>
-              <ul style={resetListStyle}>
-                {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
-                  <li key={index} style={listItemStyle}>
-                    <strong style={{ fontSize: "13px" }}>{String(file.name)}</strong>
-                    {file.downloadUrl && (
-                      <div style={{ marginTop: "4px" }}>
-                        <a
-                          href={file.downloadUrl as string}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: buttonColor,
-                            wordBreak: "break-all",
-                            fontSize: "12px",
-                          }}
-                        >
-                          Download
-                        </a>
+          <h2 style={sectionHeadingStyle}>File Metadata</h2>
+          {actionResult.error ? (
+            <p style={{ color: "#dc2626", margin: 0 }}>{String(actionResult.error)}</p>
+          ) : (
+            <>
+              {/* Single file result */}
+              {actionResult.name && !actionResult.files && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    <li style={listItemStyle}>
+                      <div>
+                        <strong style={{ fontSize: "14px" }}>{String(actionResult.name)}</strong>
+                        <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                          {actionResult.size && <span>{formatSize(actionResult.size as number)} • </span>}
+                          {actionResult.lastModifiedDateTime && <span>Modified {formatDate(actionResult.lastModifiedDateTime as string)}</span>}
+                        </div>
                       </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Multiple files result */}
+              {actionResult.files && Array.isArray(actionResult.files) && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
+                      <li key={index} style={listItemStyle}>
+                        <div>
+                          <strong style={{ fontSize: "14px" }}>{String(file.name)}</strong>
+                          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                            {file.size && <span>{formatSize(file.size as number)} • </span>}
+                            {file.lastModifiedDateTime && <span>Modified {formatDate(file.lastModifiedDateTime as string)}</span>}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <details style={{ marginTop: "12px" }}>
+                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                  View full metadata response
+                </summary>
+                <JsonDisplay data={actionResult} />
+              </details>
+            </>
           )}
-          <details>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View full response
-            </summary>
-            <JsonDisplay data={actionResult} />
-          </details>
         </div>
       )}
 
-      {/* Permissions Result Display */}
-      {permissionsResult && (
-        <div style={{ ...sectionStyle, backgroundColor: permissionsResult.error ? "#fef2f2" : "#f5f3ff" }}>
-          <h2 style={sectionHeadingStyle}>Permissions</h2>
-          {permissionsResult.error && (
-            <p style={{ color: "#dc2626", margin: 0 }}>{String(permissionsResult.error)}</p>
+      {/* Download URLs Section */}
+      {actionResult && !actionResult.error && (
+        <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
+          <h2 style={sectionHeadingStyle}>Download URLs</h2>
+
+          {/* Show button if URLs not fetched yet */}
+          {!actionResult.downloadUrl && !(actionResult.files as Array<Record<string, unknown>>)?.[0]?.downloadUrl ? (
+            <>
+              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+                Get pre-authenticated download links (valid ~1 hour)
+              </p>
+              <button
+                onClick={handleGetFileUrls}
+                disabled={isLoadingAction || isLoadingPermissions}
+                style={actionButtonStyle(buttonColor, isLoadingAction, false)}
+              >
+                {isLoadingAction ? "Loading..." : "Get Download URLs"}
+              </button>
+
+              {/* Show SDK payload */}
+              <details style={{ marginTop: "12px" }}>
+                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                  View SDK code
+                </summary>
+                <pre style={{
+                  marginTop: "8px",
+                  padding: "12px",
+                  backgroundColor: "#fff",
+                  borderRadius: "6px",
+                  overflow: "auto",
+                  fontSize: "12px",
+                  border: "1px solid #e5e5e5",
+                }}>
+                  {`await client.actions.run(${JSON.stringify({
+                    id: "~/sharepoint-download-files",
+                    externalUserId,
+                    configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() },
+                  }, null, 2)})`}
+                </pre>
+              </details>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+                Pre-authenticated download links (valid ~1 hour)
+              </p>
+
+              {/* Single file download URL */}
+              {actionResult.downloadUrl && !actionResult.files && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    <li style={listItemStyle}>
+                      <div>
+                        <strong style={{ fontSize: "14px" }}>{String(actionResult.name)}</strong>
+                        <div style={{ marginTop: "8px" }}>
+                          <a
+                            href={actionResult.downloadUrl as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: buttonColor,
+                              fontSize: "13px",
+                              textDecoration: "underline",
+                            }}
+                          >
+                            Download File
+                          </a>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Multiple files download URLs */}
+              {actionResult.files && Array.isArray(actionResult.files) && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
+                      <li key={index} style={listItemStyle}>
+                        <div>
+                          <strong style={{ fontSize: "14px" }}>{String(file.name)}</strong>
+                          {file.downloadUrl && (
+                            <div style={{ marginTop: "8px" }}>
+                              <a
+                                href={file.downloadUrl as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: buttonColor,
+                                  fontSize: "13px",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                Download File
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
+        </div>
+      )}
+
+      {/* Permissions Section */}
+      {actionResult && !actionResult.error && (
+        <div style={{ ...sectionStyle, backgroundColor: permissionsResult?.error ? "#fef2f2" : "#f5f3ff" }}>
+          <h2 style={sectionHeadingStyle}>Permissions</h2>
+
+          {/* Show button if permissions not fetched yet */}
+          {!permissionsResult ? (
+            <>
+              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+                View who has access to the selected files
+              </p>
+              <button
+                onClick={handleGetPermissions}
+                disabled={isLoadingAction || isLoadingPermissions}
+                style={actionButtonStyle("#6366f1", isLoadingPermissions, false)}
+              >
+                {isLoadingPermissions ? "Loading..." : "Get Permissions"}
+              </button>
+
+              {/* Show SDK payload */}
+              <details style={{ marginTop: "12px" }}>
+                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                  View SDK code
+                </summary>
+                <pre style={{
+                  marginTop: "8px",
+                  padding: "12px",
+                  backgroundColor: "#fff",
+                  borderRadius: "6px",
+                  overflow: "auto",
+                  fontSize: "12px",
+                  border: "1px solid #e5e5e5",
+                }}>
+                  {`await client.actions.run(${JSON.stringify({
+                    id: "~/sharepoint-get-file-permissions",
+                    externalUserId,
+                    configuredProps: {
+                      ...configuredProps,
+                      fileOrFolderIds: buildFileOrFolderIds(),
+                      includeFileMetadata: true,
+                      expandGroupsToUsers: true,
+                    },
+                  }, null, 2)})`}
+                </pre>
+              </details>
+            </>
+          ) : permissionsResult.error ? (
+            <p style={{ color: "#dc2626", margin: 0 }}>{String(permissionsResult.error)}</p>
+          ) : (
+            <>
           {/* Single item permissions */}
           {permissionsResult.permissions && Array.isArray(permissionsResult.permissions) && (
             <div>
@@ -1266,12 +1086,100 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               </p>
             </div>
           )}
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View full response
-            </summary>
-            <JsonDisplay data={permissionsResult} />
-          </details>
+          </>
+          )}
+
+          {permissionsResult && (
+            <details style={{ marginTop: "12px" }}>
+              <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                View full response
+              </summary>
+              <JsonDisplay data={permissionsResult} />
+            </details>
+          )}
+        </div>
+      )}
+
+      {/* Deploy Trigger Section */}
+      {actionResult && !actionResult.error && (
+        <div style={{ ...sectionStyle, backgroundColor: "#fef3c7" }}>
+          <h2 style={sectionHeadingStyle}>Deploy Trigger for File Updates</h2>
+
+          {/* Show form if trigger not deployed yet */}
+          {!triggerResult?.success ? (
+            <>
+              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+                Deploy a trigger to receive webhook notifications when the selected files are updated
+              </p>
+              <div style={{ marginBottom: "12px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px" }}>
+                  Webhook URI:
+                </label>
+                <input
+                  type="url"
+                  value={webhookUri}
+                  onChange={(e) => setWebhookUri(e.target.value)}
+                  placeholder="https://your-api.com/webhook/file-updates"
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    fontFamily: "monospace",
+                  }}
+                />
+              </div>
+              <button
+                onClick={handleDeployTrigger}
+                disabled={isLoadingTrigger || !webhookUri}
+                style={actionButtonStyle("#f59e0b", isLoadingTrigger, !webhookUri)}
+              >
+                {isLoadingTrigger ? "Deploying..." : "Deploy Trigger"}
+              </button>
+
+              {/* Show SDK payload */}
+              <details style={{ marginTop: "12px" }}>
+                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                  View SDK code
+                </summary>
+                <pre style={{
+                  marginTop: "8px",
+                  padding: "12px",
+                  backgroundColor: "#fff",
+                  borderRadius: "6px",
+                  overflow: "auto",
+                  fontSize: "12px",
+                  border: "1px solid #e5e5e5",
+                }}>
+                  {`await client.triggers.deploy(${JSON.stringify({
+                    id: "~/sharepoint-file-updates",
+                    externalUserId,
+                    webhookUri: webhookUri || "<your-webhook-uri>",
+                    configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() },
+                  }, null, 2)})`}
+                </pre>
+              </details>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: "13px", color: "#059669", marginTop: 0, marginBottom: "12px", fontWeight: 500 }}>
+                ✓ Trigger deployed successfully
+              </p>
+              <div style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
+                <strong>Webhook URI:</strong> <code style={{ fontSize: "12px", backgroundColor: "#fef9c3", padding: "2px 6px", borderRadius: "3px" }}>{String(triggerResult.webhookUri)}</code>
+              </div>
+              <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>
+                You will receive POST requests at your webhook URI when files are created, updated, or deleted.
+              </p>
+            </>
+          )}
+
+          {triggerResult?.error && (
+            <p style={{ color: "#dc2626", fontSize: "13px", marginTop: "12px", margin: 0 }}>
+              Error: {String(triggerResult.error)}
+            </p>
+          )}
         </div>
       )}
 
@@ -1469,7 +1377,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <ConfigureFilePickerModal
             isOpen={isModalOpen}
             title="Select SharePoint Files"
-            componentKey="~/sharepoint-select-files"
+            componentKey="~/sharepoint-retrieve-file-metadata"
             app="sharepoint"
             accountId={selectedAccountId}
             externalUserId={externalUserId}
@@ -1556,6 +1464,23 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
 
   return (
     <div style={{ maxWidth: "600px" }}>
+      {/* Known Issue Warning */}
+      <div style={{
+        padding: "16px",
+        backgroundColor: "#fef3c7",
+        border: "1px solid #fbbf24",
+        borderRadius: "6px",
+        marginBottom: "20px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+          <span style={{ fontSize: "18px" }}>⚠️</span>
+          <strong style={{ fontSize: "14px", color: "#92400e" }}>Known Issue</strong>
+        </div>
+        <p style={{ margin: 0, fontSize: "13px", color: "#78350f", lineHeight: "1.5" }}>
+          Hosted link mode is currently broken. Fix incoming. Use the in-app mode for now.
+        </p>
+      </div>
+
       {/* 1. Configure */}
       <div style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>1. Configure</h2>
@@ -1702,7 +1627,31 @@ type ConnectReactMode = "in-app" | "hosted-link";
 
 export default function FilePickerPage() {
   const [externalUserId] = useStableUuid();
-  const [connectReactMode, setConnectReactMode] = useState<ConnectReactMode>("hosted-link");
+
+  // Read mode from URL hash (e.g., #type=hosted-link or #type=in-app)
+  const getModeFromHash = (): ConnectReactMode => {
+    if (typeof window === "undefined") return "in-app";
+    const hash = window.location.hash;
+    const match = hash.match(/type=(in-app|hosted-link)/);
+    return match ? (match[1] as ConnectReactMode) : "in-app";
+  };
+
+  const [connectReactMode, setConnectReactMode] = useState<ConnectReactMode>(getModeFromHash);
+
+  // Update mode when hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      setConnectReactMode(getModeFromHash());
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  // Update hash when mode changes via buttons
+  const handleModeChange = (mode: ConnectReactMode) => {
+    window.location.hash = `type=${mode}`;
+    setConnectReactMode(mode);
+  };
 
   const client = useMemo(() => {
     if (!externalUserId) return null;
@@ -1742,61 +1691,46 @@ export default function FilePickerPage() {
     <QueryClientProvider client={queryClient}>
       <FrontendClientProvider client={client}>
         <div style={{
-          display: "flex",
-          gap: "20px",
           padding: "20px",
-          maxWidth: "1400px",
+          maxWidth: "1000px",
           margin: "0 auto",
-          flexWrap: "wrap",
-          alignItems: "flex-start",
         }}>
-          {/* Pipedream connect-react */}
-          <div style={cardStyle}>
-            <div style={cardHeaderStyle}>
-              <h2 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600, color: "#111827" }}>
-                Pipedream Connect File Picker
-              </h2>
-              <p style={{ margin: "0 0 12px", fontSize: "13px", color: "#6b7280" }}>
-                Uses Pipedream&apos;s Connect React SDK to populate the file picker and retrieve the selected files.
-              </p>
-              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-                <button onClick={() => setConnectReactMode("hosted-link")} style={modeStyle(connectReactMode === "hosted-link")}>
-                  Hosted link
-                </button>
-                <button onClick={() => setConnectReactMode("in-app")} style={modeStyle(connectReactMode === "in-app")}>
-                  In-app
-                </button>
-              </div>
-              <p style={{ margin: 0, fontSize: "12px", color: "#6b7280", lineHeight: "1.5" }}>
-                {connectReactMode === "hosted-link"
-                  ? "Opens the file picker on a hosted Pipedream page via a URL. Users connect their account and select files without any UI in your app."
-                  : "Embeds the file picker directly in your app using React components. Account connection and file selection happen inline."}
-              </p>
+          {/* Header */}
+          <div style={{
+            marginBottom: "30px",
+            padding: "20px",
+            backgroundColor: "#f0f9ff",
+            borderRadius: "8px",
+            border: "1px solid #bfdbfe",
+          }}>
+            <h1 style={{ margin: "0 0 8px", fontSize: "20px", fontWeight: 600, color: "#1e3a8a" }}>
+              Pipedream Connect File Picker
+            </h1>
+            <p style={{ margin: "0 0 16px", fontSize: "14px", color: "#3b82f6" }}>
+              Uses Pipedream&apos;s Connect React SDK to populate the file picker and retrieve the selected files.
+            </p>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+              <button onClick={() => handleModeChange("in-app")} style={modeStyle(connectReactMode === "in-app")}>
+                In-app
+              </button>
+              <button onClick={() => handleModeChange("hosted-link")} style={modeStyle(connectReactMode === "hosted-link")}>
+                Hosted link
+              </button>
             </div>
-            <div style={{ padding: "20px" }}>
-              {connectReactMode === "in-app" && (
-                <ConfigureFilePickerDemo externalUserId={externalUserId} />
-              )}
-              {connectReactMode === "hosted-link" && (
-                <FilePickerLinkGenerator externalUserId={externalUserId} />
-              )}
-            </div>
+            <p style={{ margin: 0, fontSize: "12px", color: "#1e40af", lineHeight: "1.5" }}>
+              {connectReactMode === "hosted-link"
+                ? "Opens the file picker on a hosted Pipedream page via a URL. Users connect their account and select files without any UI in your app."
+                : "Embeds the file picker directly in your app using React components. Account connection and file selection happen inline."}
+            </p>
           </div>
 
-          {/* Native Microsoft Picker */}
-          <div style={cardStyle}>
-            <div style={cardHeaderStyle}>
-              <h2 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600, color: "#111827" }}>
-                Native Microsoft Picker
-              </h2>
-              <p style={{ margin: 0, fontSize: "13px", color: "#6b7280" }}>
-                Microsoft&apos;s native file picker UI (v8) — requires passing the SharePoint OAuth access token from the client browser.
-              </p>
-            </div>
-            <div style={{ padding: "20px" }}>
-              <NativeSharePointPicker externalUserId={externalUserId} client={client} />
-            </div>
-          </div>
+          {/* Content */}
+          {connectReactMode === "in-app" && (
+            <ConfigureFilePickerDemo externalUserId={externalUserId} />
+          )}
+          {connectReactMode === "hosted-link" && (
+            <FilePickerLinkGenerator externalUserId={externalUserId} />
+          )}
         </div>
       </FrontendClientProvider>
     </QueryClientProvider>
