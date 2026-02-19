@@ -3,7 +3,6 @@ import { useCustomize } from "@pipedream/connect-react"
 import { useAppState } from "@/lib/app-state"
 import { proxyRequest } from "@/app/actions/backendClient"
 import { useSDKLogger } from "@/lib/sdk-logger"
-import { isValidUrl } from "@/lib/utils"
 import type { Account } from "@pipedream/sdk"
 import { SDKError } from "@/lib/types/pipedream"
 
@@ -98,11 +97,6 @@ export function ProxyRequestBuilder({
 
     if (!proxyUrl.trim()) {
       setError("URL is required")
-      return
-    }
-
-    if (!isValidUrl(proxyUrl)) {
-      setError("Please enter a valid URL (e.g., https://api.example.com/endpoint)")
       return
     }
 

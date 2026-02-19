@@ -166,7 +166,7 @@ function AccountSelector({
   selectedAccountId,
   onSelectAccount,
   onConnectNew,
-  app = "sharepoint",
+  app = "sharepoint_admin",
 }: {
   externalUserId: string;
   selectedAccountId: string | null;

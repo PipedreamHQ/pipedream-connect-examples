@@ -160,36 +160,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 // Permission list (used in single-item and multi-item views)
-function PermissionList({ permissions }: { permissions: Array<Record<string, unknown>> }) {
-  return (
-    <ul style={resetListStyle}>
-      {permissions.map((perm, index) => (
-        <li key={index} style={listItemStyle}>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ ...badgeStyle, backgroundColor: "#e0e7ff" }}>
-              {((perm.roles as string[]) || []).join(", ")}
-            </span>
-            {perm.user && (
-              <span>{String((perm.user as Record<string, unknown>).displayName || (perm.user as Record<string, unknown>).email)}</span>
-            )}
-            {perm.group && (
-              <span>{String((perm.group as Record<string, unknown>).displayName)}</span>
-            )}
-            {perm.link && (
-              <span style={{ color: "#666" }}>
-                Sharing link ({String((perm.link as Record<string, unknown>).type)} - {String((perm.link as Record<string, unknown>).scope)})
-              </span>
-            )}
-            {perm.inheritedFrom && (
-              <span style={{ fontSize: "11px", color: "#999" }}>(inherited)</span>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 // JSON display with copy button
 function JsonDisplay({ data, maxHeight = "300px" }: { data: unknown; maxHeight?: string }) {
   const jsonString = JSON.stringify(data, null, 2);
@@ -222,7 +192,7 @@ function AccountSelector({
   selectedAccountId,
   onSelectAccount,
   onConnectNew,
-  app = "sharepoint",
+  app = "sharepoint_admin",
 }: {
   externalUserId: string;
   selectedAccountId: string | null;
@@ -273,7 +243,7 @@ function AccountSelector({
           </select>
         </div>
       ) : (
-        <p style={{ color: "#666", margin: 0 }}>No SharePoint accounts connected yet.</p>
+        <p style={{ color: "#666", margin: 0 }}>No SharePoint Admin accounts connected yet.</p>
       )}
 
       <button
@@ -287,7 +257,7 @@ function AccountSelector({
           fontSize: "14px",
         }}
       >
-        + Connect New SharePoint Account
+        + Connect New SharePoint Admin Account
       </button>
     </div>
   );
@@ -353,13 +323,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const [selectedTheme, setSelectedTheme] = useState<keyof typeof themePresets | "custom">("light");
   const [customPrimaryColor, setCustomPrimaryColor] = useState("#2684FF");
   const [actionResult, setActionResult] = useState<Record<string, unknown> | null>(null);
-  const [permissionsResult, setPermissionsResult] = useState<Record<string, unknown> | null>(null);
-  const [usersWithReadAccess, setUsersWithReadAccess] = useState<Array<Record<string, unknown>> | null>(null);
-  const [siteMembersResult, setSiteMembersResult] = useState<Record<string, unknown> | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
-  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [isLoadingSiteMembers, setIsLoadingSiteMembers] = useState(false);
   const [showIcons, setShowIcons] = useState(true);
   const [webhookUri, setWebhookUri] = useState("");
   const [triggerResult, setTriggerResult] = useState<Record<string, unknown> | null>(null);
@@ -383,7 +347,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
   const handleConnectNew = () =>
     connectAccountPromise(client, {
-      app: "sharepoint",
+      app: "sharepoint_admin",
       onSuccess: (id) => setSelectedAccountId(id),
       onError: (msg) => console.error(msg),
     });
@@ -391,9 +355,6 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const handleSelect = async (items: FilePickerItem[], props: Record<string, unknown>) => {
     setSelectedFiles(items);
     setConfiguredProps(props);
-    setPermissionsResult(null); // Reset permissions result when new selection is made
-    setUsersWithReadAccess(null); // Reset users when new selection is made
-    setSiteMembersResult(null); // Reset site members when new selection is made
     setIsModalOpen(false);
 
     // Immediately fetch metadata for selected files
@@ -402,7 +363,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       setActionResult(null);
       try {
         const response = await client.actions.run({
-          id: "~/sharepoint-retrieve-file-metadata",
+          id: "sharepoint_admin-retrieve-file-metadata",
           externalUserId,
           configuredProps: { ...props, fileOrFolderIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
         });
@@ -437,154 +398,20 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
     setIsLoadingAction(true);
     try {
+      // Map fileOrFolderIds to fileIds for download-files action
+      const { fileOrFolderIds, ...otherProps } = configuredProps;
       const response = await client.actions.run({
-        id: "~/sharepoint-download-files",
+        id: "sharepoint_admin-download-files",
         externalUserId,
-        configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() } as Record<string, unknown>,
+        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() } as Record<string, unknown>,
       });
-      setActionResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
+      const result = (response.ret as Record<string, unknown>) ?? { error: "No data returned" };
+      setActionResult(result);
     } catch (e) {
       console.error("Failed to run action:", e);
       setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
     } finally {
       setIsLoadingAction(false);
-    }
-  };
-
-  const handleGetPermissions = async () => {
-    if (!configuredProps || selectedFiles.length === 0) return;
-
-    setIsLoadingPermissions(true);
-    setPermissionsResult(null);
-    try {
-      const response = await client.actions.run({
-        id: "~/sharepoint-get-file-permissions",
-        externalUserId,
-        configuredProps: {
-          ...configuredProps,
-          fileOrFolderIds: buildFileOrFolderIds(),
-          includeFileMetadata: true,
-          expandGroupsToUsers: true,
-        } as Record<string, unknown>,
-      });
-      setPermissionsResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
-    } catch (e) {
-      console.error("Failed to get permissions:", e);
-      setPermissionsResult({ error: e instanceof Error ? e.message : "Unknown error" });
-    } finally {
-      setIsLoadingPermissions(false);
-    }
-  };
-
-  // Extract group IDs from permissions and fetch individual users
-  const handleGetUsersWithReadAccess = async () => {
-    if (!permissionsResult || !configuredProps) return;
-
-    setIsLoadingUsers(true);
-    setUsersWithReadAccess(null);
-
-    try {
-      // Extract group IDs from permissions
-      // Handle both single item (permissionsResult.permissions) and multiple items (permissionsResult.items)
-      const allPermissions: Array<Record<string, unknown>> = [];
-
-      if (permissionsResult.permissions && Array.isArray(permissionsResult.permissions)) {
-        allPermissions.push(...(permissionsResult.permissions as Array<Record<string, unknown>>));
-      }
-
-      if (permissionsResult.items && Array.isArray(permissionsResult.items)) {
-        for (const item of permissionsResult.items as Array<Record<string, unknown>>) {
-          if (item.permissions && Array.isArray(item.permissions)) {
-            allPermissions.push(...(item.permissions as Array<Record<string, unknown>>));
-          }
-        }
-      }
-
-      // Extract unique group IDs (Entra ID groups have a GUID format)
-      const groupIds = new Set<string>();
-      for (const perm of allPermissions) {
-        if (perm.group && typeof perm.group === "object") {
-          const group = perm.group as Record<string, unknown>;
-          if (group.id && typeof group.id === "string") {
-            // Only add if it looks like a GUID (Entra ID group)
-            if (/^[a-f0-9-]{36}$/i.test(group.id)) {
-              groupIds.add(group.id);
-            }
-          }
-        }
-      }
-
-      if (groupIds.size === 0) {
-        setUsersWithReadAccess([]);
-        return;
-      }
-
-      // Call list-users action with group IDs
-      const response = await client.actions.run({
-        id: "~/sharepoint-list-users",
-        externalUserId,
-        configuredProps: {
-          sharepoint: {
-            authProvisionId: (configuredProps.sharepoint as Record<string, unknown>)?.authProvisionId,
-          },
-          groupIds: Array.from(groupIds),
-          includeGuests: true,
-          maxResults: 100,
-        },
-      });
-
-      const result = response.ret as Record<string, unknown> | undefined;
-
-      if (result?.users && Array.isArray(result.users)) {
-        setUsersWithReadAccess(result.users as Array<Record<string, unknown>>);
-      } else {
-        setUsersWithReadAccess([]);
-      }
-    } catch (e) {
-      console.error("Failed to get users:", e);
-      setUsersWithReadAccess([{ error: e instanceof Error ? e.message : "Unknown error" }]);
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  // Get all site members using list-site-members action
-  const handleGetSiteMembers = async () => {
-    if (!configuredProps) return;
-
-    setIsLoadingSiteMembers(true);
-    setSiteMembersResult(null);
-
-    try {
-      // Extract siteId from configuredProps
-      const siteId = configuredProps.siteId as { __lv?: { value: string } } | string | undefined;
-      const resolvedSiteId = typeof siteId === "object" && siteId?.__lv?.value
-        ? siteId.__lv.value
-        : siteId;
-
-      if (!resolvedSiteId) {
-        setSiteMembersResult({ error: "No siteId found in configured props" });
-        return;
-      }
-
-      const response = await client.actions.run({
-        id: "~/sharepoint-list-site-members",
-        externalUserId,
-        configuredProps: {
-          sharepoint: {
-            authProvisionId: (configuredProps.sharepoint as Record<string, unknown>)?.authProvisionId,
-          },
-          siteId: resolvedSiteId,
-        },
-      });
-
-      const result = response.ret as Record<string, unknown> | undefined;
-      setSiteMembersResult(result ?? { error: "No data returned" });
-    } catch (e) {
-      console.error("Failed to get site members:", e);
-      setSiteMembersResult({ error: e instanceof Error ? e.message : "Unknown error" });
-    } finally {
-      setIsLoadingSiteMembers(false);
     }
   };
 
@@ -599,11 +426,11 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setTriggerResult(null);
 
     try {
-      // TODO: This would call a deploy-trigger action or API endpoint
-      // For now, just show what the payload would be
+      // Map fileOrFolderIds to fileIds for the trigger
+      const { fileOrFolderIds, ...otherProps } = configuredProps;
       const payload = {
         webhookUri,
-        configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() },
+        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
       };
 
       // Simulate deployment
@@ -633,7 +460,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           selectedAccountId={selectedAccountId}
           onSelectAccount={setSelectedAccountId}
           onConnectNew={handleConnectNew}
-          app="sharepoint"
+          app="sharepoint_admin"
         />
       </div>
 
@@ -781,6 +608,22 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                           {actionResult.size && <span>{formatSize(actionResult.size as number)} • </span>}
                           {actionResult.lastModifiedDateTime && <span>Modified {formatDate(actionResult.lastModifiedDateTime as string)}</span>}
                         </div>
+                        {actionResult.sharepointViewUrl && (
+                          <div style={{ marginTop: "8px" }}>
+                            <a
+                              href={actionResult.sharepointViewUrl as string}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#16a34a",
+                                fontSize: "13px",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              Open in SharePoint →
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </li>
                   </ul>
@@ -799,6 +642,22 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                             {file.size && <span>{formatSize(file.size as number)} • </span>}
                             {file.lastModifiedDateTime && <span>Modified {formatDate(file.lastModifiedDateTime as string)}</span>}
                           </div>
+                          {file.sharepointViewUrl && (
+                            <div style={{ marginTop: "8px" }}>
+                              <a
+                                href={file.sharepointViewUrl as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: "#16a34a",
+                                  fontSize: "13px",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                Open in SharePoint →
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -818,20 +677,26 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       )}
 
       {/* Download URLs Section */}
-      {actionResult && !actionResult.error && (
-        <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
-          <h2 style={sectionHeadingStyle}>Download URLs</h2>
+      <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
+        <h2 style={sectionHeadingStyle}>Download URLs</h2>
 
-          {/* Show button if URLs not fetched yet */}
-          {!actionResult.downloadUrl && !(actionResult.files as Array<Record<string, unknown>>)?.[0]?.downloadUrl ? (
+        {/* Show button if URLs not fetched yet */}
+        {(() => {
+          // Show button when: no result, or result has no download URLs
+          const hasDownloadUrl = actionResult?.downloadUrl;
+          const hasFilesWithUrls = actionResult?.files && Array.isArray(actionResult.files) && (actionResult.files as Array<Record<string, unknown>>).length > 0;
+          const hasDownloadData = hasDownloadUrl || hasFilesWithUrls;
+          const shouldShowButton = !actionResult || (!actionResult.error && !hasDownloadData);
+          return shouldShowButton;
+        })() ? (
             <>
               <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
                 Get pre-authenticated download links (valid ~1 hour)
               </p>
               <button
                 onClick={handleGetFileUrls}
-                disabled={isLoadingAction || isLoadingPermissions}
-                style={actionButtonStyle(buttonColor, isLoadingAction, false)}
+                disabled={!configuredProps || selectedFiles.length === 0 || isLoadingAction}
+                style={actionButtonStyle(buttonColor, isLoadingAction, !configuredProps || selectedFiles.length === 0)}
               >
                 {isLoadingAction ? "Loading..." : "Get Download URLs"}
               </button>
@@ -850,20 +715,19 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                   fontSize: "12px",
                   border: "1px solid #e5e5e5",
                 }}>
-                  {`await client.actions.run(${JSON.stringify({
-                    id: "~/sharepoint-download-files",
-                    externalUserId,
-                    configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() },
-                  }, null, 2)})`}
+                  {(() => {
+                    const { fileOrFolderIds, ...otherProps } = configuredProps || {};
+                    return `await client.actions.run(${JSON.stringify({
+                      id: "sharepoint_admin-download-files",
+                      externalUserId,
+                      configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
+                    }, null, 2)})`;
+                  })()}
                 </pre>
               </details>
             </>
           ) : (
             <>
-              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
-                Pre-authenticated download links (valid ~1 hour)
-              </p>
-
               {/* Single file download URL */}
               {actionResult.downloadUrl && !actionResult.files && (
                 <div style={{ marginBottom: "12px" }}>
@@ -871,6 +735,10 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                     <li style={listItemStyle}>
                       <div>
                         <strong style={{ fontSize: "14px" }}>{String(actionResult.name)}</strong>
+                        <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                          {actionResult.size && <span>{formatSize(actionResult.size as number)} • </span>}
+                          {actionResult.lastModifiedDateTime && <span>Modified {formatDate(actionResult.lastModifiedDateTime as string)}</span>}
+                        </div>
                         <div style={{ marginTop: "8px" }}>
                           <a
                             href={actionResult.downloadUrl as string}
@@ -878,11 +746,12 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                             rel="noopener noreferrer"
                             style={{
                               color: buttonColor,
-                              fontSize: "13px",
+                              fontSize: "12px",
                               textDecoration: "underline",
+                              wordBreak: "break-all",
                             }}
                           >
-                            Download File
+                            {actionResult.downloadUrl as string}
                           </a>
                         </div>
                       </div>
@@ -899,6 +768,10 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                       <li key={index} style={listItemStyle}>
                         <div>
                           <strong style={{ fontSize: "14px" }}>{String(file.name)}</strong>
+                          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                            {file.size && <span>{formatSize(file.size as number)} • </span>}
+                            {file.lastModifiedDateTime && <span>Modified {formatDate(file.lastModifiedDateTime as string)}</span>}
+                          </div>
                           {file.downloadUrl && (
                             <div style={{ marginTop: "8px" }}>
                               <a
@@ -907,11 +780,12 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                                 rel="noopener noreferrer"
                                 style={{
                                   color: buttonColor,
-                                  fontSize: "13px",
+                                  fontSize: "12px",
                                   textDecoration: "underline",
+                                  wordBreak: "break-all",
                                 }}
                               >
-                                Download File
+                                {file.downloadUrl as string}
                               </a>
                             </div>
                           )}
@@ -921,192 +795,37 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                   </ul>
                 </div>
               )}
-            </>
-          )}
-        </div>
-      )}
 
-      {/* Permissions Section */}
-      {actionResult && !actionResult.error && (
-        <div style={{ ...sectionStyle, backgroundColor: permissionsResult?.error ? "#fef2f2" : "#f5f3ff" }}>
-          <h2 style={sectionHeadingStyle}>Permissions</h2>
-
-          {/* Show button if permissions not fetched yet */}
-          {!permissionsResult ? (
-            <>
-              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
-                View who has access to the selected files
-              </p>
-              <button
-                onClick={handleGetPermissions}
-                disabled={isLoadingAction || isLoadingPermissions}
-                style={actionButtonStyle("#6366f1", isLoadingPermissions, false)}
-              >
-                {isLoadingPermissions ? "Loading..." : "Get Permissions"}
-              </button>
-
-              {/* Show SDK payload */}
               <details style={{ marginTop: "12px" }}>
                 <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                  View SDK code
+                  View full response
                 </summary>
-                <pre style={{
-                  marginTop: "8px",
-                  padding: "12px",
-                  backgroundColor: "#fff",
-                  borderRadius: "6px",
-                  overflow: "auto",
-                  fontSize: "12px",
-                  border: "1px solid #e5e5e5",
-                }}>
-                  {`await client.actions.run(${JSON.stringify({
-                    id: "~/sharepoint-get-file-permissions",
-                    externalUserId,
-                    configuredProps: {
-                      ...configuredProps,
-                      fileOrFolderIds: buildFileOrFolderIds(),
-                      includeFileMetadata: true,
-                      expandGroupsToUsers: true,
-                    },
-                  }, null, 2)})`}
-                </pre>
+                <JsonDisplay data={actionResult} />
               </details>
             </>
-          ) : permissionsResult.error ? (
-            <p style={{ color: "#dc2626", margin: 0 }}>{String(permissionsResult.error)}</p>
-          ) : (
-            <>
-          {/* Single item permissions */}
-          {permissionsResult.permissions && Array.isArray(permissionsResult.permissions) && (
-            <div>
-              <p style={{ fontSize: "13px", color: "#666", marginBottom: "8px" }}>
-                <strong>{String(permissionsResult.itemName)}</strong> - {(permissionsResult.permissions as unknown[]).length} permission(s)
-              </p>
-              {permissionsResult.downloadUrl && (
-                <p style={{ fontSize: "13px", marginBottom: "12px" }}>
-                  <a
-                    href={String(permissionsResult.downloadUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "#6366f1" }}
-                  >
-                    Download file
-                  </a>
-                  <span style={{ color: "#999", marginLeft: "8px", fontSize: "11px" }}>
-                    (URL valid ~1 hour)
-                  </span>
-                </p>
-              )}
-              <PermissionList permissions={permissionsResult.permissions as Array<Record<string, unknown>>} />
-            </div>
-          )}
-          {/* Multiple items permissions */}
-          {permissionsResult.items && Array.isArray(permissionsResult.items) && (
-            <div>
-              <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                {String(permissionsResult.totalPermissions)} total permission(s) across {(permissionsResult.items as unknown[]).length} item(s)
-              </p>
-              {(permissionsResult.items as Array<Record<string, unknown>>).map((item, itemIndex) => (
-                <div key={itemIndex} style={{ marginBottom: "16px" }}>
-                  <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}>
-                    {String(item.itemName)} ({((item.permissions as unknown[]) || []).length} permissions)
-                  </h4>
-                  {item.downloadUrl && (
-                    <p style={{ fontSize: "12px", marginBottom: "8px", marginTop: 0 }}>
-                      <a
-                        href={String(item.downloadUrl)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: "#6366f1" }}
-                      >
-                        Download
-                      </a>
-                    </p>
-                  )}
-                  <PermissionList permissions={(item.permissions as Array<Record<string, unknown>>) || []} />
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Users with Access - from expandGroupsToUsers */}
-          {(permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) && (
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
-              <h3 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", fontWeight: 600, color: "#10b981" }}>
-                Users with Access ({((permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) as Array<Record<string, unknown>>).length})
-              </h3>
-              <ul style={resetListStyle}>
-                {((permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) as Array<Record<string, unknown>>).map((user, index) => (
-                  <li
-                    key={user.email as string || index}
-                    style={{ ...listItemStyle, border: "1px solid #d1fae5" }}
-                  >
-                    <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                      <strong>{String(user.displayName)}</strong>
-                      {user.email && (
-                        <span style={{ color: "#666" }}>{String(user.email)}</span>
-                      )}
-                      <span style={{
-                        ...badgeStyle,
-                        backgroundColor: user.accessLevel === "owner" ? "#fef3c7" : user.accessLevel === "write" ? "#dbeafe" : "#d1fae5",
-                      }}>
-                        {String(user.accessLevel)}
-                      </span>
-                      {user.viaGroup && (
-                        <span style={{ fontSize: "11px", color: "#666" }}>
-                          via {String(user.viaGroup)}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {/* Button to expand groups to users (legacy - now built into get-file-permissions) */}
-          {!permissionsResult.error && !permissionsResult.usersWithAccess && !(permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess && (
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <button
-                  onClick={handleGetUsersWithReadAccess}
-                  disabled={isLoadingUsers || isLoadingSiteMembers}
-                  style={actionButtonStyle("#10b981", isLoadingUsers, false)}
-                >
-                  {isLoadingUsers ? "Loading..." : "Expand Groups to Users"}
-                </button>
-                <button
-                  onClick={handleGetSiteMembers}
-                  disabled={isLoadingUsers || isLoadingSiteMembers}
-                  style={actionButtonStyle("#8b5cf6", isLoadingSiteMembers, false)}
-                >
-                  {isLoadingSiteMembers ? "Loading..." : "List All Site Members"}
-                </button>
-              </div>
-              <p style={{ fontSize: "12px", color: "#666", marginTop: "8px", marginBottom: 0 }}>
-                &quot;Expand Groups&quot; fetches users from Entra ID groups. &quot;List All Site Members&quot; gets all users with access to the site.
-              </p>
-            </div>
-          )}
-          </>
           )}
 
-          {permissionsResult && (
-            <details style={{ marginTop: "12px" }}>
-              <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                View full response
-              </summary>
-              <JsonDisplay data={permissionsResult} />
-            </details>
+          {/* Show error if present */}
+          {actionResult?.error && (
+            <div style={{
+              padding: "12px",
+              backgroundColor: "#fee",
+              borderRadius: "6px",
+              color: "#c00",
+              fontSize: "13px",
+              marginTop: "12px",
+            }}>
+              Error: {String(actionResult.error)}
+            </div>
           )}
         </div>
-      )}
 
       {/* Deploy Trigger Section */}
-      {actionResult && !actionResult.error && (
-        <div style={{ ...sectionStyle, backgroundColor: "#fef3c7" }}>
-          <h2 style={sectionHeadingStyle}>Deploy Trigger for File Updates</h2>
+      <div style={{ ...sectionStyle, backgroundColor: "#fef3c7" }}>
+        <h2 style={sectionHeadingStyle}>Deploy Trigger for File Updates</h2>
 
-          {/* Show form if trigger not deployed yet */}
-          {!triggerResult?.success ? (
+        {/* Show form if trigger not deployed yet */}
+        {!triggerResult?.success ? (
             <>
               <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
                 Deploy a trigger to receive webhook notifications when the selected files are updated
@@ -1132,8 +851,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               </div>
               <button
                 onClick={handleDeployTrigger}
-                disabled={isLoadingTrigger || !webhookUri}
-                style={actionButtonStyle("#f59e0b", isLoadingTrigger, !webhookUri)}
+                disabled={!configuredProps || selectedFiles.length === 0 || isLoadingTrigger || !webhookUri}
+                style={actionButtonStyle("#f59e0b", isLoadingTrigger, !configuredProps || selectedFiles.length === 0 || !webhookUri)}
               >
                 {isLoadingTrigger ? "Deploying..." : "Deploy Trigger"}
               </button>
@@ -1152,12 +871,15 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
                   fontSize: "12px",
                   border: "1px solid #e5e5e5",
                 }}>
-                  {`await client.triggers.deploy(${JSON.stringify({
-                    id: "~/sharepoint-file-updates",
-                    externalUserId,
-                    webhookUri: webhookUri || "<your-webhook-uri>",
-                    configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() },
-                  }, null, 2)})`}
+                  {(() => {
+                    const { fileOrFolderIds, ...otherProps } = configuredProps || {};
+                    return `await client.triggers.deploy(${JSON.stringify({
+                      id: "sharepoint_admin-updated-file-instant",
+                      externalUserId,
+                      webhookUri: webhookUri || "<your-webhook-uri>",
+                      configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
+                    }, null, 2)})`;
+                  })()}
                 </pre>
               </details>
             </>
@@ -1181,184 +903,6 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             </p>
           )}
         </div>
-      )}
-
-      {/* Users with Read Access Display */}
-      {usersWithReadAccess && (
-        <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
-          <h2 style={sectionHeadingStyle}>
-            Users with Read Access ({usersWithReadAccess.length})
-          </h2>
-          {usersWithReadAccess.length === 0 ? (
-            <p style={{ color: "#666", fontSize: "13px", margin: 0 }}>
-              No Entra ID groups found in permissions. The permissions may only contain SharePoint-native groups
-              (like &quot;site Members&quot;, &quot;site Owners&quot;) which cannot be expanded via Microsoft Graph API.
-            </p>
-          ) : usersWithReadAccess[0]?.error ? (
-            <p style={{ color: "#dc2626", margin: 0 }}>{String(usersWithReadAccess[0].error)}</p>
-          ) : (
-            <ul style={resetListStyle}>
-              {usersWithReadAccess.map((user, index) => (
-                <li key={user.id as string || index} style={listItemStyle}>
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                    <strong>{String(user.displayName)}</strong>
-                    {user.email && (
-                      <span style={{ color: "#666" }}>{String(user.email)}</span>
-                    )}
-                    {user.role && (
-                      <span style={{ ...badgeStyle, backgroundColor: "#d1fae5" }}>
-                        {String(user.role)}
-                      </span>
-                    )}
-                    {user.groups && Array.isArray(user.groups) && (
-                      <span style={{ fontSize: "11px", color: "#666" }}>
-                        via {(user.groups as Array<Record<string, unknown>>).map(g => g.displayName).join(", ")}
-                      </span>
-                    )}
-                  </div>
-                  {user.jobTitle && (
-                    <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
-                      {String(user.jobTitle)}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* Site Members Display */}
-      {siteMembersResult && (
-        <div style={{ ...sectionStyle, backgroundColor: siteMembersResult.error ? "#fef2f2" : "#f5f3ff" }}>
-          <h2 style={sectionHeadingStyle}>Site Members</h2>
-          {siteMembersResult.error ? (
-            <p style={{ color: "#dc2626", margin: 0 }}>{String(siteMembersResult.error)}</p>
-          ) : (
-            <>
-              {siteMembersResult.site && (
-                <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                  Site: <strong>{String((siteMembersResult.site as Record<string, unknown>).displayName)}</strong>
-                </p>
-              )}
-              {siteMembersResult.note && (
-                <p style={{ fontSize: "12px", color: "#666", marginBottom: "12px", fontStyle: "italic" }}>
-                  {String(siteMembersResult.note)}
-                </p>
-              )}
-              {siteMembersResult.summary && (
-                <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                  {String((siteMembersResult.summary as Record<string, unknown>).totalUsers)} total user(s)
-                  {(siteMembersResult.summary as Record<string, unknown>).owners !== undefined && (
-                    <> ({String((siteMembersResult.summary as Record<string, unknown>).owners)} owners, {String((siteMembersResult.summary as Record<string, unknown>).members)} members)</>
-                  )}
-                </p>
-              )}
-              {/* Users by role if available */}
-              {siteMembersResult.byRole && (
-                <div>
-                  {(siteMembersResult.byRole as Record<string, unknown>).owners &&
-                   Array.isArray((siteMembersResult.byRole as Record<string, unknown>).owners) &&
-                   ((siteMembersResult.byRole as Record<string, unknown>).owners as unknown[]).length > 0 && (
-                    <div style={{ marginBottom: "16px" }}>
-                      <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "#7c3aed" }}>
-                        Owners
-                      </h4>
-                      <ul style={resetListStyle}>
-                        {((siteMembersResult.byRole as Record<string, unknown>).owners as Array<Record<string, unknown>>).map((user, index) => (
-                          <li key={user.id as string || index} style={{ ...listItemStyle, marginBottom: "4px" }}>
-                            <strong>{String(user.displayName)}</strong>
-                            {user.email && <span style={{ color: "#666", marginLeft: "8px" }}>{String(user.email)}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {(siteMembersResult.byRole as Record<string, unknown>).members &&
-                   Array.isArray((siteMembersResult.byRole as Record<string, unknown>).members) &&
-                   ((siteMembersResult.byRole as Record<string, unknown>).members as unknown[]).length > 0 && (
-                    <div>
-                      <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "#7c3aed" }}>
-                        Members
-                      </h4>
-                      <ul style={resetListStyle}>
-                        {((siteMembersResult.byRole as Record<string, unknown>).members as Array<Record<string, unknown>>).map((user, index) => (
-                          <li key={user.id as string || index} style={{ ...listItemStyle, marginBottom: "4px" }}>
-                            <strong>{String(user.displayName)}</strong>
-                            {user.email && <span style={{ color: "#666", marginLeft: "8px" }}>{String(user.email)}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Flat users list if no byRole */}
-              {siteMembersResult.users && Array.isArray(siteMembersResult.users) && !siteMembersResult.byRole && (
-                <ul style={resetListStyle}>
-                  {(siteMembersResult.users as Array<Record<string, unknown>>).map((user, index) => (
-                    <li key={user.id as string || index} style={listItemStyle}>
-                      <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                        <strong>{String(user.displayName)}</strong>
-                        {user.email && <span style={{ color: "#666" }}>{String(user.email)}</span>}
-                        {user.role && (
-                          <span style={{
-                            ...badgeStyle,
-                            backgroundColor: user.role === "owner" ? "#ddd6fe" : "#e0e7ff",
-                          }}>
-                            {String(user.role)}
-                          </span>
-                        )}
-                        {user.viaGroup && (
-                          <span style={{ fontSize: "11px", color: "#666" }}>
-                            via {String(user.viaGroup)}
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {/* Groups info if available */}
-              {siteMembersResult.groups && Array.isArray(siteMembersResult.groups) && (siteMembersResult.groups as unknown[]).length > 0 && (
-                <details style={{ marginTop: "12px" }}>
-                  <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                    View permission groups ({(siteMembersResult.groups as unknown[]).length})
-                  </summary>
-                  <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0 0" }}>
-                    {(siteMembersResult.groups as Array<Record<string, unknown>>).map((group, index) => (
-                      <li
-                        key={group.id as string || index}
-                        style={{
-                          padding: "6px 10px",
-                          backgroundColor: "#fff",
-                          border: "1px solid #e5e5e5",
-                          borderRadius: "4px",
-                          marginBottom: "4px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        {String(group.displayName)}
-                        {group.expandError && (
-                          <span style={{ color: "#999", marginLeft: "8px", fontSize: "11px" }}>
-                            ({String(group.expandError)})
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              <details style={{ marginTop: "12px" }}>
-                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                  View full response
-                </summary>
-                <JsonDisplay data={siteMembersResult} />
-              </details>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Configured Props Display */}
       {configuredProps && (
@@ -1367,7 +911,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
             Store this JSON to restore the selection later.
           </p>
-          <JsonDisplay data={{ ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() }} maxHeight="400px" />
+          <JsonDisplay data={{ ...configuredProps, fileIds: buildFileOrFolderIds() }} maxHeight="400px" />
         </div>
       )}
 
@@ -1377,8 +921,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <ConfigureFilePickerModal
             isOpen={isModalOpen}
             title="Select SharePoint Files"
-            componentKey="~/sharepoint-retrieve-file-metadata"
-            app="sharepoint"
+            componentKey="sharepoint_admin-retrieve-file-metadata"
+            app="sharepoint_admin"
             accountId={selectedAccountId}
             externalUserId={externalUserId}
             onSelect={handleSelect}
@@ -1406,7 +950,7 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
   const [copied, setCopied] = useState(false);
 
   const { accounts, isLoading: accountsLoading } = useAccounts({
-    app: "sharepoint",
+    app: "sharepoint_admin",
     external_user_id: externalUserId,
   });
 
@@ -1421,7 +965,7 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
 
       const params = new URLSearchParams({
         token: resp.token,
-        app: "sharepoint",
+        app: "sharepoint_admin",
         externalUserId,
       });
       if (callbackUri) params.set("callbackUri", callbackUri);
