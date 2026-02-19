@@ -428,19 +428,20 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     try {
       // Map fileOrFolderIds to fileIds for the trigger
       const { fileOrFolderIds, ...otherProps } = configuredProps;
-      const payload = {
-        webhookUri,
-        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
-      };
 
-      // Simulate deployment
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await client.triggers.deploy({
+        id: "sharepoint_admin-updated-file-instant",
+        externalUserId,
+        webhookUrl: webhookUri,
+        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() } as Record<string, unknown>,
+      });
 
       setTriggerResult({
         success: true,
         message: "Trigger deployed successfully",
         webhookUri,
         listening: true,
+        response,
       });
     } catch (e) {
       console.error("Failed to deploy trigger:", e);
@@ -933,7 +934,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             selectFolders={false}
             selectFiles={true}
             showIcons={showIcons}
-            debug={true}
+            debug={false}
           />
         </CustomizeProvider>
       )}
