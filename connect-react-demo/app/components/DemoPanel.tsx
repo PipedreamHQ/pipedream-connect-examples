@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { ComponentFormContainer, CustomizeProvider, useFrontendClient, useCustomize, useAccounts, type FormContext } from "@pipedream/connect-react"
 import type { ConfigurableProps, DynamicProps, App } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
+import { isValidUrl } from "@/lib/utils"
 import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
 import { SDKError } from "@/lib/types/pipedream"
@@ -142,9 +143,7 @@ export const DemoPanel = () => {
       }
 
       // Validate URL format
-      try {
-        new URL(webhookUrl)
-      } catch {
+      if (!isValidUrl(webhookUrl)) {
         React.startTransition(() => {
           setWebhookUrlValidationAttempted(true)
           setSdkErrors(new Error("Invalid webhook URL format. Please enter a valid URL (e.g., https://example.com/webhook)."))
@@ -195,44 +194,20 @@ export const DemoPanel = () => {
             <div className="absolute right-0 top-0 h-full w-px bg-zinc-200" />
 
             <div className="col-start-2 col-span-10 relative">
-              <svg className="absolute left-[25%] top-0 h-full">
-                <line
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="100%"
-                  strokeWidth="1"
-                  stroke="#E4E7EC"
-                  strokeDasharray="4 6"
-                  strokeLinecap="round"
-                />
-              </svg>
-
-              <svg className="absolute left-1/2 top-0 h-full">
-                <line
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="100%"
-                  strokeWidth="1"
-                  stroke="#E4E7EC"
-                  strokeDasharray="4 6"
-                  strokeLinecap="round"
-                />
-              </svg>
-
-              <svg className="absolute left-[75%] top-0 h-full">
-                <line
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="100%"
-                  strokeWidth="1"
-                  stroke="#E4E7EC"
-                  strokeDasharray="4 6"
-                  strokeLinecap="round"
-                />
-              </svg>
+              {["25%", "50%", "75%"].map((position) => (
+                <svg key={position} className={`absolute left-[${position}] top-0 h-full`} style={{ left: position }}>
+                  <line
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="100%"
+                    strokeWidth="1"
+                    stroke="#E4E7EC"
+                    strokeDasharray="4 6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ))}
               <div
                 className="absolute inset-0"
                 style={{

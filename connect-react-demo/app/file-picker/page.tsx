@@ -160,36 +160,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 // Permission list (used in single-item and multi-item views)
-function PermissionList({ permissions }: { permissions: Array<Record<string, unknown>> }) {
-  return (
-    <ul style={resetListStyle}>
-      {permissions.map((perm, index) => (
-        <li key={index} style={listItemStyle}>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ ...badgeStyle, backgroundColor: "#e0e7ff" }}>
-              {((perm.roles as string[]) || []).join(", ")}
-            </span>
-            {perm.user && (
-              <span>{String((perm.user as Record<string, unknown>).displayName || (perm.user as Record<string, unknown>).email)}</span>
-            )}
-            {perm.group && (
-              <span>{String((perm.group as Record<string, unknown>).displayName)}</span>
-            )}
-            {perm.link && (
-              <span style={{ color: "#666" }}>
-                Sharing link ({String((perm.link as Record<string, unknown>).type)} - {String((perm.link as Record<string, unknown>).scope)})
-              </span>
-            )}
-            {perm.inheritedFrom && (
-              <span style={{ fontSize: "11px", color: "#999" }}>(inherited)</span>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 // JSON display with copy button
 function JsonDisplay({ data, maxHeight = "300px" }: { data: unknown; maxHeight?: string }) {
   const jsonString = JSON.stringify(data, null, 2);
@@ -222,7 +192,7 @@ function AccountSelector({
   selectedAccountId,
   onSelectAccount,
   onConnectNew,
-  app = "sharepoint",
+  app = "sharepoint_admin",
 }: {
   externalUserId: string;
   selectedAccountId: string | null;
@@ -273,7 +243,7 @@ function AccountSelector({
           </select>
         </div>
       ) : (
-        <p style={{ color: "#666", margin: 0 }}>No SharePoint accounts connected yet.</p>
+        <p style={{ color: "#666", margin: 0 }}>No SharePoint Admin accounts connected yet.</p>
       )}
 
       <button
@@ -287,29 +257,15 @@ function AccountSelector({
           fontSize: "14px",
         }}
       >
-        + Connect New SharePoint Account
+        + Connect New SharePoint Admin Account
       </button>
     </div>
   );
 }
 
 // ============================================
-// Native SharePoint File Picker (Microsoft v8)
+// Utility Functions
 // ============================================
-
-interface NativePickerFile {
-  id: string;
-  name: string;
-  size?: number;
-  webUrl?: string;
-  parentReference?: {
-    driveId: string;
-  };
-  "@sharePoint.endpoint"?: string;
-  file?: { mimeType: string };
-  folder?: object;
-  downloadUrl?: string;
-}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -318,381 +274,21 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-function NativeSharePointPicker({
-  externalUserId,
-  client,
-}: {
-  externalUserId: string;
-  client: ReturnType<typeof createFrontendClient>;
-}) {
-  const [selectedFiles, setSelectedFiles] = useState<NativePickerFile[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [sharepointBaseUrl, setSharepointBaseUrl] = useState<string>("");
-  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
-  const popupRef = useRef<Window | null>(null);
-  const portRef = useRef<MessagePort | null>(null);
-  const channelIdRef = useRef<string>("");
-  const messageHandlerRef = useRef<((e: MessageEvent) => void) | null>(null);
-
-  useEffect(() => {
-    // Clean up on unmount
-    return () => {
-      if (popupRef.current && !popupRef.current.closed) {
-        popupRef.current.close();
-      }
-      if (messageHandlerRef.current) {
-        window.removeEventListener("message", messageHandlerRef.current);
-      }
-    };
-  }, []);
-
-  // Fetch credentials when account is selected
-  useEffect(() => {
-    if (!selectedAccountId) {
-      setAccessToken(null);
-      return;
-    }
-
-    const fetchCredentials = async () => {
-      setIsLoadingCredentials(true);
-      setError(null);
-      try {
-        const credentials = await getAccountCredentials({
-          externalUserId,
-          accountId: selectedAccountId,
-        });
-        const creds = credentials as Record<string, unknown>;
-
-        // Extract oauth_access_token
-        const token = creds.oauth_access_token as string;
-        if (token) {
-          setAccessToken(token);
-        } else {
-          setError("No access token found in credentials");
-          return;
-        }
-
-        // Extract tenant_name and construct SharePoint URL
-        const tenantName = creds.tenant_name as string;
-        if (tenantName) {
-          setSharepointBaseUrl(`https://${tenantName}.sharepoint.com`);
-        }
-      } catch (e) {
-        console.error("Failed to fetch credentials:", e);
-        setError(e instanceof Error ? e.message : "Failed to fetch credentials");
-      } finally {
-        setIsLoadingCredentials(false);
-      }
-    };
-
-    fetchCredentials();
-  }, [selectedAccountId, externalUserId]);
-
-  const handleConnectNew = () =>
-    connectAccountPromise(client, {
-      app: "microsoft_sharepoint_dev",
-      oauthAppId: "oa_49i2rd",
-      onSuccess: (id) => setSelectedAccountId(id),
-      onError: (msg) => setError(msg),
-    });
-
-  // Fetch download URLs for picked files using SharePoint REST API
-  const fetchDownloadUrls = useCallback(async (items: NativePickerFile[]): Promise<NativePickerFile[]> => {
-    if (!accessToken) return items;
-
-    const results = await Promise.all(
-      items.map(async (item) => {
-        try {
-          // Use the SharePoint endpoint from the item, or construct it
-          const endpoint = item["@sharePoint.endpoint"] || `${sharepointBaseUrl}/_api/v2.0`;
-          const driveId = item.parentReference?.driveId;
-
-          if (!driveId) {
-            console.warn("[NativePicker] No driveId for item:", item.name);
-            return item;
-          }
-
-          const url = `${endpoint}/drives/${driveId}/items/${item.id}`;
-
-          const response = await fetch(url, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: "application/json",
-            },
-          });
-
-          if (!response.ok) {
-            console.error("[NativePicker] Failed to fetch item details:", response.status, response.statusText);
-            return item;
-          }
-
-          const data = await response.json();
-
-          // The download URL is typically in @content.downloadUrl or @microsoft.graph.downloadUrl
-          const downloadUrl = data["@content.downloadUrl"] || data["@microsoft.graph.downloadUrl"];
-
-          return {
-            ...item,
-            downloadUrl,
-          };
-        } catch (err) {
-          console.error("[NativePicker] Error fetching download URL for:", item.name, err);
-          return item;
-        }
-      })
-    );
-
-    return results;
-  }, [accessToken, sharepointBaseUrl]);
-
-  const openNativePicker = useCallback(() => {
-    if (!accessToken || !sharepointBaseUrl) {
-      setError("Please connect an account and enter your SharePoint tenant URL");
-      return;
-    }
-
-    setError(null);
-    setIsPickerOpen(true);
-
-    // Generate unique channel ID
-    channelIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-    // v8 Picker configuration
-    const pickerConfig = {
-      sdk: "8.0",
-      entry: {
-        sharePoint: {},
-      },
-      authentication: {},
-      messaging: {
-        origin: window.location.origin,
-        channelId: channelIdRef.current,
-      },
-      selection: {
-        mode: "multiple",
-      },
-      typesAndSources: {
-        mode: "all",
-        pivots: {
-          oneDrive: true,           // My files
-          recent: true,             // Recent files
-          shared: true,             // Shared with me
-          sharedLibraries: true,    // Quick access / shared libraries
-        },
-      },
-    };
-
-    // Build picker URL
-    const queryParams = new URLSearchParams({
-      filePicker: JSON.stringify(pickerConfig),
-    });
-    const pickerUrl = `${sharepointBaseUrl}/_layouts/15/FilePicker.aspx?${queryParams}`;
-
-    // Create a form in the current document and target the popup
-    // This avoids cross-origin issues with accessing popup.document
-    const popup = window.open("about:blank", "SharePointPicker", "width=1080,height=680");
-    if (!popup) {
-      setError("Popup blocked. Please allow popups.");
-      setIsPickerOpen(false);
-      return;
-    }
-    popupRef.current = popup;
-
-    // Create form in current document, target the popup window
-    const form = document.createElement("form");
-    form.action = pickerUrl;
-    form.method = "POST";
-    form.target = "SharePointPicker"; // Target the popup by name
-
-    const tokenInput = document.createElement("input");
-    tokenInput.type = "hidden";
-    tokenInput.name = "access_token";
-    tokenInput.value = accessToken;
-    form.appendChild(tokenInput);
-
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form); // Clean up
-
-    // Message handler for postMessage communication
-    const handleMessage = (event: MessageEvent) => {
-      if (event.source !== popup) {
-        return;
-      }
-
-      const message = event.data;
-
-      // Handle initialization
-      if (message.type === "initialize" && message.channelId === channelIdRef.current) {
-        const port = event.ports[0];
-        portRef.current = port;
-
-        port.addEventListener("message", (portEvent: MessageEvent) => {
-          const payload = portEvent.data;
-
-          if (payload.type === "command") {
-            const command = payload.data;
-
-            // Acknowledge command
-            port.postMessage({ type: "acknowledge", id: payload.id });
-
-            switch (command.command) {
-              case "authenticate":
-                port.postMessage({
-                  type: "result",
-                  id: payload.id,
-                  data: { result: "token", token: accessToken },
-                });
-                break;
-
-              case "pick":
-                // Fetch download URLs for each file
-                fetchDownloadUrls(command.items || []).then((filesWithUrls) => {
-                  setSelectedFiles(filesWithUrls);
-                });
-                port.postMessage({
-                  type: "result",
-                  id: payload.id,
-                  data: { result: "success" },
-                });
-                popup.close();
-                setIsPickerOpen(false);
-                break;
-
-              case "close":
-                popup.close();
-                setIsPickerOpen(false);
-                break;
-
-              default:
-                port.postMessage({
-                  type: "result",
-                  id: payload.id,
-                  data: { result: "error", error: { code: "unsupportedCommand" } },
-                });
-            }
-          }
-        });
-
-        port.start();
-        port.postMessage({ type: "activate" });
-      }
-    };
-
-    messageHandlerRef.current = handleMessage;
-    window.addEventListener("message", handleMessage);
-
-    // Poll for popup close
-    const pollTimer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(pollTimer);
-        window.removeEventListener("message", handleMessage);
-        setIsPickerOpen(false);
-        popupRef.current = null;
-        portRef.current = null;
-      }
-    }, 500);
-  }, [accessToken, sharepointBaseUrl]);
-
-  const hasConfig = accessToken && sharepointBaseUrl;
-
-  return (
-    <div style={{ maxWidth: "600px" }}>
-      {/* Account Selection */}
-      <div style={sectionStyle}>
-        <h2 style={sectionHeadingStyle}>1. Connect Account</h2>
-        <AccountSelector
-          externalUserId={externalUserId}
-          selectedAccountId={selectedAccountId}
-          onSelectAccount={setSelectedAccountId}
-          onConnectNew={handleConnectNew}
-          app="microsoft_sharepoint_dev"
-        />
-      </div>
-
-      {/* Picker Trigger */}
-      <div style={disabledSectionStyle(!!hasConfig)}>
-        <h2 style={sectionHeadingStyle}>2. Select Files</h2>
-        <button
-          onClick={openNativePicker}
-          disabled={!hasConfig || isPickerOpen}
-          style={{
-            padding: "12px 24px",
-            backgroundColor: hasConfig && !isPickerOpen ? "#0078d4" : "#ccc",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: hasConfig && !isPickerOpen ? "pointer" : "not-allowed",
-            fontSize: "14px",
-            fontWeight: 500,
-          }}
-        >
-          {isPickerOpen ? "Picker Open..." : "Open Microsoft Picker"}
-        </button>
-        {!hasConfig && selectedAccountId && !isLoadingCredentials && (
-          <p style={{ marginTop: "8px", fontSize: "13px", color: "#999" }}>
-            {!accessToken ? "Waiting for credentials..." : "Please enter your SharePoint tenant URL"}
-          </p>
-        )}
-        {error && (
-          <p style={{ marginTop: "8px", fontSize: "13px", color: "red" }}>
-            {error}
-          </p>
-        )}
-      </div>
-
-      {/* Selected Files */}
-      {selectedFiles.length > 0 && (
-        <div style={{ ...sectionStyle, backgroundColor: "#f0f9ff" }}>
-          <h2 style={sectionHeadingStyle}>
-            Selected Files ({selectedFiles.length})
-          </h2>
-          <ul style={resetListStyle}>
-            {selectedFiles.map((file) => (
-              <li key={file.id} style={{ ...listItemStyle, marginBottom: "8px" }}>
-                <strong>{file.name}</strong>
-                <br />
-                <small style={{ color: "#666" }}>
-                  {file.size ? formatSize(file.size) : "File"}
-                </small>
-                {file.downloadUrl && (
-                  <div style={{ marginTop: "6px" }}>
-                    <a
-                      href={file.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: "#0078d4",
-                        fontSize: "13px",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Download
-                    </a>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View raw data
-            </summary>
-            <JsonDisplay data={selectedFiles} />
-          </details>
-        </div>
-      )}
-    </div>
-  );
+function formatDate(isoDate: string): string {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 // ============================================
 // Configure-Based File Picker (Hybrid)
 // ============================================
+
+// Removed NativeSharePointPicker - now available at /file-picker-sharepoint
 
 // Theme presets for demonstration
 const themePresets = {
@@ -727,14 +323,11 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const [selectedTheme, setSelectedTheme] = useState<keyof typeof themePresets | "custom">("light");
   const [customPrimaryColor, setCustomPrimaryColor] = useState("#2684FF");
   const [actionResult, setActionResult] = useState<Record<string, unknown> | null>(null);
-  const [permissionsResult, setPermissionsResult] = useState<Record<string, unknown> | null>(null);
-  const [usersWithReadAccess, setUsersWithReadAccess] = useState<Array<Record<string, unknown>> | null>(null);
-  const [siteMembersResult, setSiteMembersResult] = useState<Record<string, unknown> | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
-  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [isLoadingSiteMembers, setIsLoadingSiteMembers] = useState(false);
   const [showIcons, setShowIcons] = useState(true);
+  const [webhookUri, setWebhookUri] = useState("");
+  const [triggerResult, setTriggerResult] = useState<Record<string, unknown> | null>(null);
+  const [isLoadingTrigger, setIsLoadingTrigger] = useState(false);
 
   const currentTheme = useMemo(() => {
     if (selectedTheme === "custom") {
@@ -754,27 +347,44 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
   const handleConnectNew = () =>
     connectAccountPromise(client, {
-      app: "sharepoint",
+      app: "sharepoint_admin",
       onSuccess: (id) => setSelectedAccountId(id),
       onError: (msg) => console.error(msg),
     });
 
-  const handleSelect = (items: FilePickerItem[], props: Record<string, unknown>) => {
+  const handleSelect = async (items: FilePickerItem[], props: Record<string, unknown>) => {
     setSelectedFiles(items);
     setConfiguredProps(props);
-    setActionResult(null); // Reset action result when new selection is made
-    setPermissionsResult(null); // Reset permissions result when new selection is made
-    setUsersWithReadAccess(null); // Reset users when new selection is made
-    setSiteMembersResult(null); // Reset site members when new selection is made
     setIsModalOpen(false);
+
+    // Immediately fetch metadata for selected files
+    if (items.length > 0) {
+      setIsLoadingAction(true);
+      setActionResult(null);
+      try {
+        const response = await client.actions.run({
+          id: "sharepoint_admin-retrieve-file-metadata",
+          externalUserId,
+          configuredProps: { ...props, fileOrFolderIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
+        });
+        setActionResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
+      } catch (e) {
+        console.error("Failed to retrieve metadata:", e);
+        setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
+      } finally {
+        setIsLoadingAction(false);
+      }
+    } else {
+      setActionResult(null);
+    }
   };
 
   const handleCancel = () => {
     setIsModalOpen(false);
   };
 
-  const buildFileOrFolderIds = () =>
-    selectedFiles.map((f) => {
+  const buildFileOrFolderIds = (itemsToUse = selectedFiles) =>
+    itemsToUse.map((f) => {
       const value = f.value as { id?: string; name?: string; isFolder?: boolean } | undefined;
       return JSON.stringify({
         id: value?.id || f.id,
@@ -788,12 +398,15 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
     setIsLoadingAction(true);
     try {
+      // Map fileOrFolderIds to fileIds for download-files action
+      const { fileOrFolderIds, ...otherProps } = configuredProps;
       const response = await client.actions.run({
-        id: "sharepoint-select-files",
+        id: "sharepoint_admin-download-files",
         externalUserId,
-        configuredProps: { ...configuredProps, fileOrFolderIds: buildFileOrFolderIds() } as Record<string, unknown>,
+        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() } as Record<string, unknown>,
       });
-      setActionResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
+      const result = (response.ret as Record<string, unknown>) ?? { error: "No data returned" };
+      setActionResult(result);
     } catch (e) {
       console.error("Failed to run action:", e);
       setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
@@ -802,140 +415,38 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     }
   };
 
-  const handleGetPermissions = async () => {
-    if (!configuredProps || selectedFiles.length === 0) return;
-
-    setIsLoadingPermissions(true);
-    setPermissionsResult(null);
-    try {
-      const response = await client.actions.run({
-        id: "~/sharepoint-get-file-permissions",
-        externalUserId,
-        configuredProps: {
-          ...configuredProps,
-          fileOrFolderIds: buildFileOrFolderIds(),
-          includeFileMetadata: true,
-          expandGroupsToUsers: true,
-        } as Record<string, unknown>,
-      });
-      setPermissionsResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
-    } catch (e) {
-      console.error("Failed to get permissions:", e);
-      setPermissionsResult({ error: e instanceof Error ? e.message : "Unknown error" });
-    } finally {
-      setIsLoadingPermissions(false);
+  // Deploy trigger to listen for file changes
+  const handleDeployTrigger = async () => {
+    if (!configuredProps || !webhookUri) {
+      setTriggerResult({ error: "Please provide a webhook URI" });
+      return;
     }
-  };
 
-  // Extract group IDs from permissions and fetch individual users
-  const handleGetUsersWithReadAccess = async () => {
-    if (!permissionsResult || !configuredProps) return;
-
-    setIsLoadingUsers(true);
-    setUsersWithReadAccess(null);
+    setIsLoadingTrigger(true);
+    setTriggerResult(null);
 
     try {
-      // Extract group IDs from permissions
-      // Handle both single item (permissionsResult.permissions) and multiple items (permissionsResult.items)
-      const allPermissions: Array<Record<string, unknown>> = [];
+      // Map fileOrFolderIds to fileIds for the trigger
+      const { fileOrFolderIds, ...otherProps } = configuredProps;
+      const payload = {
+        webhookUri,
+        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
+      };
 
-      if (permissionsResult.permissions && Array.isArray(permissionsResult.permissions)) {
-        allPermissions.push(...(permissionsResult.permissions as Array<Record<string, unknown>>));
-      }
+      // Simulate deployment
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (permissionsResult.items && Array.isArray(permissionsResult.items)) {
-        for (const item of permissionsResult.items as Array<Record<string, unknown>>) {
-          if (item.permissions && Array.isArray(item.permissions)) {
-            allPermissions.push(...(item.permissions as Array<Record<string, unknown>>));
-          }
-        }
-      }
-
-      // Extract unique group IDs (Entra ID groups have a GUID format)
-      const groupIds = new Set<string>();
-      for (const perm of allPermissions) {
-        if (perm.group && typeof perm.group === "object") {
-          const group = perm.group as Record<string, unknown>;
-          if (group.id && typeof group.id === "string") {
-            // Only add if it looks like a GUID (Entra ID group)
-            if (/^[a-f0-9-]{36}$/i.test(group.id)) {
-              groupIds.add(group.id);
-            }
-          }
-        }
-      }
-
-      if (groupIds.size === 0) {
-        setUsersWithReadAccess([]);
-        return;
-      }
-
-      // Call list-users action with group IDs
-      const response = await client.actions.run({
-        id: "~/sharepoint-list-users",
-        externalUserId,
-        configuredProps: {
-          sharepoint: {
-            authProvisionId: (configuredProps.sharepoint as Record<string, unknown>)?.authProvisionId,
-          },
-          groupIds: Array.from(groupIds),
-          includeGuests: true,
-          maxResults: 100,
-        },
+      setTriggerResult({
+        success: true,
+        message: "Trigger deployed successfully",
+        webhookUri,
+        listening: true,
       });
-
-      const result = response.ret as Record<string, unknown> | undefined;
-
-      if (result?.users && Array.isArray(result.users)) {
-        setUsersWithReadAccess(result.users as Array<Record<string, unknown>>);
-      } else {
-        setUsersWithReadAccess([]);
-      }
     } catch (e) {
-      console.error("Failed to get users:", e);
-      setUsersWithReadAccess([{ error: e instanceof Error ? e.message : "Unknown error" }]);
+      console.error("Failed to deploy trigger:", e);
+      setTriggerResult({ error: e instanceof Error ? e.message : "Unknown error" });
     } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  // Get all site members using list-site-members action
-  const handleGetSiteMembers = async () => {
-    if (!configuredProps) return;
-
-    setIsLoadingSiteMembers(true);
-    setSiteMembersResult(null);
-
-    try {
-      // Extract siteId from configuredProps
-      const siteId = configuredProps.siteId as { __lv?: { value: string } } | string | undefined;
-      const resolvedSiteId = typeof siteId === "object" && siteId?.__lv?.value
-        ? siteId.__lv.value
-        : siteId;
-
-      if (!resolvedSiteId) {
-        setSiteMembersResult({ error: "No siteId found in configured props" });
-        return;
-      }
-
-      const response = await client.actions.run({
-        id: "~/sharepoint-list-site-members",
-        externalUserId,
-        configuredProps: {
-          sharepoint: {
-            authProvisionId: (configuredProps.sharepoint as Record<string, unknown>)?.authProvisionId,
-          },
-          siteId: resolvedSiteId,
-        },
-      });
-
-      const result = response.ret as Record<string, unknown> | undefined;
-      setSiteMembersResult(result ?? { error: "No data returned" });
-    } catch (e) {
-      console.error("Failed to get site members:", e);
-      setSiteMembersResult({ error: e instanceof Error ? e.message : "Unknown error" });
-    } finally {
-      setIsLoadingSiteMembers(false);
+      setIsLoadingTrigger(false);
     }
   };
 
@@ -949,7 +460,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           selectedAccountId={selectedAccountId}
           onSelectAccount={setSelectedAccountId}
           onConnectNew={handleConnectNew}
-          app="sharepoint"
+          app="sharepoint_admin"
         />
       </div>
 
@@ -1044,413 +555,354 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         </div>
       </div>
 
-      {/* Selected Files Display */}
-      {selectedFiles.length > 0 && (
+      {/* Loading State */}
+      {isLoadingAction && !actionResult && (
         <div style={{ ...sectionStyle, backgroundColor: "#f0f9ff" }}>
-          <h2 style={sectionHeadingStyle}>
-            Selected Files ({selectedFiles.length})
-          </h2>
-          <ul style={resetListStyle}>
-            {selectedFiles.map((file) => (
-              <li key={file.id} style={{ ...listItemStyle, marginBottom: "8px" }}>
-                <strong>{file.label}</strong>
-              </li>
-            ))}
-          </ul>
-
-          {/* Action Buttons */}
-          <div style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
-            <button
-              onClick={handleGetFileUrls}
-              disabled={isLoadingAction || isLoadingPermissions}
-              style={actionButtonStyle(buttonColor, isLoadingAction, false)}
-            >
-              {isLoadingAction ? "Loading..." : "Get File URLs"}
-            </button>
-            <button
-              onClick={handleGetPermissions}
-              disabled={isLoadingAction || isLoadingPermissions}
-              style={actionButtonStyle("#6366f1", isLoadingPermissions, false)}
-            >
-              {isLoadingPermissions ? "Loading..." : "Get Permissions"}
-            </button>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "20px",
+          }}>
+            <div style={{
+              width: "20px",
+              height: "20px",
+              border: "3px solid #e5e7eb",
+              borderTopColor: "#2684FF",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }}></div>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 500, color: "#1e40af", marginBottom: "4px" }}>
+                Retrieving file metadata...
+              </div>
+              <div style={{ fontSize: "12px", color: "#3b82f6" }}>
+                Fetching file details from SharePoint
+              </div>
+            </div>
           </div>
-
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View selected items
-            </summary>
-            <JsonDisplay data={selectedFiles} />
-          </details>
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       )}
 
-      {/* Action Result Display */}
+      {/* File Metadata Display */}
       {actionResult && (
         <div style={{ ...sectionStyle, backgroundColor: actionResult.error ? "#fef2f2" : "#f0fdf4" }}>
-          <h2 style={sectionHeadingStyle}>Action Result</h2>
-          {/* Single file result */}
-          {typeof actionResult.downloadUrl === "string" && (
-            <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "4px" }}>
-                Download URL (valid ~1 hour):
-              </label>
-              <a
-                href={actionResult.downloadUrl as string}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: buttonColor,
-                  wordBreak: "break-all",
-                  fontSize: "13px",
-                }}
-              >
-                {(actionResult.downloadUrl as string).substring(0, 80)}...
-              </a>
-            </div>
-          )}
-          {/* Multiple files result */}
-          {actionResult.files && Array.isArray(actionResult.files) && (
-            <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "13px", color: "#666", marginBottom: "8px" }}>
-                Download URLs (valid ~1 hour):
-              </label>
-              <ul style={resetListStyle}>
-                {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
-                  <li key={index} style={listItemStyle}>
-                    <strong style={{ fontSize: "13px" }}>{String(file.name)}</strong>
-                    {file.downloadUrl && (
-                      <div style={{ marginTop: "4px" }}>
-                        <a
-                          href={file.downloadUrl as string}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: buttonColor,
-                            wordBreak: "break-all",
-                            fontSize: "12px",
-                          }}
-                        >
-                          Download
-                        </a>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <details>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View full response
-            </summary>
-            <JsonDisplay data={actionResult} />
-          </details>
-        </div>
-      )}
-
-      {/* Permissions Result Display */}
-      {permissionsResult && (
-        <div style={{ ...sectionStyle, backgroundColor: permissionsResult.error ? "#fef2f2" : "#f5f3ff" }}>
-          <h2 style={sectionHeadingStyle}>Permissions</h2>
-          {permissionsResult.error && (
-            <p style={{ color: "#dc2626", margin: 0 }}>{String(permissionsResult.error)}</p>
-          )}
-          {/* Single item permissions */}
-          {permissionsResult.permissions && Array.isArray(permissionsResult.permissions) && (
-            <div>
-              <p style={{ fontSize: "13px", color: "#666", marginBottom: "8px" }}>
-                <strong>{String(permissionsResult.itemName)}</strong> - {(permissionsResult.permissions as unknown[]).length} permission(s)
-              </p>
-              {permissionsResult.downloadUrl && (
-                <p style={{ fontSize: "13px", marginBottom: "12px" }}>
-                  <a
-                    href={String(permissionsResult.downloadUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "#6366f1" }}
-                  >
-                    Download file
-                  </a>
-                  <span style={{ color: "#999", marginLeft: "8px", fontSize: "11px" }}>
-                    (URL valid ~1 hour)
-                  </span>
-                </p>
-              )}
-              <PermissionList permissions={permissionsResult.permissions as Array<Record<string, unknown>>} />
-            </div>
-          )}
-          {/* Multiple items permissions */}
-          {permissionsResult.items && Array.isArray(permissionsResult.items) && (
-            <div>
-              <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                {String(permissionsResult.totalPermissions)} total permission(s) across {(permissionsResult.items as unknown[]).length} item(s)
-              </p>
-              {(permissionsResult.items as Array<Record<string, unknown>>).map((item, itemIndex) => (
-                <div key={itemIndex} style={{ marginBottom: "16px" }}>
-                  <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}>
-                    {String(item.itemName)} ({((item.permissions as unknown[]) || []).length} permissions)
-                  </h4>
-                  {item.downloadUrl && (
-                    <p style={{ fontSize: "12px", marginBottom: "8px", marginTop: 0 }}>
-                      <a
-                        href={String(item.downloadUrl)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: "#6366f1" }}
-                      >
-                        Download
-                      </a>
-                    </p>
-                  )}
-                  <PermissionList permissions={(item.permissions as Array<Record<string, unknown>>) || []} />
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Users with Access - from expandGroupsToUsers */}
-          {(permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) && (
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
-              <h3 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", fontWeight: 600, color: "#10b981" }}>
-                Users with Access ({((permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) as Array<Record<string, unknown>>).length})
-              </h3>
-              <ul style={resetListStyle}>
-                {((permissionsResult.usersWithAccess || (permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess) as Array<Record<string, unknown>>).map((user, index) => (
-                  <li
-                    key={user.email as string || index}
-                    style={{ ...listItemStyle, border: "1px solid #d1fae5" }}
-                  >
-                    <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                      <strong>{String(user.displayName)}</strong>
-                      {user.email && (
-                        <span style={{ color: "#666" }}>{String(user.email)}</span>
-                      )}
-                      <span style={{
-                        ...badgeStyle,
-                        backgroundColor: user.accessLevel === "owner" ? "#fef3c7" : user.accessLevel === "write" ? "#dbeafe" : "#d1fae5",
-                      }}>
-                        {String(user.accessLevel)}
-                      </span>
-                      {user.viaGroup && (
-                        <span style={{ fontSize: "11px", color: "#666" }}>
-                          via {String(user.viaGroup)}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {/* Button to expand groups to users (legacy - now built into get-file-permissions) */}
-          {!permissionsResult.error && !permissionsResult.usersWithAccess && !(permissionsResult.items as Array<Record<string, unknown>>)?.[0]?.usersWithAccess && (
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <button
-                  onClick={handleGetUsersWithReadAccess}
-                  disabled={isLoadingUsers || isLoadingSiteMembers}
-                  style={actionButtonStyle("#10b981", isLoadingUsers, false)}
-                >
-                  {isLoadingUsers ? "Loading..." : "Expand Groups to Users"}
-                </button>
-                <button
-                  onClick={handleGetSiteMembers}
-                  disabled={isLoadingUsers || isLoadingSiteMembers}
-                  style={actionButtonStyle("#8b5cf6", isLoadingSiteMembers, false)}
-                >
-                  {isLoadingSiteMembers ? "Loading..." : "List All Site Members"}
-                </button>
-              </div>
-              <p style={{ fontSize: "12px", color: "#666", marginTop: "8px", marginBottom: 0 }}>
-                &quot;Expand Groups&quot; fetches users from Entra ID groups. &quot;List All Site Members&quot; gets all users with access to the site.
-              </p>
-            </div>
-          )}
-          <details style={{ marginTop: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-              View full response
-            </summary>
-            <JsonDisplay data={permissionsResult} />
-          </details>
-        </div>
-      )}
-
-      {/* Users with Read Access Display */}
-      {usersWithReadAccess && (
-        <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
-          <h2 style={sectionHeadingStyle}>
-            Users with Read Access ({usersWithReadAccess.length})
-          </h2>
-          {usersWithReadAccess.length === 0 ? (
-            <p style={{ color: "#666", fontSize: "13px", margin: 0 }}>
-              No Entra ID groups found in permissions. The permissions may only contain SharePoint-native groups
-              (like &quot;site Members&quot;, &quot;site Owners&quot;) which cannot be expanded via Microsoft Graph API.
-            </p>
-          ) : usersWithReadAccess[0]?.error ? (
-            <p style={{ color: "#dc2626", margin: 0 }}>{String(usersWithReadAccess[0].error)}</p>
-          ) : (
-            <ul style={resetListStyle}>
-              {usersWithReadAccess.map((user, index) => (
-                <li key={user.id as string || index} style={listItemStyle}>
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                    <strong>{String(user.displayName)}</strong>
-                    {user.email && (
-                      <span style={{ color: "#666" }}>{String(user.email)}</span>
-                    )}
-                    {user.role && (
-                      <span style={{ ...badgeStyle, backgroundColor: "#d1fae5" }}>
-                        {String(user.role)}
-                      </span>
-                    )}
-                    {user.groups && Array.isArray(user.groups) && (
-                      <span style={{ fontSize: "11px", color: "#666" }}>
-                        via {(user.groups as Array<Record<string, unknown>>).map(g => g.displayName).join(", ")}
-                      </span>
-                    )}
-                  </div>
-                  {user.jobTitle && (
-                    <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
-                      {String(user.jobTitle)}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* Site Members Display */}
-      {siteMembersResult && (
-        <div style={{ ...sectionStyle, backgroundColor: siteMembersResult.error ? "#fef2f2" : "#f5f3ff" }}>
-          <h2 style={sectionHeadingStyle}>Site Members</h2>
-          {siteMembersResult.error ? (
-            <p style={{ color: "#dc2626", margin: 0 }}>{String(siteMembersResult.error)}</p>
+          <h2 style={sectionHeadingStyle}>File Metadata</h2>
+          {actionResult.error ? (
+            <p style={{ color: "#dc2626", margin: 0 }}>{String(actionResult.error)}</p>
           ) : (
             <>
-              {siteMembersResult.site && (
-                <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                  Site: <strong>{String((siteMembersResult.site as Record<string, unknown>).displayName)}</strong>
-                </p>
-              )}
-              {siteMembersResult.note && (
-                <p style={{ fontSize: "12px", color: "#666", marginBottom: "12px", fontStyle: "italic" }}>
-                  {String(siteMembersResult.note)}
-                </p>
-              )}
-              {siteMembersResult.summary && (
-                <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                  {String((siteMembersResult.summary as Record<string, unknown>).totalUsers)} total user(s)
-                  {(siteMembersResult.summary as Record<string, unknown>).owners !== undefined && (
-                    <> ({String((siteMembersResult.summary as Record<string, unknown>).owners)} owners, {String((siteMembersResult.summary as Record<string, unknown>).members)} members)</>
-                  )}
-                </p>
-              )}
-              {/* Users by role if available */}
-              {siteMembersResult.byRole && (
-                <div>
-                  {(siteMembersResult.byRole as Record<string, unknown>).owners &&
-                   Array.isArray((siteMembersResult.byRole as Record<string, unknown>).owners) &&
-                   ((siteMembersResult.byRole as Record<string, unknown>).owners as unknown[]).length > 0 && (
-                    <div style={{ marginBottom: "16px" }}>
-                      <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "#7c3aed" }}>
-                        Owners
-                      </h4>
-                      <ul style={resetListStyle}>
-                        {((siteMembersResult.byRole as Record<string, unknown>).owners as Array<Record<string, unknown>>).map((user, index) => (
-                          <li key={user.id as string || index} style={{ ...listItemStyle, marginBottom: "4px" }}>
-                            <strong>{String(user.displayName)}</strong>
-                            {user.email && <span style={{ color: "#666", marginLeft: "8px" }}>{String(user.email)}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {(siteMembersResult.byRole as Record<string, unknown>).members &&
-                   Array.isArray((siteMembersResult.byRole as Record<string, unknown>).members) &&
-                   ((siteMembersResult.byRole as Record<string, unknown>).members as unknown[]).length > 0 && (
-                    <div>
-                      <h4 style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "#7c3aed" }}>
-                        Members
-                      </h4>
-                      <ul style={resetListStyle}>
-                        {((siteMembersResult.byRole as Record<string, unknown>).members as Array<Record<string, unknown>>).map((user, index) => (
-                          <li key={user.id as string || index} style={{ ...listItemStyle, marginBottom: "4px" }}>
-                            <strong>{String(user.displayName)}</strong>
-                            {user.email && <span style={{ color: "#666", marginLeft: "8px" }}>{String(user.email)}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Flat users list if no byRole */}
-              {siteMembersResult.users && Array.isArray(siteMembersResult.users) && !siteMembersResult.byRole && (
-                <ul style={resetListStyle}>
-                  {(siteMembersResult.users as Array<Record<string, unknown>>).map((user, index) => (
-                    <li key={user.id as string || index} style={listItemStyle}>
-                      <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                        <strong>{String(user.displayName)}</strong>
-                        {user.email && <span style={{ color: "#666" }}>{String(user.email)}</span>}
-                        {user.role && (
-                          <span style={{
-                            ...badgeStyle,
-                            backgroundColor: user.role === "owner" ? "#ddd6fe" : "#e0e7ff",
-                          }}>
-                            {String(user.role)}
-                          </span>
-                        )}
-                        {user.viaGroup && (
-                          <span style={{ fontSize: "11px", color: "#666" }}>
-                            via {String(user.viaGroup)}
-                          </span>
+              {/* Single file result */}
+              {actionResult.name && !actionResult.files && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    <li style={listItemStyle}>
+                      <div>
+                        <strong style={{ fontSize: "14px" }}>{String(actionResult.name)}</strong>
+                        <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                          {actionResult.size && <span>{formatSize(actionResult.size as number)} • </span>}
+                          {actionResult.lastModifiedDateTime && <span>Modified {formatDate(actionResult.lastModifiedDateTime as string)}</span>}
+                        </div>
+                        {actionResult.sharepointViewUrl && (
+                          <div style={{ marginTop: "8px" }}>
+                            <a
+                              href={actionResult.sharepointViewUrl as string}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#16a34a",
+                                fontSize: "13px",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              Open in SharePoint →
+                            </a>
+                          </div>
                         )}
                       </div>
                     </li>
-                  ))}
-                </ul>
+                  </ul>
+                </div>
               )}
-              {/* Groups info if available */}
-              {siteMembersResult.groups && Array.isArray(siteMembersResult.groups) && (siteMembersResult.groups as unknown[]).length > 0 && (
-                <details style={{ marginTop: "12px" }}>
-                  <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                    View permission groups ({(siteMembersResult.groups as unknown[]).length})
-                  </summary>
-                  <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0 0" }}>
-                    {(siteMembersResult.groups as Array<Record<string, unknown>>).map((group, index) => (
-                      <li
-                        key={group.id as string || index}
-                        style={{
-                          padding: "6px 10px",
-                          backgroundColor: "#fff",
-                          border: "1px solid #e5e5e5",
-                          borderRadius: "4px",
-                          marginBottom: "4px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        {String(group.displayName)}
-                        {group.expandError && (
-                          <span style={{ color: "#999", marginLeft: "8px", fontSize: "11px" }}>
-                            ({String(group.expandError)})
-                          </span>
-                        )}
+
+              {/* Multiple files result */}
+              {actionResult.files && Array.isArray(actionResult.files) && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
+                      <li key={index} style={listItemStyle}>
+                        <div>
+                          <strong style={{ fontSize: "14px" }}>{String(file.name)}</strong>
+                          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                            {file.size && <span>{formatSize(file.size as number)} • </span>}
+                            {file.lastModifiedDateTime && <span>Modified {formatDate(file.lastModifiedDateTime as string)}</span>}
+                          </div>
+                          {file.sharepointViewUrl && (
+                            <div style={{ marginTop: "8px" }}>
+                              <a
+                                href={file.sharepointViewUrl as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: "#16a34a",
+                                  fontSize: "13px",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                Open in SharePoint →
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>
-                </details>
+                </div>
               )}
+
               <details style={{ marginTop: "12px" }}>
                 <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                  View full response
+                  View full metadata response
                 </summary>
-                <JsonDisplay data={siteMembersResult} />
+                <JsonDisplay data={actionResult} />
               </details>
             </>
           )}
         </div>
       )}
+
+      {/* Download URLs Section */}
+      <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
+        <h2 style={sectionHeadingStyle}>Download URLs</h2>
+
+        {/* Show button if URLs not fetched yet */}
+        {(() => {
+          // Show button when: no result, or result has no download URLs
+          const hasDownloadUrl = actionResult?.downloadUrl;
+          const hasFilesWithUrls = actionResult?.files && Array.isArray(actionResult.files) && (actionResult.files as Array<Record<string, unknown>>).length > 0;
+          const hasDownloadData = hasDownloadUrl || hasFilesWithUrls;
+          const shouldShowButton = !actionResult || (!actionResult.error && !hasDownloadData);
+          return shouldShowButton;
+        })() ? (
+            <>
+              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+                Get pre-authenticated download links (valid ~1 hour)
+              </p>
+              <button
+                onClick={handleGetFileUrls}
+                disabled={!configuredProps || selectedFiles.length === 0 || isLoadingAction}
+                style={actionButtonStyle(buttonColor, isLoadingAction, !configuredProps || selectedFiles.length === 0)}
+              >
+                {isLoadingAction ? "Loading..." : "Get Download URLs"}
+              </button>
+
+              {/* Show SDK payload */}
+              <details style={{ marginTop: "12px" }}>
+                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                  View SDK code
+                </summary>
+                <pre style={{
+                  marginTop: "8px",
+                  padding: "12px",
+                  backgroundColor: "#fff",
+                  borderRadius: "6px",
+                  overflow: "auto",
+                  fontSize: "12px",
+                  border: "1px solid #e5e5e5",
+                }}>
+                  {(() => {
+                    const { fileOrFolderIds, ...otherProps } = configuredProps || {};
+                    return `await client.actions.run(${JSON.stringify({
+                      id: "sharepoint_admin-download-files",
+                      externalUserId,
+                      configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
+                    }, null, 2)})`;
+                  })()}
+                </pre>
+              </details>
+            </>
+          ) : (
+            <>
+              {/* Single file download URL */}
+              {actionResult.downloadUrl && !actionResult.files && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    <li style={listItemStyle}>
+                      <div>
+                        <strong style={{ fontSize: "14px" }}>{String(actionResult.name)}</strong>
+                        <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                          {actionResult.size && <span>{formatSize(actionResult.size as number)} • </span>}
+                          {actionResult.lastModifiedDateTime && <span>Modified {formatDate(actionResult.lastModifiedDateTime as string)}</span>}
+                        </div>
+                        <div style={{ marginTop: "8px" }}>
+                          <a
+                            href={actionResult.downloadUrl as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: buttonColor,
+                              fontSize: "12px",
+                              textDecoration: "underline",
+                              wordBreak: "break-all",
+                            }}
+                          >
+                            {actionResult.downloadUrl as string}
+                          </a>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Multiple files download URLs */}
+              {actionResult.files && Array.isArray(actionResult.files) && (
+                <div style={{ marginBottom: "12px" }}>
+                  <ul style={resetListStyle}>
+                    {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
+                      <li key={index} style={listItemStyle}>
+                        <div>
+                          <strong style={{ fontSize: "14px" }}>{String(file.name)}</strong>
+                          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                            {file.size && <span>{formatSize(file.size as number)} • </span>}
+                            {file.lastModifiedDateTime && <span>Modified {formatDate(file.lastModifiedDateTime as string)}</span>}
+                          </div>
+                          {file.downloadUrl && (
+                            <div style={{ marginTop: "8px" }}>
+                              <a
+                                href={file.downloadUrl as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: buttonColor,
+                                  fontSize: "12px",
+                                  textDecoration: "underline",
+                                  wordBreak: "break-all",
+                                }}
+                              >
+                                {file.downloadUrl as string}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <details style={{ marginTop: "12px" }}>
+                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                  View full response
+                </summary>
+                <JsonDisplay data={actionResult} />
+              </details>
+            </>
+          )}
+
+          {/* Show error if present */}
+          {actionResult?.error && (
+            <div style={{
+              padding: "12px",
+              backgroundColor: "#fee",
+              borderRadius: "6px",
+              color: "#c00",
+              fontSize: "13px",
+              marginTop: "12px",
+            }}>
+              Error: {String(actionResult.error)}
+            </div>
+          )}
+        </div>
+
+      {/* Deploy Trigger Section */}
+      <div style={{ ...sectionStyle, backgroundColor: "#fef3c7" }}>
+        <h2 style={sectionHeadingStyle}>Deploy Trigger for File Updates</h2>
+
+        {/* Show form if trigger not deployed yet */}
+        {!triggerResult?.success ? (
+            <>
+              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+                Deploy a trigger to receive webhook notifications when the selected files are updated
+              </p>
+              <div style={{ marginBottom: "12px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px" }}>
+                  Webhook URI:
+                </label>
+                <input
+                  type="url"
+                  value={webhookUri}
+                  onChange={(e) => setWebhookUri(e.target.value)}
+                  placeholder="https://your-api.com/webhook/file-updates"
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    fontFamily: "monospace",
+                  }}
+                />
+              </div>
+              <button
+                onClick={handleDeployTrigger}
+                disabled={!configuredProps || selectedFiles.length === 0 || isLoadingTrigger || !webhookUri}
+                style={actionButtonStyle("#f59e0b", isLoadingTrigger, !configuredProps || selectedFiles.length === 0 || !webhookUri)}
+              >
+                {isLoadingTrigger ? "Deploying..." : "Deploy Trigger"}
+              </button>
+
+              {/* Show SDK payload */}
+              <details style={{ marginTop: "12px" }}>
+                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+                  View SDK code
+                </summary>
+                <pre style={{
+                  marginTop: "8px",
+                  padding: "12px",
+                  backgroundColor: "#fff",
+                  borderRadius: "6px",
+                  overflow: "auto",
+                  fontSize: "12px",
+                  border: "1px solid #e5e5e5",
+                }}>
+                  {(() => {
+                    const { fileOrFolderIds, ...otherProps } = configuredProps || {};
+                    return `await client.triggers.deploy(${JSON.stringify({
+                      id: "sharepoint_admin-updated-file-instant",
+                      externalUserId,
+                      webhookUri: webhookUri || "<your-webhook-uri>",
+                      configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
+                    }, null, 2)})`;
+                  })()}
+                </pre>
+              </details>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: "13px", color: "#059669", marginTop: 0, marginBottom: "12px", fontWeight: 500 }}>
+                ✓ Trigger deployed successfully
+              </p>
+              <div style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
+                <strong>Webhook URI:</strong> <code style={{ fontSize: "12px", backgroundColor: "#fef9c3", padding: "2px 6px", borderRadius: "3px" }}>{String(triggerResult.webhookUri)}</code>
+              </div>
+              <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>
+                You will receive POST requests at your webhook URI when files are created, updated, or deleted.
+              </p>
+            </>
+          )}
+
+          {triggerResult?.error && (
+            <p style={{ color: "#dc2626", fontSize: "13px", marginTop: "12px", margin: 0 }}>
+              Error: {String(triggerResult.error)}
+            </p>
+          )}
+        </div>
 
       {/* Configured Props Display */}
       {configuredProps && (
@@ -1459,7 +911,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
             Store this JSON to restore the selection later.
           </p>
-          <JsonDisplay data={configuredProps} maxHeight="400px" />
+          <JsonDisplay data={{ ...configuredProps, fileIds: buildFileOrFolderIds() }} maxHeight="400px" />
         </div>
       )}
 
@@ -1469,8 +921,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <ConfigureFilePickerModal
             isOpen={isModalOpen}
             title="Select SharePoint Files"
-            componentKey="sharepoint-select-files"
-            app="sharepoint"
+            componentKey="sharepoint_admin-retrieve-file-metadata"
+            app="sharepoint_admin"
             accountId={selectedAccountId}
             externalUserId={externalUserId}
             onSelect={handleSelect}
@@ -1478,9 +930,10 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             confirmText="Select Files"
             cancelText="Cancel"
             multiSelect={true}
-            selectFolders={true}
+            selectFolders={false}
             selectFiles={true}
             showIcons={showIcons}
+            debug={true}
           />
         </CustomizeProvider>
       )}
@@ -1497,7 +950,7 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
   const [copied, setCopied] = useState(false);
 
   const { accounts, isLoading: accountsLoading } = useAccounts({
-    app: "sharepoint",
+    app: "sharepoint_admin",
     external_user_id: externalUserId,
   });
 
@@ -1512,7 +965,7 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
 
       const params = new URLSearchParams({
         token: resp.token,
-        app: "sharepoint",
+        app: "sharepoint_admin",
         externalUserId,
       });
       if (callbackUri) params.set("callbackUri", callbackUri);
@@ -1555,6 +1008,23 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
 
   return (
     <div style={{ maxWidth: "600px" }}>
+      {/* Known Issue Warning */}
+      <div style={{
+        padding: "16px",
+        backgroundColor: "#fef3c7",
+        border: "1px solid #fbbf24",
+        borderRadius: "6px",
+        marginBottom: "20px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+          <span style={{ fontSize: "18px" }}>⚠️</span>
+          <strong style={{ fontSize: "14px", color: "#92400e" }}>Known Issue</strong>
+        </div>
+        <p style={{ margin: 0, fontSize: "13px", color: "#78350f", lineHeight: "1.5" }}>
+          Hosted link mode is currently broken. Fix incoming. Use the in-app mode for now.
+        </p>
+      </div>
+
       {/* 1. Configure */}
       <div style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>1. Configure</h2>
@@ -1701,7 +1171,31 @@ type ConnectReactMode = "in-app" | "hosted-link";
 
 export default function FilePickerPage() {
   const [externalUserId] = useStableUuid();
-  const [connectReactMode, setConnectReactMode] = useState<ConnectReactMode>("hosted-link");
+
+  // Read mode from URL hash (e.g., #type=hosted-link or #type=in-app)
+  const getModeFromHash = (): ConnectReactMode => {
+    if (typeof window === "undefined") return "in-app";
+    const hash = window.location.hash;
+    const match = hash.match(/type=(in-app|hosted-link)/);
+    return match ? (match[1] as ConnectReactMode) : "in-app";
+  };
+
+  const [connectReactMode, setConnectReactMode] = useState<ConnectReactMode>(getModeFromHash);
+
+  // Update mode when hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      setConnectReactMode(getModeFromHash());
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  // Update hash when mode changes via buttons
+  const handleModeChange = (mode: ConnectReactMode) => {
+    window.location.hash = `type=${mode}`;
+    setConnectReactMode(mode);
+  };
 
   const client = useMemo(() => {
     if (!externalUserId) return null;
@@ -1741,61 +1235,46 @@ export default function FilePickerPage() {
     <QueryClientProvider client={queryClient}>
       <FrontendClientProvider client={client}>
         <div style={{
-          display: "flex",
-          gap: "20px",
           padding: "20px",
-          maxWidth: "1400px",
+          maxWidth: "1000px",
           margin: "0 auto",
-          flexWrap: "wrap",
-          alignItems: "flex-start",
         }}>
-          {/* Pipedream connect-react */}
-          <div style={cardStyle}>
-            <div style={cardHeaderStyle}>
-              <h2 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600, color: "#111827" }}>
-                Pipedream Connect File Picker
-              </h2>
-              <p style={{ margin: "0 0 12px", fontSize: "13px", color: "#6b7280" }}>
-                Uses Pipedream&apos;s Connect React SDK to populate the file picker and retrieve the selected files.
-              </p>
-              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-                <button onClick={() => setConnectReactMode("hosted-link")} style={modeStyle(connectReactMode === "hosted-link")}>
-                  Hosted link
-                </button>
-                <button onClick={() => setConnectReactMode("in-app")} style={modeStyle(connectReactMode === "in-app")}>
-                  In-app
-                </button>
-              </div>
-              <p style={{ margin: 0, fontSize: "12px", color: "#6b7280", lineHeight: "1.5" }}>
-                {connectReactMode === "hosted-link"
-                  ? "Opens the file picker on a hosted Pipedream page via a URL. Users connect their account and select files without any UI in your app."
-                  : "Embeds the file picker directly in your app using React components. Account connection and file selection happen inline."}
-              </p>
+          {/* Header */}
+          <div style={{
+            marginBottom: "30px",
+            padding: "20px",
+            backgroundColor: "#f0f9ff",
+            borderRadius: "8px",
+            border: "1px solid #bfdbfe",
+          }}>
+            <h1 style={{ margin: "0 0 8px", fontSize: "20px", fontWeight: 600, color: "#1e3a8a" }}>
+              Pipedream Connect File Picker
+            </h1>
+            <p style={{ margin: "0 0 16px", fontSize: "14px", color: "#3b82f6" }}>
+              Uses Pipedream&apos;s Connect React SDK to populate the file picker and retrieve the selected files.
+            </p>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+              <button onClick={() => handleModeChange("in-app")} style={modeStyle(connectReactMode === "in-app")}>
+                In-app
+              </button>
+              <button onClick={() => handleModeChange("hosted-link")} style={modeStyle(connectReactMode === "hosted-link")}>
+                Hosted link
+              </button>
             </div>
-            <div style={{ padding: "20px" }}>
-              {connectReactMode === "in-app" && (
-                <ConfigureFilePickerDemo externalUserId={externalUserId} />
-              )}
-              {connectReactMode === "hosted-link" && (
-                <FilePickerLinkGenerator externalUserId={externalUserId} />
-              )}
-            </div>
+            <p style={{ margin: 0, fontSize: "12px", color: "#1e40af", lineHeight: "1.5" }}>
+              {connectReactMode === "hosted-link"
+                ? "Opens the file picker on a hosted Pipedream page via a URL. Users connect their account and select files without any UI in your app."
+                : "Embeds the file picker directly in your app using React components. Account connection and file selection happen inline."}
+            </p>
           </div>
 
-          {/* Native Microsoft Picker */}
-          <div style={cardStyle}>
-            <div style={cardHeaderStyle}>
-              <h2 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: 600, color: "#111827" }}>
-                Native Microsoft Picker
-              </h2>
-              <p style={{ margin: 0, fontSize: "13px", color: "#6b7280" }}>
-                Microsoft&apos;s native file picker UI (v8) — requires passing the SharePoint OAuth access token from the client browser.
-              </p>
-            </div>
-            <div style={{ padding: "20px" }}>
-              <NativeSharePointPicker externalUserId={externalUserId} client={client} />
-            </div>
-          </div>
+          {/* Content */}
+          {connectReactMode === "in-app" && (
+            <ConfigureFilePickerDemo externalUserId={externalUserId} />
+          )}
+          {connectReactMode === "hosted-link" && (
+            <FilePickerLinkGenerator externalUserId={externalUserId} />
+          )}
         </div>
       </FrontendClientProvider>
     </QueryClientProvider>

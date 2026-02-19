@@ -37,6 +37,8 @@ export const fetchToken = async (opts: FetchTokenOpts) => {
     allowedOrigins: allowedOrigins, // TODO set this to the correct origin
     webhookUri: process.env.PIPEDREAM_CONNECT_WEBHOOK_URI,
     ...(opts.successRedirectUri && { successRedirectUri: opts.successRedirectUri }),
+    scope: "connect:accounts:write connect:actions:* connect:*",
+    expiresIn: 60 * 60 // 1 hour
   });
   return resp
 }
@@ -134,5 +136,41 @@ export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => 
   } catch (error: any) {
     console.error("Failed to get account credentials:", error)
     throw new Error(error.message || "Failed to get account credentials")
+  }
+}
+
+export type PostCallbackOpts = {
+  callbackUri: string
+  selectedFiles: Array<{
+    id: string
+    label: string
+    value: string
+    isFolder?: boolean
+    size?: number
+  }>
+  configuredProps: Record<string, unknown>
+  accountId: string
+  app: string
+}
+
+export const postToCallback = async (opts: PostCallbackOpts) => {
+  try {
+    const resp = await fetch(opts.callbackUri, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        selectedFiles: opts.selectedFiles,
+        configuredProps: opts.configuredProps,
+        accountId: opts.accountId,
+        app: opts.app,
+      }),
+    })
+
+    if (!resp.ok) {
+      console.warn(`Callback POST failed with status ${resp.status}`)
+    }
+  } catch (error: any) {
+    console.error("Failed to post to callback:", error)
+    // Don't throw - this is fire-and-forget
   }
 }

@@ -92,26 +92,11 @@ export function ProxyRequestBuilder({
     return Object.keys(headersObj).length > 0 ? headersObj : undefined
   }
 
-  // Validate URL format
-  const isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url)
-      return true
-    } catch {
-      return false
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!proxyUrl.trim()) {
       setError("URL is required")
-      return
-    }
-
-    if (!isValidUrl(proxyUrl)) {
-      setError("Please enter a valid URL (e.g., https://api.example.com/endpoint)")
       return
     }
 

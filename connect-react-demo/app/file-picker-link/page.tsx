@@ -10,57 +10,18 @@ import {
 } from "@pipedream/connect-react";
 import { createFrontendClient } from "@pipedream/sdk/browser";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { validateConnectToken, postToCallback } from "../actions/backendClient";
 
 const queryClient = new QueryClient();
 
-const PIPEDREAM_API_BASE = "https://api.pipedream.com";
-
 type FlowState = "init" | "picking" | "error";
-
-// Validate token and get successRedirectUri (endpoint is public, no auth needed)
-async function validateToken(
-  token: string,
-  appId: string,
-  oauthAppId?: string,
-  signal?: AbortSignal,
-): Promise<{
-  success: boolean;
-  successRedirectUri?: string;
-  error?: string;
-}> {
-  const params = new URLSearchParams({ app_id: appId });
-  if (oauthAppId) params.set("oauth_app_id", oauthAppId);
-
-  try {
-    const resp = await fetch(
-      `${PIPEDREAM_API_BASE}/v1/connect/tokens/${encodeURIComponent(token)}/validate?${params}`,
-      { signal },
-    );
-
-    if (!resp.ok) {
-      const body = await resp.text();
-      return { success: false, error: body || `Validation failed (${resp.status})` };
-    }
-
-    const data = await resp.json();
-    return {
-      success: true,
-      successRedirectUri: data.success_redirect_uri,
-    };
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      return { success: false, error: "Aborted" };
-    }
-    return { success: false, error: err instanceof Error ? err.message : "Validation failed" };
-  }
-}
 
 function FilePickerLinkFlow() {
   const searchParams = useSearchParams();
   const client = useFrontendClient();
 
   const token = searchParams.get("token") || "";
-  const app = searchParams.get("app") || "sharepoint";
+  const app = searchParams.get("app") || "sharepoint_admin";
   const oauthAppId = searchParams.get("oauthAppId") || undefined;
   const externalUserId = searchParams.get("externalUserId") || "";
   const callbackUri = searchParams.get("callbackUri") || "";
@@ -98,18 +59,24 @@ function FilePickerLinkFlow() {
   useEffect(() => {
     if (missingParams.length > 0) return;
 
-    const abortController = new AbortController();
+    let mounted = true;
 
-    // Validate to get successRedirectUri
-    validateToken(token, app, oauthAppId, abortController.signal)
+    // Validate to get successRedirectUri (server-side to avoid CORS)
+    validateConnectToken({ token, appId: app })
       .then((result) => {
-        if (abortController.signal.aborted) return;
+        if (!mounted) return;
 
-        if (result.success && result.successRedirectUri) {
+        console.log("Token validation result:", result);
+        if (result.successRedirectUri) {
           successRedirectUriRef.current = result.successRedirectUri;
-        } else if (!result.success) {
-          console.warn("Token validation failed:", result.error);
+          console.log("Success redirect URI set to:", result.successRedirectUri);
+        } else {
+          console.warn("No successRedirectUri in validation response");
         }
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        console.error("Token validation failed:", err);
       });
 
     // Proceed with connect or file picker
@@ -119,7 +86,9 @@ function FilePickerLinkFlow() {
       startConnect();
     }
 
-    return () => abortController.abort();
+    return () => {
+      mounted = false;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelect = async (items: FilePickerItem[], configuredProps: Record<string, unknown>) => {
@@ -131,28 +100,23 @@ function FilePickerLinkFlow() {
       size: item.size,
     }));
 
-    try {
-      const resp = await fetch(callbackUri, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          selectedFiles,
-          configuredProps,
-          accountId,
-          app,
-        }),
-      });
+    // Fire-and-forget POST to callback via server action (avoids CORS, timing issues)
+    postToCallback({
+      callbackUri,
+      selectedFiles,
+      configuredProps,
+      accountId: accountId!,
+      app,
+    }).catch((err) => {
+      // Fire-and-forget - log but don't block redirect
+      console.warn("Callback post failed:", err);
+    });
 
-      if (!resp.ok) {
-        throw new Error(`Callback failed with status ${resp.status}`);
-      }
-
-      if (successRedirectUriRef.current) {
-        window.location.href = successRedirectUriRef.current;
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit selection");
-      setFlowState("error");
+    // Redirect immediately without waiting
+    if (successRedirectUriRef.current) {
+      window.location.href = successRedirectUriRef.current;
+    } else {
+      console.warn("No success redirect URI configured");
     }
   };
 
@@ -199,7 +163,7 @@ function FilePickerLinkFlow() {
           </div>
           <div style={styles.modalBody}>
             <ConfigureFilePicker
-              componentKey={`${app}-select-files`}
+              componentKey={`${app}-retrieve-file-metadata`}
               app={app}
               accountId={accountId}
               externalUserId={externalUserId}
