@@ -934,7 +934,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
             selectFolders={false}
             selectFiles={true}
             showIcons={showIcons}
-            debug={false}
+            debug={process.env.NODE_ENV === 'development'}
           />
         </CustomizeProvider>
       )}
