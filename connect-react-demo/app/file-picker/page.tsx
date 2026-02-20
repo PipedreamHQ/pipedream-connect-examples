@@ -1009,22 +1009,6 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
 
   return (
     <div style={{ maxWidth: "600px" }}>
-      {/* Known Issue Warning */}
-      <div style={{
-        padding: "16px",
-        backgroundColor: "#fef3c7",
-        border: "1px solid #fbbf24",
-        borderRadius: "6px",
-        marginBottom: "20px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-          <span style={{ fontSize: "18px" }}>⚠️</span>
-          <strong style={{ fontSize: "14px", color: "#92400e" }}>Known Issue</strong>
-        </div>
-        <p style={{ margin: 0, fontSize: "13px", color: "#78350f", lineHeight: "1.5" }}>
-          Hosted link mode is currently broken. Fix incoming. Use the in-app mode for now.
-        </p>
-      </div>
 
       {/* 1. Configure */}
       <div style={sectionStyle}>
