@@ -324,6 +324,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const [customPrimaryColor, setCustomPrimaryColor] = useState("#2684FF");
   const [actionResult, setActionResult] = useState<Record<string, unknown> | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [downloadResult, setDownloadResult] = useState<Record<string, unknown> | null>(null);
+  const [isLoadingDownload, setIsLoadingDownload] = useState(false);
   const [showIcons, setShowIcons] = useState(true);
   const [webhookUri, setWebhookUri] = useState("");
   const [triggerResult, setTriggerResult] = useState<Record<string, unknown> | null>(null);
@@ -356,6 +358,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setSelectedFiles(items);
     setConfiguredProps(props);
     setIsModalOpen(false);
+    setDownloadResult(null);
 
     // Immediately fetch metadata for selected files
     if (items.length > 0) {
@@ -393,25 +396,31 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       });
     });
 
+  const getFileIds = (itemsToUse = selectedFiles) =>
+    itemsToUse.map((f) => {
+      const value = f.value as { id?: string } | undefined;
+      return value?.id || f.id;
+    });
+
   const handleGetFileUrls = async () => {
     if (!configuredProps || selectedFiles.length === 0) return;
 
-    setIsLoadingAction(true);
+    setIsLoadingDownload(true);
     try {
       // Map fileOrFolderIds to fileIds for download-files action
       const { fileOrFolderIds, ...otherProps } = configuredProps;
       const response = await client.actions.run({
         id: "sharepoint_admin-download-files",
         externalUserId,
-        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() } as Record<string, unknown>,
+        configuredProps: { ...otherProps, fileIds: getFileIds() } as Record<string, unknown>,
       });
       const result = (response.ret as Record<string, unknown>) ?? { error: "No data returned" };
-      setActionResult(result);
+      setDownloadResult(result);
     } catch (e) {
       console.error("Failed to run action:", e);
-      setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
+      setDownloadResult({ error: e instanceof Error ? e.message : "Unknown error" });
     } finally {
-      setIsLoadingAction(false);
+      setIsLoadingDownload(false);
     }
   };
 
@@ -433,7 +442,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         id: "sharepoint_admin-updated-file-instant",
         externalUserId,
         webhookUrl: webhookUri,
-        configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() } as Record<string, unknown>,
+        configuredProps: { ...otherProps, fileIds: getFileIds() } as Record<string, unknown>,
       });
 
       setTriggerResult({
@@ -681,133 +690,100 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
         <h2 style={sectionHeadingStyle}>Download URLs</h2>
 
-        {/* Show button if URLs not fetched yet */}
-        {(() => {
-          // Show button when: no result, or result has no download URLs
-          const hasDownloadUrl = actionResult?.downloadUrl;
-          const hasFilesWithUrls = actionResult?.files && Array.isArray(actionResult.files) && (actionResult.files as Array<Record<string, unknown>>).length > 0;
-          const hasDownloadData = hasDownloadUrl || hasFilesWithUrls;
-          const shouldShowButton = !actionResult || (!actionResult.error && !hasDownloadData);
-          return shouldShowButton;
-        })() ? (
-            <>
-              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
-                Get pre-authenticated download links (valid ~1 hour)
-              </p>
-              <button
-                onClick={handleGetFileUrls}
-                disabled={!configuredProps || selectedFiles.length === 0 || isLoadingAction}
-                style={actionButtonStyle(buttonColor, isLoadingAction, !configuredProps || selectedFiles.length === 0)}
-              >
-                {isLoadingAction ? "Loading..." : "Get Download URLs"}
-              </button>
+        <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+          Get pre-authenticated download links (valid ~1 hour)
+        </p>
+        <button
+          onClick={handleGetFileUrls}
+          disabled={!configuredProps || selectedFiles.length === 0 || isLoadingDownload}
+          style={actionButtonStyle(buttonColor, isLoadingDownload, !configuredProps || selectedFiles.length === 0)}
+        >
+          {isLoadingDownload ? "Loading..." : "Get Download URLs"}
+        </button>
 
-              {/* Show SDK payload */}
-              <details style={{ marginTop: "12px" }}>
-                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                  View SDK code
-                </summary>
-                <pre style={{
-                  marginTop: "8px",
-                  padding: "12px",
-                  backgroundColor: "#fff",
-                  borderRadius: "6px",
-                  overflow: "auto",
-                  fontSize: "12px",
-                  border: "1px solid #e5e5e5",
-                }}>
-                  {(() => {
-                    const { fileOrFolderIds, ...otherProps } = configuredProps || {};
-                    return `await client.actions.run(${JSON.stringify({
-                      id: "sharepoint_admin-download-files",
-                      externalUserId,
-                      configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
-                    }, null, 2)})`;
-                  })()}
-                </pre>
-              </details>
-            </>
-          ) : (
-            <>
+        {/* Request Payload */}
+        <details style={{ marginTop: "12px" }}>
+          <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+            View request payload
+          </summary>
+          <pre style={{
+            marginTop: "8px",
+            padding: "12px",
+            backgroundColor: "#fff",
+            borderRadius: "6px",
+            overflow: "auto",
+            fontSize: "12px",
+            border: "1px solid #e5e5e5",
+          }}>
+            {(() => {
+              const { fileOrFolderIds, ...otherProps } = configuredProps || {};
+              return `await client.actions.run(${JSON.stringify({
+                id: "sharepoint_admin-download-files",
+                externalUserId,
+                configuredProps: { ...otherProps, fileIds: getFileIds() },
+              }, null, 2)})`;
+            })()}
+          </pre>
+        </details>
+
+        {/* Response */}
+        {downloadResult && !downloadResult.error && (
+          <details style={{ marginTop: "12px" }} open>
+            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+              View response
+            </summary>
+            <div style={{ marginTop: "8px" }}>
               {/* Single file download URL */}
-              {actionResult.downloadUrl && !actionResult.files && (
-                <div style={{ marginBottom: "12px" }}>
-                  <ul style={resetListStyle}>
-                    <li style={listItemStyle}>
-                      <div>
-                        <strong style={{ fontSize: "14px" }}>{String(actionResult.name)}</strong>
-                        <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                          {actionResult.size && <span>{formatSize(actionResult.size as number)} • </span>}
-                          {actionResult.lastModifiedDateTime && <span>Modified {formatDate(actionResult.lastModifiedDateTime as string)}</span>}
-                        </div>
-                        <div style={{ marginTop: "8px" }}>
-                          <a
-                            href={actionResult.downloadUrl as string}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              color: buttonColor,
-                              fontSize: "12px",
-                              textDecoration: "underline",
-                              wordBreak: "break-all",
-                            }}
-                          >
-                            {actionResult.downloadUrl as string}
-                          </a>
-                        </div>
+              {downloadResult.downloadUrl && !downloadResult.files && (
+                <ul style={resetListStyle}>
+                  <li style={listItemStyle}>
+                    <div>
+                      <strong style={{ fontSize: "14px" }}>{String(downloadResult.name)}</strong>
+                      <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                        {downloadResult.size && <span>{formatSize(downloadResult.size as number)} • </span>}
+                        {downloadResult.lastModifiedDateTime && <span>Modified {formatDate(downloadResult.lastModifiedDateTime as string)}</span>}
                       </div>
-                    </li>
-                  </ul>
-                </div>
+                      <div style={{ marginTop: "8px" }}>
+                        <a href={downloadResult.downloadUrl as string} target="_blank" rel="noopener noreferrer" style={{ color: buttonColor, fontSize: "12px", textDecoration: "underline", wordBreak: "break-all" }}>
+                          {downloadResult.downloadUrl as string}
+                        </a>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
               )}
 
               {/* Multiple files download URLs */}
-              {actionResult.files && Array.isArray(actionResult.files) && (
-                <div style={{ marginBottom: "12px" }}>
-                  <ul style={resetListStyle}>
-                    {(actionResult.files as Array<Record<string, unknown>>).map((file, index) => (
-                      <li key={index} style={listItemStyle}>
-                        <div>
-                          <strong style={{ fontSize: "14px" }}>{String(file.name)}</strong>
-                          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                            {file.size && <span>{formatSize(file.size as number)} • </span>}
-                            {file.lastModifiedDateTime && <span>Modified {formatDate(file.lastModifiedDateTime as string)}</span>}
-                          </div>
-                          {file.downloadUrl && (
-                            <div style={{ marginTop: "8px" }}>
-                              <a
-                                href={file.downloadUrl as string}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  color: buttonColor,
-                                  fontSize: "12px",
-                                  textDecoration: "underline",
-                                  wordBreak: "break-all",
-                                }}
-                              >
-                                {file.downloadUrl as string}
-                              </a>
-                            </div>
-                          )}
+              {downloadResult.files && Array.isArray(downloadResult.files) && (
+                <ul style={resetListStyle}>
+                  {(downloadResult.files as Array<Record<string, unknown>>).map((file, index) => (
+                    <li key={index} style={listItemStyle}>
+                      <div>
+                        <strong style={{ fontSize: "14px" }}>{String(file.name)}</strong>
+                        <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+                          {file.size && <span>{formatSize(file.size as number)} • </span>}
+                          {file.lastModifiedDateTime && <span>Modified {formatDate(file.lastModifiedDateTime as string)}</span>}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                        {file.downloadUrl && (
+                          <div style={{ marginTop: "8px" }}>
+                            <a href={file.downloadUrl as string} target="_blank" rel="noopener noreferrer" style={{ color: buttonColor, fontSize: "12px", textDecoration: "underline", wordBreak: "break-all" }}>
+                              {file.downloadUrl as string}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
 
-              <details style={{ marginTop: "12px" }}>
-                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                  View full response
-                </summary>
-                <JsonDisplay data={actionResult} />
-              </details>
-            </>
-          )}
+              <JsonDisplay data={downloadResult} />
+            </div>
+          </details>
+        )}
 
           {/* Show error if present */}
-          {actionResult?.error && (
+          {downloadResult?.error && (
             <div style={{
               padding: "12px",
               backgroundColor: "#fee",
@@ -816,7 +792,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               fontSize: "13px",
               marginTop: "12px",
             }}>
-              Error: {String(actionResult.error)}
+              Error: {String(downloadResult.error)}
             </div>
           )}
         </div>
@@ -825,69 +801,71 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       <div style={{ ...sectionStyle, backgroundColor: "#fef3c7" }}>
         <h2 style={sectionHeadingStyle}>Deploy Trigger for File Updates</h2>
 
-        {/* Show form if trigger not deployed yet */}
-        {!triggerResult?.success ? (
-            <>
-              <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
-                Deploy a trigger to receive webhook notifications when the selected files are updated
-              </p>
-              <div style={{ marginBottom: "12px" }}>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px" }}>
-                  Webhook URI:
-                </label>
-                <input
-                  type="url"
-                  value={webhookUri}
-                  onChange={(e) => setWebhookUri(e.target.value)}
-                  placeholder="https://your-api.com/webhook/file-updates"
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    fontSize: "13px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontFamily: "monospace",
-                  }}
-                />
-              </div>
-              <button
-                onClick={handleDeployTrigger}
-                disabled={!configuredProps || selectedFiles.length === 0 || isLoadingTrigger || !webhookUri}
-                style={actionButtonStyle("#f59e0b", isLoadingTrigger, !configuredProps || selectedFiles.length === 0 || !webhookUri)}
-              >
-                {isLoadingTrigger ? "Deploying..." : "Deploy Trigger"}
-              </button>
+        <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+          Deploy a trigger to receive webhook notifications when the selected files are updated
+        </p>
+        <div style={{ marginBottom: "12px" }}>
+          <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px" }}>
+            Webhook URI:
+          </label>
+          <input
+            type="url"
+            value={webhookUri}
+            onChange={(e) => setWebhookUri(e.target.value)}
+            placeholder="https://your-api.com/webhook/file-updates"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              fontSize: "13px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              fontFamily: "monospace",
+            }}
+          />
+        </div>
+        <button
+          onClick={handleDeployTrigger}
+          disabled={!configuredProps || selectedFiles.length === 0 || isLoadingTrigger || !webhookUri}
+          style={actionButtonStyle("#f59e0b", isLoadingTrigger, !configuredProps || selectedFiles.length === 0 || !webhookUri)}
+        >
+          {isLoadingTrigger ? "Deploying..." : "Deploy Trigger"}
+        </button>
 
-              {/* Show SDK payload */}
-              <details style={{ marginTop: "12px" }}>
-                <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
-                  View SDK code
-                </summary>
-                <pre style={{
-                  marginTop: "8px",
-                  padding: "12px",
-                  backgroundColor: "#fff",
-                  borderRadius: "6px",
-                  overflow: "auto",
-                  fontSize: "12px",
-                  border: "1px solid #e5e5e5",
-                }}>
-                  {(() => {
-                    const { fileOrFolderIds, ...otherProps } = configuredProps || {};
-                    return `await client.triggers.deploy(${JSON.stringify({
-                      id: "sharepoint_admin-updated-file-instant",
-                      externalUserId,
-                      webhookUri: webhookUri || "<your-webhook-uri>",
-                      configuredProps: { ...otherProps, fileIds: buildFileOrFolderIds() },
-                    }, null, 2)})`;
-                  })()}
-                </pre>
-              </details>
-            </>
-          ) : (
-            <>
+        {/* Request Payload */}
+        <details style={{ marginTop: "12px" }}>
+          <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+            View request payload
+          </summary>
+          <pre style={{
+            marginTop: "8px",
+            padding: "12px",
+            backgroundColor: "#fff",
+            borderRadius: "6px",
+            overflow: "auto",
+            fontSize: "12px",
+            border: "1px solid #e5e5e5",
+          }}>
+            {(() => {
+              const { fileOrFolderIds, ...otherProps } = configuredProps || {};
+              return `await client.triggers.deploy(${JSON.stringify({
+                id: "sharepoint_admin-updated-file-instant",
+                externalUserId,
+                webhookUri: webhookUri || "<your-webhook-uri>",
+                configuredProps: { ...otherProps, fileIds: getFileIds() },
+              }, null, 2)})`;
+            })()}
+          </pre>
+        </details>
+
+        {/* Response */}
+        {triggerResult?.success && (
+          <details style={{ marginTop: "12px" }} open>
+            <summary style={{ cursor: "pointer", color: "#666", fontSize: "13px" }}>
+              View response
+            </summary>
+            <div style={{ marginTop: "8px" }}>
               <p style={{ fontSize: "13px", color: "#059669", marginTop: 0, marginBottom: "12px", fontWeight: 500 }}>
-                ✓ Trigger deployed successfully
+                Trigger deployed successfully
               </p>
               <div style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
                 <strong>Webhook URI:</strong> <code style={{ fontSize: "12px", backgroundColor: "#fef9c3", padding: "2px 6px", borderRadius: "3px" }}>{String(triggerResult.webhookUri)}</code>
@@ -895,8 +873,9 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>
                 You will receive POST requests at your webhook URI when files are created, updated, or deleted.
               </p>
-            </>
-          )}
+            </div>
+          </details>
+        )}
 
           {triggerResult?.error && (
             <p style={{ color: "#dc2626", fontSize: "13px", marginTop: "12px", margin: 0 }}>
@@ -912,7 +891,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
             Store this JSON to restore the selection later.
           </p>
-          <JsonDisplay data={{ ...configuredProps, fileIds: buildFileOrFolderIds() }} maxHeight="400px" />
+          <JsonDisplay data={{ ...configuredProps, fileIds: getFileIds() }} maxHeight="400px" />
         </div>
       )}
 
