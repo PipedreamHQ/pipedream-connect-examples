@@ -933,7 +933,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
           <ConfigureFilePickerModal
             isOpen={isModalOpen}
             title="Select SharePoint Files"
-            componentKey="~/sharepoint_admin-retrieve-file-metadata"
+            componentKey="sharepoint_admin-retrieve-file-metadata"
             app="sharepoint_admin"
             accountId={selectedAccountId}
             externalUserId={externalUserId}

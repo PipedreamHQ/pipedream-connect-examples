@@ -167,7 +167,7 @@ function FilePickerLinkFlow() {
           </div>
           <div style={styles.modalBody}>
             <ConfigureFilePicker
-              componentKey={`~/${app}-retrieve-file-metadata`}
+              componentKey={`${app}-retrieve-file-metadata`}
               app={app}
               accountId={accountId}
               externalUserId={externalUserId}
