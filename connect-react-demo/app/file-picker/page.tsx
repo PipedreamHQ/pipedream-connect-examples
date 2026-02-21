@@ -11,7 +11,7 @@ import {
 } from "@pipedream/connect-react";
 import { createFrontendClient } from "@pipedream/sdk/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { getAccountCredentials } from "../actions/backendClient";
+import { getAccountCredentials, getProjectId } from "../actions/backendClient";
 import { queryClient, deferredTokenCallback, createClient } from "@/lib/frontend-client";
 
 // ============================================
@@ -330,6 +330,11 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   const [webhookUri, setWebhookUri] = useState("");
   const [triggerResult, setTriggerResult] = useState<Record<string, unknown> | null>(null);
   const [isLoadingTrigger, setIsLoadingTrigger] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getProjectId().then(setProjectId).catch(() => {});
+  }, []);
 
   const currentTheme = useMemo(() => {
     if (selectedTheme === "custom") {
@@ -461,7 +466,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
   };
 
   return (
-    <div style={{ maxWidth: "600px" }}>
+    <div style={{ maxWidth: "720px" }}>
       {/* Account Selection */}
       <div style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>1. Connect Account</h2>
@@ -567,7 +572,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Loading State */}
       {isLoadingAction && !actionResult && (
-        <div style={{ ...sectionStyle, backgroundColor: "#f0f9ff" }}>
+        <div style={sectionStyle}>
           <div style={{
             display: "flex",
             alignItems: "center",
@@ -599,9 +604,36 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         </div>
       )}
 
+      {/* Callback Payload */}
+      {selectedFiles.length > 0 && configuredProps && (
+        <div style={sectionStyle}>
+          <h2 style={sectionHeadingStyle}>Callback Payload</h2>
+          <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
+            Example payload that would be POSTed to the callback URI
+          </p>
+          <JsonDisplay data={{
+            resource_provider: "sharepoint",
+            selected_files: selectedFiles.map((item) => ({
+              name: item.label,
+              description: item.description,
+              file_id: item.id,
+              web_url: item.webUrl,
+            })),
+            metadata: {
+              skill_id: "TODO",
+              agent_id: "TODO",
+              external_user_id: externalUserId,
+              auth_provision_id: selectedAccountId,
+              pipedream_project_id: projectId,
+            },
+            configured_props: { ...configuredProps, fileIds: getFileIds() },
+          }} maxHeight="400px" />
+        </div>
+      )}
+
       {/* File Metadata Display */}
       {actionResult && (
-        <div style={{ ...sectionStyle, backgroundColor: actionResult.error ? "#fef2f2" : "#f0fdf4" }}>
+        <div style={sectionStyle}>
           <h2 style={sectionHeadingStyle}>File Metadata</h2>
           {actionResult.error ? (
             <p style={{ color: "#dc2626", margin: 0 }}>{String(actionResult.error)}</p>
@@ -687,7 +719,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       )}
 
       {/* Download URLs Section */}
-      <div style={{ ...sectionStyle, backgroundColor: "#ecfdf5" }}>
+      <div style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>Download URLs</h2>
 
         <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
@@ -798,7 +830,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         </div>
 
       {/* Deploy Trigger Section */}
-      <div style={{ ...sectionStyle, backgroundColor: "#fef3c7" }}>
+      <div style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>Deploy Trigger for File Updates</h2>
 
         <p style={{ fontSize: "13px", color: "#666", marginTop: 0, marginBottom: "12px" }}>
@@ -886,8 +918,8 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
 
       {/* Configured Props Display */}
       {configuredProps && (
-        <div style={{ ...sectionStyle, backgroundColor: "#fefce8" }}>
-          <h2 style={sectionHeadingStyle}>Configured Props (for persistence)</h2>
+        <div style={sectionStyle}>
+          <h2 style={sectionHeadingStyle}>Configured Props</h2>
           <p style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
             Store this JSON to restore the selection later.
           </p>

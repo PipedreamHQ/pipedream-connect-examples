@@ -139,18 +139,24 @@ export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => 
   }
 }
 
+export const getProjectId = async () => env.PIPEDREAM_PROJECT_ID
+
 export type PostCallbackOpts = {
   callbackUri: string
+  resourceProvider: string
   selectedFiles: Array<{
-    id: string
-    label: string
-    value: string
-    isFolder?: boolean
-    size?: number
+    name: string
+    description?: string
+    file_id: string
+    web_url?: string
   }>
+  metadata: {
+    skill_id: string
+    agent_id: string
+    external_user_id: string
+    auth_provision_id: string
+  }
   configuredProps: Record<string, unknown>
-  accountId: string
-  app: string
 }
 
 export const postToCallback = async (opts: PostCallbackOpts) => {
@@ -159,10 +165,13 @@ export const postToCallback = async (opts: PostCallbackOpts) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        selectedFiles: opts.selectedFiles,
-        configuredProps: opts.configuredProps,
-        accountId: opts.accountId,
-        app: opts.app,
+        resource_provider: opts.resourceProvider,
+        selected_files: opts.selectedFiles,
+        metadata: {
+          ...opts.metadata,
+          pipedream_project_id: env.PIPEDREAM_PROJECT_ID,
+        },
+        configured_props: opts.configuredProps,
       }),
     })
 

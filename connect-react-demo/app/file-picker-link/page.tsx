@@ -93,20 +93,24 @@ function FilePickerLinkFlow() {
 
   const handleSelect = async (items: FilePickerItem[], configuredProps: Record<string, unknown>) => {
     const selectedFiles = items.map((item) => ({
-      id: item.id,
-      label: item.label,
-      value: item.value,
-      isFolder: item.isFolder,
-      size: item.size,
+      name: item.label,
+      description: item.description,
+      file_id: item.id,
+      web_url: item.webUrl,
     }));
 
     // Fire-and-forget POST to callback via server action (avoids CORS, timing issues)
     postToCallback({
       callbackUri,
+      resourceProvider: "sharepoint",
       selectedFiles,
+      metadata: {
+        skill_id: "TODO",
+        agent_id: "TODO",
+        external_user_id: externalUserId,
+        auth_provision_id: accountId!,
+      },
       configuredProps,
-      accountId: accountId!,
-      app,
     }).catch((err) => {
       // Fire-and-forget - log but don't block redirect
       console.warn("Callback post failed:", err);
@@ -321,7 +325,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "12px",
     boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
     width: "100%",
-    maxWidth: "600px",
+    maxWidth: "720px",
     height: "min(600px, calc(100vh - 40px))",
     display: "flex",
     flexDirection: "column" as const,

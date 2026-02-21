@@ -1,2 +1,1 @@
-# pnpm workspace overrides
-# (connect-react override removed - using npm registry version)
+packages: []
