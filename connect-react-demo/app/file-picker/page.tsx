@@ -373,7 +373,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
         const response = await client.actions.run({
           id: "sharepoint_admin-retrieve-file-metadata",
           externalUserId,
-          configuredProps: { ...props, fileOrFolderIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
+          configuredProps: { ...props, fileIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
         });
         setActionResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
       } catch (e) {
