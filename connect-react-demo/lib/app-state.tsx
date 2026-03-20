@@ -4,7 +4,7 @@ import defaultTheme from "@/app/components/customization-select/default-unstyled
 import React, { createContext, useContext, useState, startTransition, useEffect } from "react"
 // @ts-ignore
 import blueThemeCode from "raw-loader!@/app/components/customization-select/blue-theme.ts"
-import { useFrontendClient, useApp } from "@pipedream/connect-react"
+import { useFrontendClient, useApp, useComponents } from "@pipedream/connect-react"
 import { useSearchParams } from "next/navigation";
 // @ts-ignore
 import darkThemeCode from "raw-loader!@/app/components/customization-select/dark-theme.ts"
@@ -126,7 +126,20 @@ const useAppStateProviderValue = () => {
   const [webhookUrl, setWebhookUrl] = useState<string>("")
   const [webhookUrlValidationAttempted, setWebhookUrlValidationAttempted] = useState<boolean>(false)
 
-  const selectedComponentKey = queryParams.component || "slack_v2-send-message-to-channel"
+  // Fetch components for the selected app to auto-select the first one
+  const { components } = selectedComponentType !== "proxy"
+    ? useComponents({
+        app: selectedAppSlug,
+        componentType: selectedComponentType,
+        registry: "all",
+        limit: 1,
+      })
+    : { components: [] }
+
+  const defaultComponentKey = queryParams.app
+    ? components?.[0]?.key
+    : "slack_v2-send-message-to-channel"
+  const selectedComponentKey = queryParams.component || defaultComponentKey
   const setSelectedComponentKey = (value: string) => {
     // Batch all state updates to prevent multiple configureComponent calls
     updateStateAsync(() => {
