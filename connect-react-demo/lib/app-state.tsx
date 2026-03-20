@@ -136,7 +136,10 @@ const useAppStateProviderValue = () => {
       })
     : { components: [] }
 
-  const selectedComponentKey = queryParams.component || components?.[0]?.key
+  const defaultComponentKey = queryParams.app
+    ? components?.[0]?.key
+    : "slack_v2-send-message-to-channel"
+  const selectedComponentKey = queryParams.component || defaultComponentKey
   const setSelectedComponentKey = (value: string) => {
     // Batch all state updates to prevent multiple configureComponent calls
     updateStateAsync(() => {
