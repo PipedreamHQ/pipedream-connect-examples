@@ -905,6 +905,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
               <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>
                 You will receive POST requests at your webhook URI when files are created, updated, or deleted.
               </p>
+              <JsonDisplay data={triggerResult.response} />
             </div>
           </details>
         )}
