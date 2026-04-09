@@ -6,12 +6,12 @@ import {
   FrontendClientProvider,
   CustomizeProvider,
   ConfigureFilePickerModal,
-  useAccounts,
   type FilePickerItem,
 } from "@pipedream/connect-react";
+import { useServerAccounts } from "@/lib/hooks/use-server-accounts";
 import { createFrontendClient } from "@pipedream/sdk/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { getAccountCredentials, getProjectId } from "../actions/backendClient";
+import { getAccountCredentials, getProjectId, runAction, deployTrigger } from "../actions/backendClient";
 import { queryClient, deferredTokenCallback, createClient } from "@/lib/frontend-client";
 
 // ============================================
@@ -200,10 +200,7 @@ function AccountSelector({
   onConnectNew: () => Promise<void>;
   app?: string;
 }) {
-  const { accounts, isLoading, refetch } = useAccounts({
-    app,
-    external_user_id: externalUserId,
-  });
+  const { accounts, isLoading, refetch } = useServerAccounts({ app, externalUserId });
 
   const handleConnectNew = async () => {
     await onConnectNew();
@@ -370,7 +367,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       setIsLoadingAction(true);
       setActionResult(null);
       try {
-        const response = await client.actions.run({
+        const response = await runAction({
           id: "sharepoint_admin-retrieve-file-metadata",
           externalUserId,
           configuredProps: { ...props, fileIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
@@ -414,7 +411,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     try {
       // Map fileOrFolderIds to fileIds for download-files action
       const { fileOrFolderIds, ...otherProps } = configuredProps;
-      const response = await client.actions.run({
+      const response = await runAction({
         id: "sharepoint_admin-download-files",
         externalUserId,
         configuredProps: { ...otherProps, fileIds: getFileIds() } as Record<string, unknown>,
@@ -443,7 +440,7 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
       // Map fileOrFolderIds to fileIds for the trigger
       const { fileOrFolderIds, ...otherProps } = configuredProps;
 
-      const response = await client.triggers.deploy({
+      const response = await deployTrigger({
         id: "sharepoint_admin-updated-file-instant",
         externalUserId,
         webhookUrl: webhookUri,
@@ -962,9 +959,9 @@ function FilePickerLinkGenerator({ externalUserId }: { externalUserId: string })
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { accounts, isLoading: accountsLoading } = useAccounts({
+  const { accounts, isLoading: accountsLoading } = useServerAccounts({
     app: "sharepoint_admin",
-    external_user_id: externalUserId,
+    externalUserId,
   });
 
   const handleGenerate = async () => {

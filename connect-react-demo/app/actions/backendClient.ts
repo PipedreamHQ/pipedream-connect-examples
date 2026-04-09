@@ -2,6 +2,7 @@
 
 import { env } from "@/lib/env";
 import { backendClient } from "@/lib/backend-client";
+import type { RunActionOpts, DeployTriggerOpts } from "@pipedream/sdk";
 
 export type FetchTokenOpts = {
   externalUserId: string
@@ -137,6 +138,25 @@ export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => 
     console.error("Failed to get account credentials:", error)
     throw new Error(error.message || "Failed to get account credentials")
   }
+}
+
+export const runAction = async (opts: RunActionOpts) => {
+  const serverClient = backendClient()
+  return serverClient.actions.run(opts)
+}
+
+export const deployTrigger = async (opts: DeployTriggerOpts) => {
+  const serverClient = backendClient()
+  return serverClient.triggers.deploy(opts)
+}
+
+export const listAccounts = async (opts: { externalUserId: string; app?: string }) => {
+  const serverClient = backendClient()
+  const page = await serverClient.accounts.list({
+    externalUserId: opts.externalUserId,
+    ...(opts.app && { app: opts.app }),
+  })
+  return page.data
 }
 
 export const getProjectId = async () => env.PIPEDREAM_PROJECT_ID
