@@ -157,8 +157,8 @@ export const DemoPanel = () => {
 
       const method = selectedComponentType === "action" ? "actions.run" : "triggers.deploy"
       const request = selectedComponentType === "action"
-        ? { externalUserId, id: selectedComponentKey, configuredProps, dynamicPropsId, ...(needsStash && { stashId: "" as const }) }
-        : { externalUserId, id: selectedComponentKey, configuredProps, webhookUrl, dynamicPropsId }
+        ? { externalUserId, id: selectedComponentKey, configuredProps, ...(dynamicPropsId && { dynamicPropsId }), ...(needsStash && { stashId: "" as const }) }
+        : { externalUserId, id: selectedComponentKey, configuredProps, ...(webhookUrl && { webhookUrl }), ...(dynamicPropsId && { dynamicPropsId }) }
 
       const startTime = Date.now()
       const callId = addCall({ method, timestamp: new Date(), request, status: "pending" })
