@@ -24,7 +24,7 @@ interface SDKLoggerContextType {
   getPendingCallCount: () => number
 }
 
-const SDKLoggerContext = createContext<SDKLoggerContextType | undefined>(undefined)
+export const SDKLoggerContext = createContext<SDKLoggerContextType | undefined>(undefined)
 
 // Limit the number of calls we keep in memory
 const MAX_CALLS = 100

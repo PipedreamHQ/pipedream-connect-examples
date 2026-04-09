@@ -4,8 +4,8 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useStableUuid } from "@/lib/stable-uuid";
 import {
   FrontendClientProvider,
-  useAccounts,
 } from "@pipedream/connect-react";
+import { useServerAccounts } from "@/lib/hooks/use-server-accounts";
 import { createFrontendClient } from "@pipedream/sdk/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { getAccountCredentials } from "../actions/backendClient";
@@ -174,10 +174,7 @@ function AccountSelector({
   onConnectNew: () => Promise<void>;
   app?: string;
 }) {
-  const { accounts, isLoading, refetch } = useAccounts({
-    app,
-    external_user_id: externalUserId,
-  });
+  const { accounts, isLoading, refetch } = useServerAccounts({ app, externalUserId });
 
   const handleConnectNew = async () => {
     await onConnectNew();

@@ -114,9 +114,9 @@ const useAppStateProviderValue = () => {
   }
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
-  const { app: fetchedApp } = selectedAppSlug && externalUserId
-    ? useApp(selectedAppSlug)
-    : {}
+  const { app: fetchedApp } = useApp(selectedAppSlug || "", {
+    useQueryOpts: { enabled: !!(selectedAppSlug && externalUserId) },
+  })
   const selectedApp = fetchedApp || undefined
 
   const selectedComponentType: ComponentType = queryParams.type as ComponentType || ComponentType.Action
@@ -126,17 +126,17 @@ const useAppStateProviderValue = () => {
   const [webhookUrl, setWebhookUrl] = useState<string>("")
   const [webhookUrlValidationAttempted, setWebhookUrlValidationAttempted] = useState<boolean>(false)
 
-  // Fetch components for the selected app to auto-select the first one
-  const { components } = selectedComponentType !== "proxy"
-    ? useComponents({
-        app: selectedAppSlug,
-        componentType: selectedComponentType,
-        registry: "all",
-        limit: 1,
-      })
-    : { components: [] }
+  // Fetch components for the selected app to auto-select the first one.
+  // Always call unconditionally (Rules of Hooks). When type is "proxy", the
+  // result is ignored below so no harm from the extra fetch.
+  const { components } = useComponents({
+    app: selectedAppSlug,
+    componentType: selectedComponentType !== "proxy" ? selectedComponentType : undefined,
+    registry: "all",
+    limit: 1,
+  })
 
-  const defaultComponentKey = queryParams.app
+  const defaultComponentKey = queryParams.app && selectedComponentType !== "proxy"
     ? components?.[0]?.key
     : "slack_v2-send-message-to-channel"
   const selectedComponentKey = queryParams.component || defaultComponentKey

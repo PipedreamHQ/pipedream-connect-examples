@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { ComponentFormContainer, CustomizeProvider, useFrontendClient, useCustomize, useAccounts, type FormContext } from "@pipedream/connect-react"
+import { ComponentFormContainer, CustomizeProvider, useFrontendClient, useCustomize, type FormContext } from "@pipedream/connect-react"
 import type { ConfigurableProps, DynamicProps, App } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
 import { isValidUrl } from "@/lib/utils"
@@ -7,6 +7,9 @@ import { PageSkeleton } from "./PageSkeleton"
 import { TerminalCollapsible } from "./TerminalCollapsible"
 import { SDKError } from "@/lib/types/pipedream"
 import { ProxyRequestBuilder } from "./ProxyRequestBuilder"
+import { useServerAccounts } from "@/lib/hooks/use-server-accounts"
+import { useSDKLogger } from "@/lib/sdk-logger"
+import { runAction, deployTrigger } from "@/app/actions/backendClient"
 
 // Separate component that uses useCustomize (must be inside CustomizeProvider)
 function ProxyConnectFlow({
@@ -29,17 +32,11 @@ function ProxyConnectFlow({
   const { theme } = useCustomize()
 
   // Fetch accounts for the selected app
-  const { accounts, isLoading: isLoadingAccounts, refetch: refetchAccounts } = useAccounts(
-    {
-      external_user_id: externalUserId,
-      app: selectedApp?.nameSlug,
-    },
-    {
-      useQueryOpts: {
-        enabled: !!selectedApp,
-      },
-    }
-  )
+  const { accounts, isLoading: isLoadingAccounts, refetch: refetchAccounts } = useServerAccounts({
+    externalUserId,
+    app: selectedApp?.nameSlug,
+    enabled: !!selectedApp,
+  })
 
   const connectNewAccount = async () => {
     if (!selectedApp) return
@@ -104,6 +101,7 @@ export const DemoPanel = () => {
     setEditableExternalUserId,
   } = useAppState()
 
+  const { addCall, updateCall } = useSDKLogger()
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
   const [sdkErrors, setSdkErrors] = useState<SDKError | undefined>()
 
@@ -157,27 +155,34 @@ export const DemoPanel = () => {
       // Check if component requires stash for file handling
       const needsStash = ctx.component.stash === "required" || ctx.component.stash === "optional"
 
-      const data = selectedComponentType === "action"
-        ? await frontendClient.actions.run({
-          externalUserId,
-          id: selectedComponentKey,
-          configuredProps,
-          dynamicPropsId,
-          ...(needsStash && { stashId: "" })  // Add stashId if component uses file stash
-        })
-        : await frontendClient.triggers.deploy({
-          externalUserId,
-          id: selectedComponentKey,
-          configuredProps,
-          webhookUrl,
-          dynamicPropsId,
-        })
+      const method = selectedComponentType === "action" ? "actions.run" : "triggers.deploy"
+      const request = selectedComponentType === "action"
+        ? { externalUserId, id: selectedComponentKey, configuredProps, dynamicPropsId, ...(needsStash && { stashId: "" as const }) }
+        : { externalUserId, id: selectedComponentKey, configuredProps, webhookUrl, dynamicPropsId }
 
-      React.startTransition(() => {
-        setSdkErrors(undefined)
-        setActionRunOutput(data)
-        setWebhookUrlValidationAttempted(false) // Reset validation state on successful submission
-      })
+      const startTime = Date.now()
+      const callId = addCall({ method, timestamp: new Date(), request, status: "pending" })
+
+      try {
+        const data = selectedComponentType === "action"
+          ? await runAction(request)
+          : await deployTrigger(request)
+
+        updateCall(callId, { response: data, status: "success", duration: Date.now() - startTime })
+
+        React.startTransition(() => {
+          setSdkErrors(undefined)
+          setActionRunOutput(data)
+          setWebhookUrlValidationAttempted(false) // Reset validation state on successful submission
+        })
+      } catch (error) {
+        updateCall(callId, {
+          error: error instanceof Error ? { message: error.message } : error,
+          status: "error",
+          duration: Date.now() - startTime,
+        })
+        throw error
+      }
     } catch (error) {
       React.startTransition(() => {
         setSdkErrors(error as SDKError)
