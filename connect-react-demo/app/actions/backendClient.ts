@@ -140,23 +140,58 @@ export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => 
   }
 }
 
+// Strip undefined values and class instances so Next.js can serialize the
+// server action response. JSON round-trip is the simplest safe way to do this.
+function toSerializableResult<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function toSerializableError(prefix: string, error: any): Error {
+  const status = error.statusCode ?? error.status
+  const body = error.body ?? error.data
+  console.error(`[${prefix}] failed`, { status, body, message: error.message })
+  // Summarize body: if it's a string (e.g. HTML from a gateway 502) just take the
+  // first 200 chars; if it's an object, stringify it.
+  let detail: string
+  if (body == null) {
+    detail = error.message ?? "unknown error"
+  } else if (typeof body === "string") {
+    detail = body.slice(0, 200)
+  } else {
+    detail = JSON.stringify(body)
+  }
+  return new Error(`${prefix} failed (HTTP ${status ?? "unknown"}): ${detail}`)
+}
+
 export const runAction = async (opts: RunActionOpts) => {
   const serverClient = backendClient()
-  return serverClient.actions.run(opts)
+  try {
+    return toSerializableResult(await serverClient.actions.run(opts))
+  } catch (error: any) {
+    throw toSerializableError("actions.run", error)
+  }
 }
 
 export const deployTrigger = async (opts: DeployTriggerOpts) => {
   const serverClient = backendClient()
-  return serverClient.triggers.deploy(opts)
+  try {
+    return toSerializableResult(await serverClient.triggers.deploy(opts))
+  } catch (error: any) {
+    throw toSerializableError("triggers.deploy", error)
+  }
 }
 
 export const listAccounts = async (opts: { externalUserId: string; app?: string }) => {
   const serverClient = backendClient()
-  const page = await serverClient.accounts.list({
-    externalUserId: opts.externalUserId,
-    ...(opts.app && { app: opts.app }),
-  })
-  return page.data
+  try {
+    const page = await serverClient.accounts.list({
+      externalUserId: opts.externalUserId,
+      ...(opts.app && { app: opts.app }),
+    })
+    return toSerializableResult(page.data)
+  } catch (error: any) {
+    throw toSerializableError("accounts.list", error)
+  }
 }
 
 export const getProjectId = async () => env.PIPEDREAM_PROJECT_ID
