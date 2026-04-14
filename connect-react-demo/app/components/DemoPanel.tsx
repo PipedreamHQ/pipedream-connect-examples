@@ -9,7 +9,6 @@ import { SDKError } from "@/lib/types/pipedream"
 import { ProxyRequestBuilder } from "./ProxyRequestBuilder"
 import { useServerAccounts } from "@/lib/hooks/use-server-accounts"
 import { useSDKLogger } from "@/lib/sdk-logger"
-import { runAction, deployTrigger } from "@/app/actions/backendClient"
 
 // Separate component that uses useCustomize (must be inside CustomizeProvider)
 function ProxyConnectFlow({
@@ -165,8 +164,8 @@ export const DemoPanel = () => {
 
       try {
         const data = selectedComponentType === "action"
-          ? await runAction(request)
-          : await deployTrigger(request)
+          ? await frontendClient.actions.run(request)
+          : await frontendClient.triggers.deploy(request)
 
         updateCall(callId, { response: data, status: "success", duration: Date.now() - startTime })
 
