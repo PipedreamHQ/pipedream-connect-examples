@@ -142,8 +142,15 @@ export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => 
 
 // Strip undefined values and class instances so Next.js can serialize the
 // server action response. JSON round-trip is the simplest safe way to do this.
-function toSerializableResult<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value))
+function toSerializableResult<T>(prefix: string, value: T): T {
+  try {
+    const serialized = JSON.parse(JSON.stringify(value))
+    console.log(`[${prefix}] success`, JSON.stringify(serialized).slice(0, 500))
+    return serialized
+  } catch (err: any) {
+    console.error(`[${prefix}] serialization failed`, err.message, typeof value, JSON.stringify(Object.keys(value as any ?? {})))
+    throw new Error(`${prefix} response could not be serialized: ${err.message}`)
+  }
 }
 
 function toSerializableError(prefix: string, error: any): Error {
@@ -165,8 +172,9 @@ function toSerializableError(prefix: string, error: any): Error {
 
 export const runAction = async (opts: RunActionOpts) => {
   const serverClient = backendClient()
+  console.log("[actions.run] called", { id: opts.id, externalUserId: opts.externalUserId })
   try {
-    return toSerializableResult(await serverClient.actions.run(opts))
+    return toSerializableResult("actions.run", await serverClient.actions.run(opts))
   } catch (error: any) {
     throw toSerializableError("actions.run", error)
   }
@@ -174,8 +182,9 @@ export const runAction = async (opts: RunActionOpts) => {
 
 export const deployTrigger = async (opts: DeployTriggerOpts) => {
   const serverClient = backendClient()
+  console.log("[triggers.deploy] called", { externalUserId: opts.externalUserId })
   try {
-    return toSerializableResult(await serverClient.triggers.deploy(opts))
+    return toSerializableResult("triggers.deploy", await serverClient.triggers.deploy(opts))
   } catch (error: any) {
     throw toSerializableError("triggers.deploy", error)
   }
@@ -183,12 +192,13 @@ export const deployTrigger = async (opts: DeployTriggerOpts) => {
 
 export const listAccounts = async (opts: { externalUserId: string; app?: string }) => {
   const serverClient = backendClient()
+  console.log("[accounts.list] called", { externalUserId: opts.externalUserId, app: opts.app })
   try {
     const page = await serverClient.accounts.list({
       externalUserId: opts.externalUserId,
       ...(opts.app && { app: opts.app }),
     })
-    return toSerializableResult(page.data)
+    return toSerializableResult("accounts.list", page.data)
   } catch (error: any) {
     throw toSerializableError("accounts.list", error)
   }
