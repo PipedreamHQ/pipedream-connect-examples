@@ -44,8 +44,11 @@ export const fetchToken = async (opts: FetchTokenOpts) => {
   return resp
 }
 
+const PROXY_TIMEOUT_SECONDS = 30
+
 const _proxyRequest = async (opts: ProxyRequestOpts) => {
   const serverClient = backendClient()
+  const requestOptions = { timeoutInSeconds: PROXY_TIMEOUT_SECONDS }
 
   try {
     const baseRequest = {
@@ -60,28 +63,28 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
 
     switch (method) {
       case "GET":
-        resp = await serverClient.proxy.get(baseRequest)
+        resp = await serverClient.proxy.get(baseRequest, requestOptions)
         break
       case "POST":
         resp = await serverClient.proxy.post({
           ...baseRequest,
           body: opts.data,
-        })
+        }, requestOptions)
         break
       case "PUT":
         resp = await serverClient.proxy.put({
           ...baseRequest,
           body: opts.data,
-        })
+        }, requestOptions)
         break
       case "DELETE":
-        resp = await serverClient.proxy.delete(baseRequest)
+        resp = await serverClient.proxy.delete(baseRequest, requestOptions)
         break
       case "PATCH":
         resp = await serverClient.proxy.patch({
           ...baseRequest,
           body: opts.data,
-        })
+        }, requestOptions)
         break
       default:
         throw new Error(`Unsupported HTTP method: ${method}`)
