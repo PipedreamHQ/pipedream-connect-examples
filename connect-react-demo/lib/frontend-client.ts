@@ -21,13 +21,13 @@ export const CONNECT_BASE_URL = `https://${process.env.NEXT_PUBLIC_PIPEDREAM_FRO
 
 export function createClient(externalUserId: string) {
   const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST;
-  const apiHost = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST;
+  const baseUrl = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST;
   const environment = process.env.NEXT_PUBLIC_PIPEDREAM_ENVIRONMENT as PipedreamEnvironment || undefined;
   const projectEnvironment = process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT as ProjectEnvironment;
 
   return createFrontendClient({
     ...(frontendHost && { frontendHost }),
-    ...(apiHost && { apiHost }),
+    ...(baseUrl && { baseUrl }),
     ...(environment && { environment }),
     ...(projectEnvironment && { projectEnvironment }),
     tokenCallback: deferredTokenCallback,
