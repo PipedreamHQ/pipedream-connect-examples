@@ -366,19 +366,18 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     if (items.length > 0) {
       setIsLoadingAction(true);
       setActionResult(null);
-      try {
-        const response = await runAction({
-          id: "sharepoint_admin-retrieve-file-metadata",
-          externalUserId,
-          configuredProps: { ...props, fileIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
-        });
-        setActionResult((response.ret as Record<string, unknown>) ?? { error: "No data returned" });
-      } catch (e) {
-        console.error("Failed to retrieve metadata:", e);
-        setActionResult({ error: e instanceof Error ? e.message : "Unknown error" });
-      } finally {
-        setIsLoadingAction(false);
+      const result = await runAction({
+        id: "sharepoint_admin-retrieve-file-metadata",
+        externalUserId,
+        configuredProps: { ...props, fileIds: buildFileOrFolderIds(items) } as Record<string, unknown>,
+      });
+      if (result.error) {
+        console.error("Failed to retrieve metadata:", result.error);
+        setActionResult({ error: result.error.message });
+      } else {
+        setActionResult((result.data.ret as Record<string, unknown>) ?? { error: "No data returned" });
       }
+      setIsLoadingAction(false);
     } else {
       setActionResult(null);
     }
@@ -408,22 +407,20 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     if (!configuredProps || selectedFiles.length === 0) return;
 
     setIsLoadingDownload(true);
-    try {
-      // Map fileOrFolderIds to fileIds for download-files action
-      const { fileOrFolderIds, ...otherProps } = configuredProps;
-      const response = await runAction({
-        id: "sharepoint_admin-download-files",
-        externalUserId,
-        configuredProps: { ...otherProps, fileIds: getFileIds() } as Record<string, unknown>,
-      });
-      const result = (response.ret as Record<string, unknown>) ?? { error: "No data returned" };
-      setDownloadResult(result);
-    } catch (e) {
-      console.error("Failed to run action:", e);
-      setDownloadResult({ error: e instanceof Error ? e.message : "Unknown error" });
-    } finally {
-      setIsLoadingDownload(false);
+    // Map fileOrFolderIds to fileIds for download-files action
+    const { fileOrFolderIds, ...otherProps } = configuredProps;
+    const result = await runAction({
+      id: "sharepoint_admin-download-files",
+      externalUserId,
+      configuredProps: { ...otherProps, fileIds: getFileIds() } as Record<string, unknown>,
+    });
+    if (result.error) {
+      console.error("Failed to run action:", result.error);
+      setDownloadResult({ error: result.error.message });
+    } else {
+      setDownloadResult((result.data.ret as Record<string, unknown>) ?? { error: "No data returned" });
     }
+    setIsLoadingDownload(false);
   };
 
   // Deploy trigger to listen for file changes
@@ -436,30 +433,29 @@ function ConfigureFilePickerDemo({ externalUserId }: { externalUserId: string })
     setIsLoadingTrigger(true);
     setTriggerResult(null);
 
-    try {
-      // Map fileOrFolderIds to fileIds for the trigger
-      const { fileOrFolderIds, ...otherProps } = configuredProps;
+    // Map fileOrFolderIds to fileIds for the trigger
+    const { fileOrFolderIds, ...otherProps } = configuredProps;
 
-      const response = await deployTrigger({
-        id: "sharepoint_admin-updated-file-instant",
-        externalUserId,
-        webhookUrl: webhookUri,
-        configuredProps: { ...otherProps, fileIds: getFileIds() } as Record<string, unknown>,
-      });
+    const result = await deployTrigger({
+      id: "sharepoint_admin-updated-file-instant",
+      externalUserId,
+      webhookUrl: webhookUri,
+      configuredProps: { ...otherProps, fileIds: getFileIds() } as Record<string, unknown>,
+    });
 
+    if (result.error) {
+      console.error("Failed to deploy trigger:", result.error);
+      setTriggerResult({ error: result.error.message });
+    } else {
       setTriggerResult({
         success: true,
         message: "Trigger deployed successfully",
         webhookUri,
         listening: true,
-        response,
+        response: result.data,
       });
-    } catch (e) {
-      console.error("Failed to deploy trigger:", e);
-      setTriggerResult({ error: e instanceof Error ? e.message : "Unknown error" });
-    } finally {
-      setIsLoadingTrigger(false);
     }
+    setIsLoadingTrigger(false);
   };
 
   return (

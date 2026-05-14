@@ -149,42 +149,29 @@ export function ProxyRequestBuilder({
 
     const startTime = Date.now()
 
-    try {
-      // Make the actual proxy request using server action
-      const proxyResponse = await proxyRequest(requestObject)
+    const proxyResponse = await proxyRequest(requestObject)
 
-      // Update SDK debugger with success
+    if (proxyResponse.error) {
+      const { message, status, data } = proxyResponse.error
+      updateCall(callId, {
+        error: { message, status, data },
+        status: "error",
+        duration: Date.now() - startTime,
+      })
+
+      setError(message)
+      setActionRunOutput({ error: message, status, data })
+    } else {
       updateCall(callId, {
         response: proxyResponse.data,
         status: "success",
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       })
 
-      // Send response data to output
       setActionRunOutput(proxyResponse.data)
-    } catch (err: any) {
-      // Update SDK debugger with error
-      updateCall(callId, {
-        error: {
-          message: err?.message || "Request failed",
-          status: err?.status,
-          data: err?.data,
-        },
-        status: "error",
-        duration: Date.now() - startTime
-      })
-
-      setError(err?.message || "Request failed")
-
-      // Show error response data in output
-      setActionRunOutput({
-        error: err?.message || "Request failed",
-        status: err?.status,
-        data: err?.data,
-      })
-    } finally {
-      setIsLoading(false)
     }
+
+    setIsLoading(false)
   }
 
   const showBodyField = ["POST", "PUT", "PATCH"].includes(proxyMethod)

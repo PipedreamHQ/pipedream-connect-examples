@@ -151,44 +151,41 @@ export const DemoPanel = () => {
       }
     }
 
-    try {
-      // Check if component requires stash for file handling
-      const needsStash = ctx.component.stash === "required" || ctx.component.stash === "optional"
+    // Check if component requires stash for file handling
+    const needsStash = ctx.component.stash === "required" || ctx.component.stash === "optional"
 
-      const method = selectedComponentType === "action" ? "actions.run" : "triggers.deploy"
-      const request = selectedComponentType === "action"
-        ? { externalUserId, id: selectedComponentKey, configuredProps, ...(dynamicPropsId && { dynamicPropsId }), ...(needsStash && { stashId: "" as const }) }
-        : { externalUserId, id: selectedComponentKey, configuredProps, ...(webhookUrl && { webhookUrl }), ...(dynamicPropsId && { dynamicPropsId }) }
+    const method = selectedComponentType === "action" ? "actions.run" : "triggers.deploy"
+    const request = selectedComponentType === "action"
+      ? { externalUserId, id: selectedComponentKey, configuredProps, ...(dynamicPropsId && { dynamicPropsId }), ...(needsStash && { stashId: "" as const }) }
+      : { externalUserId, id: selectedComponentKey, configuredProps, ...(webhookUrl && { webhookUrl }), ...(dynamicPropsId && { dynamicPropsId }) }
 
-      const startTime = Date.now()
-      const callId = addCall({ method, timestamp: new Date(), request, status: "pending" })
+    const startTime = Date.now()
+    const callId = addCall({ method, timestamp: new Date(), request, status: "pending" })
 
-      try {
-        const data = selectedComponentType === "action"
-          ? await runAction(request)
-          : await deployTrigger(request)
+    const result = selectedComponentType === "action"
+      ? await runAction(request)
+      : await deployTrigger(request)
 
-        updateCall(callId, { response: data, status: "success", duration: Date.now() - startTime })
-
-        React.startTransition(() => {
-          setSdkErrors(undefined)
-          setActionRunOutput(data)
-          setWebhookUrlValidationAttempted(false) // Reset validation state on successful submission
-        })
-      } catch (error) {
-        updateCall(callId, {
-          error: error instanceof Error ? { message: error.message } : error,
-          status: "error",
-          duration: Date.now() - startTime,
-        })
-        throw error
-      }
-    } catch (error) {
+    if (result.error) {
+      updateCall(callId, {
+        error: { message: result.error.message },
+        status: "error",
+        duration: Date.now() - startTime,
+      })
       React.startTransition(() => {
-        setSdkErrors(error as SDKError)
+        setSdkErrors(new Error(result.error!.message) as SDKError)
         setActionRunOutput(undefined)
       })
+      return
     }
+
+    updateCall(callId, { response: result.data, status: "success", duration: Date.now() - startTime })
+
+    React.startTransition(() => {
+      setSdkErrors(undefined)
+      setActionRunOutput(result.data)
+      setWebhookUrlValidationAttempted(false) // Reset validation state on successful submission
+    })
   }
 
   return (
