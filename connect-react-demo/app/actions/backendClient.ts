@@ -18,6 +18,16 @@ export type ProxyRequestOpts = {
   headers?: Record<string, string>
 }
 
+export type ActionError = {
+  message: string
+  status?: number
+  data?: any
+}
+
+export type ActionResult<T> =
+  | { data: T; error?: undefined }
+  | { data?: undefined; error: ActionError }
+
 const allowedOrigins = ([
   process.env.VERCEL_URL,
   process.env.VERCEL_BRANCH_URL,
@@ -44,20 +54,20 @@ export const fetchToken = async (opts: FetchTokenOpts) => {
   return resp
 }
 
-const _proxyRequest = async (opts: ProxyRequestOpts) => {
+const _proxyRequest = async (opts: ProxyRequestOpts): Promise<ActionResult<any>> => {
   const serverClient = backendClient()
 
+  const baseRequest = {
+    url: opts.url,
+    externalUserId: opts.externalUserId,
+    accountId: opts.accountId,
+    ...(opts.headers && { headers: opts.headers }),
+  }
+
+  const method = opts.method.toUpperCase()
+
   try {
-    const baseRequest = {
-      url: opts.url,
-      externalUserId: opts.externalUserId,
-      accountId: opts.accountId,
-      ...(opts.headers && { headers: opts.headers }),
-    }
-
     let resp
-    const method = opts.method.toUpperCase()
-
     switch (method) {
       case "GET":
         resp = await serverClient.proxy.get(baseRequest)
@@ -84,21 +94,19 @@ const _proxyRequest = async (opts: ProxyRequestOpts) => {
         })
         break
       default:
-        throw new Error(`Unsupported HTTP method: ${method}`)
+        return { error: { message: `Unsupported HTTP method: ${method}` } }
     }
 
-    return {
-      data: resp,
-    }
+    return { data: resp }
   } catch (error: any) {
-    // Create a proper Error object to preserve stack trace
-    const proxyError = new Error(error.message || 'Proxy request failed') as Error & {
-      status?: number
-      data?: any
+    console.error("[proxy] failed", { message: error.message, status: error.statusCode, body: error.body })
+    return {
+      error: {
+        message: error.message || "Proxy request failed",
+        status: error.statusCode,
+        data: error.body,
+      },
     }
-    proxyError.status = error.statusCode
-    proxyError.data = error.body
-    throw proxyError
   }
 }
 
@@ -153,7 +161,7 @@ function toSerializableResult<T>(prefix: string, value: T): T {
   }
 }
 
-function toSerializableError(prefix: string, error: any): Error {
+function toActionError(prefix: string, error: any): ActionError {
   const status = error.statusCode ?? error.status
   const body = error.body ?? error.data
   console.error(`[${prefix}] failed`, { status, body, message: error.message })
@@ -167,30 +175,34 @@ function toSerializableError(prefix: string, error: any): Error {
   } else {
     detail = JSON.stringify(body)
   }
-  return new Error(`${prefix} failed (HTTP ${status ?? "unknown"}): ${detail}`)
+  return {
+    message: `${prefix} failed (HTTP ${status ?? "unknown"}): ${detail}`,
+    status,
+    data: body,
+  }
 }
 
-export const runAction = async (opts: RunActionOpts) => {
+export const runAction = async (opts: RunActionOpts): Promise<ActionResult<any>> => {
   const serverClient = backendClient()
   console.log("[actions.run] called", { id: opts.id, externalUserId: opts.externalUserId })
   try {
-    return toSerializableResult("actions.run", await serverClient.actions.run(opts))
+    return { data: toSerializableResult("actions.run", await serverClient.actions.run(opts)) }
   } catch (error: any) {
-    throw toSerializableError("actions.run", error)
+    return { error: toActionError("actions.run", error) }
   }
 }
 
-export const deployTrigger = async (opts: DeployTriggerOpts) => {
+export const deployTrigger = async (opts: DeployTriggerOpts): Promise<ActionResult<any>> => {
   const serverClient = backendClient()
   console.log("[triggers.deploy] called", { externalUserId: opts.externalUserId })
   try {
-    return toSerializableResult("triggers.deploy", await serverClient.triggers.deploy(opts))
+    return { data: toSerializableResult("triggers.deploy", await serverClient.triggers.deploy(opts)) }
   } catch (error: any) {
-    throw toSerializableError("triggers.deploy", error)
+    return { error: toActionError("triggers.deploy", error) }
   }
 }
 
-export const listAccounts = async (opts: { externalUserId: string; app?: string }) => {
+export const listAccounts = async (opts: { externalUserId: string; app?: string }): Promise<ActionResult<any>> => {
   const serverClient = backendClient()
   console.log("[accounts.list] called", { externalUserId: opts.externalUserId, app: opts.app })
   try {
@@ -198,9 +210,9 @@ export const listAccounts = async (opts: { externalUserId: string; app?: string 
       externalUserId: opts.externalUserId,
       ...(opts.app && { app: opts.app }),
     })
-    return toSerializableResult("accounts.list", page.data)
+    return { data: toSerializableResult("accounts.list", page.data) }
   } catch (error: any) {
-    throw toSerializableError("accounts.list", error)
+    return { error: toActionError("accounts.list", error) }
   }
 }
 

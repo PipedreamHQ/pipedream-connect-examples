@@ -24,20 +24,21 @@ export function useServerAccounts({ externalUserId, app, enabled = true }: Opts)
     const startTime = Date.now()
     const callId = logger?.addCall({ method: "accounts.list", timestamp: new Date(), request, status: "pending" })
 
-    try {
-      const data = await listAccounts(request)
-      setAccounts(data)
-      if (callId) logger?.updateCall(callId, { response: data, status: "success", duration: Date.now() - startTime })
-    } catch (error) {
+    const result = await listAccounts(request)
+
+    if (result.error) {
       setAccounts([])
       if (callId) logger?.updateCall(callId, {
-        error: error instanceof Error ? { message: error.message } : error,
+        error: { message: result.error.message },
         status: "error",
         duration: Date.now() - startTime,
       })
-    } finally {
-      setIsLoading(false)
+    } else {
+      setAccounts(result.data)
+      if (callId) logger?.updateCall(callId, { response: result.data, status: "success", duration: Date.now() - startTime })
     }
+
+    setIsLoading(false)
   }, [externalUserId, app, enabled, logger])
 
   useEffect(() => { refetch() }, [refetch])
