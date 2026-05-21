@@ -98,6 +98,7 @@ const useAppStateProviderValue = () => {
     updateStateAsync(() => {
       setQueryParams([
         { key: "component", value: undefined },
+        { key: "scopeProfile", value: undefined },
         { key: "app", value },
       ])
       resetProxyState()
@@ -107,11 +108,16 @@ const useAppStateProviderValue = () => {
     updateStateAsync(() => {
       setQueryParams([
         { key: "component", value: undefined },
+        { key: "scopeProfile", value: undefined },
         { key: "app", value: undefined },
       ])
       resetProxyState()
     })
   }
+
+  const selectedScopeProfile = queryParams.scopeProfile || undefined
+  const setSelectedScopeProfile = (value: string | undefined) =>
+    setQueryParam("scopeProfile", value || undefined)
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
   const { app: fetchedApp } = useApp(selectedAppSlug || "", {
@@ -251,6 +257,9 @@ export function MyPage() {
 
     selectedApp,
     selectedComponent,
+
+    selectedScopeProfile,
+    setSelectedScopeProfile,
 
     showStressTest,
 

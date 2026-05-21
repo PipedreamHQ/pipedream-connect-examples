@@ -186,12 +186,15 @@ export const ConfigPanel = () => {
     setEditableExternalUserId,
     accountId,
     setAccountId,
+    selectedScopeProfile,
+    setSelectedScopeProfile,
   } = useAppState()
   
   // Check if proxy input editing is enabled via environment variable
   const enableProxyInput = process.env.NEXT_PUBLIC_ENABLE_PROXY_INPUT === 'true'
   const id1 = useId();
   const id2 = useId();
+  const id3 = useId();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Local state for immediate UI updates, separate from router state
@@ -497,6 +500,34 @@ export const ConfigPanel = () => {
             onChange={(e) => setAccountId(e.target.value)}
             placeholder="Enter account ID"
             className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </PropertyItem>
+      )}
+      {!!selectedApp?.scopeProfiles?.length && (
+        <PropertyItem
+          name="oauthScopeProfile"
+          type="string"
+          description="Restrict the OAuth scopes requested to a named profile defined on the app. Leave as default to request all configured scopes."
+          required={false}
+        >
+          <Select
+            instanceId={id3}
+            {...commonSelectProps}
+            options={[
+              { value: "", label: "(default — request all configured scopes)" },
+              ...selectedApp.scopeProfiles.map((p) => ({
+                value: p.name,
+                label: p.name,
+              })),
+            ]}
+            value={
+              selectedScopeProfile
+                ? { value: selectedScopeProfile, label: selectedScopeProfile }
+                : { value: "", label: "(default — request all configured scopes)" }
+            }
+            onChange={(v) => setSelectedScopeProfile(v?.value || undefined)}
+            placeholder="Choose a scope profile..."
+            styles={singleSelectStyles}
           />
         </PropertyItem>
       )}

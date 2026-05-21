@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { ComponentFormContainer, CustomizeProvider, useFrontendClient, useCustomize, type FormContext } from "@pipedream/connect-react"
-import type { ConfigurableProps, DynamicProps, App } from "@pipedream/sdk"
+import type { AppScopeProfilesItemName, ConfigurableProps, DynamicProps, App } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
 import { isValidUrl } from "@/lib/utils"
 import { PageSkeleton } from "./PageSkeleton"
@@ -14,6 +14,7 @@ import { runAction, deployTrigger } from "@/app/actions/backendClient"
 // Separate component that uses useCustomize (must be inside CustomizeProvider)
 function ProxyConnectFlow({
   selectedApp,
+  selectedScopeProfile,
   frontendClient,
   externalUserId,
   setAccountId,
@@ -22,6 +23,7 @@ function ProxyConnectFlow({
   setSdkErrors,
 }: {
   selectedApp: App | null
+  selectedScopeProfile: string | undefined
   frontendClient: ReturnType<typeof useFrontendClient>
   externalUserId: string
   setAccountId: (id: string) => void
@@ -43,6 +45,9 @@ function ProxyConnectFlow({
     try {
       await frontendClient.connectAccount({
         app: selectedApp.nameSlug,
+        ...(selectedScopeProfile && {
+          oauthScopeProfile: selectedScopeProfile as AppScopeProfilesItemName,
+        }),
         onSuccess: async ({ id }: { id: string }) => {
           console.log('🎉 Account connected successfully!', { accountId: id })
           await refetchAccounts()
@@ -97,6 +102,7 @@ export const DemoPanel = () => {
     enableDebugging,
     setWebhookUrlValidationAttempted,
     selectedApp,
+    selectedScopeProfile,
     setAccountId,
     setEditableExternalUserId,
   } = useAppState()
@@ -238,6 +244,7 @@ export const DemoPanel = () => {
                   <CustomizeProvider {...customizationOption.customization}>
                     <ProxyConnectFlow
                       selectedApp={selectedApp}
+                      selectedScopeProfile={selectedScopeProfile}
                       frontendClient={frontendClient}
                       externalUserId={externalUserId}
                       setAccountId={setAccountId}
@@ -260,6 +267,9 @@ export const DemoPanel = () => {
                         onSubmit={handleSubmit}
                         onUpdateDynamicProps={handleDynamicProps}
                         sdkResponse={sdkErrors}
+                        {...(selectedScopeProfile && {
+                          oauthScopeProfile: selectedScopeProfile as AppScopeProfilesItemName,
+                        })}
                       // oauthAppConfig={oauthAppConfig}
                       />
                     )}

@@ -8,6 +8,7 @@ export const propNames = z.string().optional();
 export const hideOptionalProps = z.string().optional();
 export const enableDebugging = z.string().optional();
 export const tab = z.string().optional();
+export const scopeProfile = z.string().optional();
 
 export const queryParamSchema = z.object({
   app: appSlug,
@@ -17,4 +18,5 @@ export const queryParamSchema = z.object({
   enableDebugging,
   type: componentType,
   tab,
+  scopeProfile,
 });
