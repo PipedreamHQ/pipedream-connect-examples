@@ -1,13 +1,11 @@
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import React, { startTransition } from "react"
+import { useSearchParams } from "next/navigation"
+import React from "react"
 import { z } from "zod"
 import { queryParamSchema } from "./query-params"
 
 type KeyValPair = { key: keyof z.infer<typeof queryParamSchema>, value: string | undefined }
 
 export const useQueryParams = () => {
-  const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const setQueryParams = (keyVals: KeyValPair[]) => {
@@ -24,9 +22,11 @@ export const useQueryParams = () => {
     const search = current.toString()
     const query = search ? `?${search}` : ""
 
-    startTransition(() => {
-      router.replace(`${pathname}${query}`, { scroll: false })
-    })
+    // Update URL via history API instead of router.replace. Next.js patches
+    // history.replaceState so useSearchParams stays in sync, and we avoid an
+    // RSC fetch that gets 308-redirected in production (basePath + default
+    // trailingSlash: false) and falls back to a hard reload.
+    window.history.replaceState(null, "", `${window.location.pathname}${query}`)
   }
 
   const setQueryParam = (key: KeyValPair["key"], value: KeyValPair["value"]) => {
