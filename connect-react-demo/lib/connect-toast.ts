@@ -1,43 +1,39 @@
-import type { PipedreamClient } from "@pipedream/sdk/browser"
-
-type ToastFn = (t: {
-  variant: "success" | "error"
-  title: string
-  description?: string
-}) => void
+import type {
+  PipedreamClient,
+  StartConnectOpts,
+  ConnectResult,
+  ConnectError,
+} from "@pipedream/sdk/browser"
+import { toast } from "sonner"
 
 /**
- * Wraps a frontend client so that every account connection — whether triggered
- * from the proxy flow or from within connect-react's component form — fires a
- * success or failure toast, while still invoking any caller-provided callbacks.
+ * Wraps a frontend client so that every account connection fires a success or
+ * failure toast, while still invoking any caller-provided callbacks. Only
+ * `connectAccount` is intercepted; all other methods pass through untouched.
  */
-export function withConnectToast(client: PipedreamClient, toast: ToastFn): PipedreamClient {
+export function withConnectToast(client: PipedreamClient): PipedreamClient {
   return new Proxy(client, {
     get(target, prop, receiver) {
       if (prop !== "connectAccount") {
         return Reflect.get(target, prop, receiver)
       }
 
-      const original = Reflect.get(target, prop, receiver) as (opts: any) => unknown
+      const original = Reflect.get(target, prop, receiver).bind(target) as PipedreamClient["connectAccount"]
 
-      return (opts: any) =>
+      return (opts: StartConnectOpts) =>
         original({
           ...opts,
-          onSuccess: async (account: { id: string }) => {
-            toast({
-              variant: "success",
-              title: "Account connected",
-              description: account?.id ? `Connected account ${account.id}` : undefined,
+          onSuccess: (res: ConnectResult) => {
+            toast.success("Account connected", {
+              description: res?.id ? `Connected account ${res.id}` : undefined,
             })
-            return opts?.onSuccess?.(account)
+            return opts.onSuccess?.(res)
           },
-          onError: (error: Error) => {
-            toast({
-              variant: "error",
-              title: "Connection failed",
-              description: error?.message,
+          onError: (err: ConnectError) => {
+            toast.error("Connection failed", {
+              description: err?.message,
             })
-            return opts?.onError?.(error)
+            return opts.onError?.(err)
           },
         })
     },

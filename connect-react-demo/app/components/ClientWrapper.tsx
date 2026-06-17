@@ -11,7 +11,7 @@ import {
 } from "@pipedream/sdk/browser"
 import { fetchToken, type FetchTokenOpts } from "../actions/backendClient"
 import { SDKLoggerProvider, useSDKLogger, createLoggedFrontendClient } from "@/lib/sdk-logger"
-import { ToastProvider, useToast } from "./ui/toast"
+import { Toaster } from "./ui/toast"
 import { withConnectToast } from "@/lib/connect-toast"
 import Demo from "./Demo"
 function DemoWithLoading({ isLoading }: { isLoading: boolean }) {
@@ -34,7 +34,6 @@ const deferredTokenCallback = (opts: FetchTokenOpts) => {
 const ClientProviderWithLogger = () => {
   const [externalUserId] = useStableUuid()
   const logger = useSDKLogger()
-  const { toast } = useToast()
 
   const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST
   const baseUrl = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST
@@ -54,10 +53,9 @@ const ClientProviderWithLogger = () => {
           externalUserId,
         }),
         logger
-      ),
-      toast
+      )
     )
-  }, [externalUserId, frontendHost, baseUrl, environment, projectEnvironment, logger, toast])
+  }, [externalUserId, frontendHost, baseUrl, environment, projectEnvironment, logger])
 
   if (!client) {
     return <DemoWithLoading isLoading={true} />
@@ -74,10 +72,9 @@ const ClientProviderWithLogger = () => {
 
 export const ClientWrapper = () => {
   return (
-    <ToastProvider>
-      <SDKLoggerProvider>
-        <ClientProviderWithLogger />
-      </SDKLoggerProvider>
-    </ToastProvider>
+    <SDKLoggerProvider>
+      <ClientProviderWithLogger />
+      <Toaster />
+    </SDKLoggerProvider>
   );
 }
