@@ -11,6 +11,8 @@ import {
 } from "@pipedream/sdk/browser"
 import { fetchToken, type FetchTokenOpts } from "../actions/backendClient"
 import { SDKLoggerProvider, useSDKLogger, createLoggedFrontendClient } from "@/lib/sdk-logger"
+import { ToastProvider, useToast } from "./ui/toast"
+import { withConnectToast } from "@/lib/connect-toast"
 import Demo from "./Demo"
 function DemoWithLoading({ isLoading }: { isLoading: boolean }) {
   return <Demo isLoading={isLoading} />
@@ -32,6 +34,7 @@ const deferredTokenCallback = (opts: FetchTokenOpts) => {
 const ClientProviderWithLogger = () => {
   const [externalUserId] = useStableUuid()
   const logger = useSDKLogger()
+  const { toast } = useToast()
 
   const frontendHost = process.env.NEXT_PUBLIC_PIPEDREAM_FRONTEND_HOST
   const baseUrl = process.env.NEXT_PUBLIC_PIPEDREAM_API_HOST
@@ -40,18 +43,21 @@ const ClientProviderWithLogger = () => {
 
   const client = useMemo(() => {
     if (!externalUserId) return null
-    return createLoggedFrontendClient(
-      createFrontendClient({
-        ...(frontendHost && { frontendHost }),
-        ...(baseUrl && { baseUrl }),
-        ...(environment && { environment }),
-        ...(projectEnvironment && { projectEnvironment }),
-        tokenCallback: deferredTokenCallback,
-        externalUserId,
-      }),
-      logger
+    return withConnectToast(
+      createLoggedFrontendClient(
+        createFrontendClient({
+          ...(frontendHost && { frontendHost }),
+          ...(baseUrl && { baseUrl }),
+          ...(environment && { environment }),
+          ...(projectEnvironment && { projectEnvironment }),
+          tokenCallback: deferredTokenCallback,
+          externalUserId,
+        }),
+        logger
+      ),
+      toast
     )
-  }, [externalUserId, frontendHost, baseUrl, environment, projectEnvironment, logger])
+  }, [externalUserId, frontendHost, baseUrl, environment, projectEnvironment, logger, toast])
 
   if (!client) {
     return <DemoWithLoading isLoading={true} />
@@ -68,8 +74,10 @@ const ClientProviderWithLogger = () => {
 
 export const ClientWrapper = () => {
   return (
-    <SDKLoggerProvider>
-      <ClientProviderWithLogger />
-    </SDKLoggerProvider>
+    <ToastProvider>
+      <SDKLoggerProvider>
+        <ClientProviderWithLogger />
+      </SDKLoggerProvider>
+    </ToastProvider>
   );
 }
