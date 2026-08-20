@@ -405,7 +405,8 @@ export function ProxyRequestBuilder({
       </div>
 
       {/* Credentials Section — opt-in, and refused server-side in production */}
-      {enableCredentialsViewer && accountId?.trim() && (editableExternalUserId || externalUserId) && (
+      {process.env.PIPEDREAM_PROJECT_ENVIRONMENT === 'development' &&
+        enableCredentialsViewer && accountId?.trim() && (editableExternalUserId || externalUserId) && (
         <CredentialsViewer
           externalUserId={editableExternalUserId || externalUserId}
           accountId={accountId}
