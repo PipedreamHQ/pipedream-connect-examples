@@ -2,7 +2,7 @@
 
 import { env } from "@/lib/env";
 import { backendClient } from "@/lib/backend-client";
-import type { RunActionOpts, DeployTriggerOpts } from "@pipedream/sdk";
+import type { RunActionOpts, DeployTriggerOpts, AccountCredentials } from "@pipedream/sdk";
 
 export type FetchTokenOpts = {
   externalUserId: string
@@ -122,29 +122,51 @@ export const validateConnectToken = async (opts: { token: string; appId: string 
 export type GetAccountCredentialsOpts = {
   externalUserId: string
   accountId: string
+  /** Optional app name slug. Narrows the search so fewer pages are walked. */
+  app?: string
+}
+
+const _lookupAccountCredentials = async (opts: GetAccountCredentialsOpts) => {
+  const serverClient = backendClient()
+
+  // Use list with filters to get the account with credentials
+  // This ensures we're scoped to the correct external user
+  const accountsPage = await serverClient.accounts.list({
+    externalUserId: opts.externalUserId,
+    includeCredentials: true,
+    ...(opts.app && { app: opts.app }),
+  })
+
+  // Page is async-iterable, so this walks every page rather than just the first
+  for await (const account of accountsPage) {
+    if (account.id === opts.accountId) {
+      return account.credentials
+    }
+  }
+
+  throw new Error(`Account ${opts.accountId} not found for user ${opts.externalUserId}`)
 }
 
 export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => {
-  const serverClient = backendClient()
-
   try {
-    // Use list with filters to get the account with credentials
-    // This ensures we're scoped to the correct external user
-    const accountsPage = await serverClient.accounts.list({
-      externalUserId: opts.externalUserId,
-      includeCredentials: true,
-    })
-
-    // Find the specific account by ID
-    const account = accountsPage.data.find(a => a.id === opts.accountId)
-    if (!account) {
-      throw new Error(`Account ${opts.accountId} not found for user ${opts.externalUserId}`)
-    }
-
-    return account.credentials
+    return await _lookupAccountCredentials(opts)
   } catch (error: any) {
     console.error("Failed to get account credentials:", error)
     throw new Error(error.message || "Failed to get account credentials")
+  }
+}
+
+// Same lookup, but reports failures as data so client components can render them
+// instead of hitting an unhandled server action rejection.
+export const fetchAccountCredentials = async (
+  opts: GetAccountCredentialsOpts
+): Promise<ActionResult<AccountCredentials>> => {
+  console.log("[accounts.list] credentials requested", { externalUserId: opts.externalUserId, accountId: opts.accountId })
+  try {
+    const credentials = await _lookupAccountCredentials(opts)
+    return { data: toSerializableResult("accounts.list", credentials ?? {}) }
+  } catch (error: any) {
+    return { error: toActionError("accounts.list", error) }
   }
 }
 
