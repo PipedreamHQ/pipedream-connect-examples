@@ -3,17 +3,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useCustomize } from "@pipedream/connect-react"
 import type { AccountCredentials } from "@pipedream/sdk"
+import {
+  IoCheckmarkOutline,
+  IoCopyOutline,
+  IoEyeOffOutline,
+  IoEyeOutline,
+  IoRefreshOutline,
+} from "react-icons/io5"
+import { cn } from "@/lib/utils"
 import { fetchAccountCredentials } from "@/app/actions/backendClient"
 import { useSDKLogger } from "@/lib/sdk-logger"
 
-type CredentialsViewerProps = {
+interface CredentialsViewerProps {
   externalUserId: string
   accountId: string
   app?: string
   accountName?: string
 }
 
-const mask = (value: string) => "•".repeat(Math.min(value.length, 24))
+// Fixed-width mask: doesn't leak value length, and keeps the value column aligned.
+const MASK = "•".repeat(20)
 
 // Credential values are arbitrary JSON, so render non-strings as JSON rather
 // than letting React stringify an object to "[object Object]".
@@ -33,14 +42,14 @@ export function CredentialsViewer({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
 
   // Never carry one account's credentials over to another
   useEffect(() => {
     setCredentials(null)
     setError(null)
     setRevealed({})
-    setCopiedKey(null)
+    setCopied(null)
   }, [accountId, externalUserId])
 
   const load = useCallback(async () => {
@@ -69,13 +78,13 @@ export function CredentialsViewer({
     setIsLoading(false)
   }, [externalUserId, accountId, app, addCall, updateCall])
 
-  const copy = async (key: string, value: string) => {
+  const copyToClipboard = async (key: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value)
-      setCopiedKey(key)
-      setTimeout(() => setCopiedKey(null), 1500)
+      setCopied(key)
+      setTimeout(() => setCopied(null), 2000)
     } catch (err) {
-      console.error("Failed to copy credential value:", err)
+      console.error("Failed to copy:", err)
     }
   }
 
@@ -85,142 +94,146 @@ export function CredentialsViewer({
   )
   const allRevealed = entries.length > 0 && entries.every(([key]) => revealed[key])
 
-  const fontSize = {
-    sm: "0.75rem",
-    base: "0.875rem",
-  }
+  const actionClasses =
+    "inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed"
 
-  const sectionStyles: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: `${theme.spacing.baseUnit}px`,
-    alignItems: "flex-start",
-  }
-
-  const labelStyles: React.CSSProperties = {
-    fontSize: fontSize.sm,
-    fontWeight: 500,
-    color: theme.colors.neutral70,
-  }
-
-  const helperTextStyles: React.CSSProperties = {
-    color: theme.colors.neutral50,
-    fontWeight: 400,
-    fontSize: fontSize.sm,
-    lineHeight: "1.5",
-    margin: 0,
-  }
-
-  const smallButtonStyles: React.CSSProperties = {
-    color: theme.colors.neutral80,
-    backgroundColor: "transparent",
-    display: "inline-flex",
-    alignItems: "center",
-    padding: `${theme.spacing.baseUnit}px ${theme.spacing.baseUnit * 2}px`,
-    borderWidth: 1,
-    borderStyle: "solid",
-    borderColor: theme.colors.neutral30,
-    borderRadius: theme.borderRadius,
-    cursor: isLoading ? "not-allowed" : "pointer",
-    fontSize: fontSize.sm,
-    fontWeight: 500,
-    gap: theme.spacing.baseUnit * 2,
-    opacity: isLoading ? 0.5 : 1,
-  }
-
-  const rowStyles: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    width: "100%",
-    padding: "4px 0",
-    borderBottom: `1px solid ${theme.colors.neutral20}`,
-  }
-
-  const keyStyles: React.CSSProperties = {
-    fontFamily: "monospace",
-    fontSize: fontSize.sm,
-    color: theme.colors.neutral70,
-    flex: "0 0 40%",
-    wordBreak: "break-all",
-  }
-
-  const valueStyles: React.CSSProperties = {
-    fontFamily: "monospace",
-    fontSize: fontSize.sm,
-    color: theme.colors.neutral80,
-    flex: 1,
-    wordBreak: "break-all",
-  }
+  const iconButtonClasses =
+    "inline-flex items-center justify-center h-6 w-6 rounded transition-opacity opacity-60 hover:opacity-100"
 
   return (
-    <div style={sectionStyles}>
-      <span style={labelStyles}>
-        Credentials{accountName ? ` for ${accountName}` : ""}
-      </span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <span
+          className="text-xs font-semibold uppercase tracking-wide truncate"
+          style={{ color: theme.colors.neutral60 }}
+          title={accountName}
+        >
+          Credentials{accountName ? ` · ${accountName}` : ""}
+        </span>
 
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-        <button type="button" onClick={load} disabled={isLoading} style={smallButtonStyles}>
-          {isLoading ? "Loading..." : credentials ? "Refresh credentials" : "View credentials"}
-        </button>
-        {entries.length > 0 && (
+        <div className="flex items-center gap-1 shrink-0">
+          {entries.length > 0 && (
+            <button
+              type="button"
+              className={actionClasses}
+              style={{ color: theme.colors.neutral70 }}
+              onClick={() =>
+                setRevealed(allRevealed ? {} : Object.fromEntries(entries.map(([key]) => [key, true])))
+              }
+            >
+              {allRevealed ? (
+                <IoEyeOffOutline className="h-3.5 w-3.5" />
+              ) : (
+                <IoEyeOutline className="h-3.5 w-3.5" />
+              )}
+              {allRevealed ? "Hide all" : "Reveal all"}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() =>
-              setRevealed(
-                allRevealed ? {} : Object.fromEntries(entries.map(([key]) => [key, true]))
-              )
-            }
-            style={smallButtonStyles}
+            className={actionClasses}
+            style={{ color: credentials ? theme.colors.neutral70 : theme.colors.primary }}
+            onClick={load}
+            disabled={isLoading}
           >
-            {allRevealed ? "Hide all" : "Reveal all"}
+            {credentials && <IoRefreshOutline className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />}
+            {isLoading ? "Loading..." : credentials ? "Refresh" : "View credentials"}
           </button>
-        )}
+        </div>
       </div>
 
       {error && (
-        <div style={{ fontSize: fontSize.base, color: theme.colors.danger }}>{error}</div>
+        <div className="text-xs leading-normal" style={{ color: theme.colors.danger }}>
+          {error}
+        </div>
       )}
 
       {credentials && entries.length === 0 && (
-        <p style={helperTextStyles}>
-          No credential fields returned. <code>include_credentials</code> only returns values for
-          key-based apps and for OAuth apps connected with your own OAuth client (BYOA).
+        <p className="text-xs leading-normal" style={{ color: theme.colors.neutral50 }}>
+          No credential fields returned. <span className="font-mono">include_credentials</span> only
+          returns values for key-based apps and for OAuth apps connected with your own OAuth client
+          (BYOA).
         </p>
       )}
 
       {entries.length > 0 && (
-        <>
-          <div style={{ width: "100%" }}>
-            {entries.map(([key, value]) => {
-              const text = asText(value)
-              return (
-                <div key={key} style={rowStyles}>
-                  <span style={keyStyles}>{key}</span>
-                  <span style={valueStyles}>{revealed[key] ? text : mask(text)}</span>
+        <div
+          className="flex flex-col rounded overflow-hidden"
+          style={{
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: theme.colors.neutral20,
+            borderRadius: theme.borderRadius,
+          }}
+        >
+          {entries.map(([key, value], index) => {
+            const text = asText(value)
+            const isRevealed = revealed[key]
+            return (
+              <div
+                key={key}
+                className="flex items-center gap-3 px-2.5 py-1.5"
+                style={{
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderTopStyle: "solid",
+                  borderTopColor: theme.colors.neutral20,
+                }}
+              >
+                <span
+                  className="font-mono text-xs w-32 shrink-0 truncate"
+                  style={{ color: theme.colors.neutral60 }}
+                  title={key}
+                >
+                  {key}
+                </span>
+                <span
+                  className={cn("font-mono text-xs flex-1 min-w-0", isRevealed ? "break-all" : "truncate")}
+                  style={{ color: theme.colors.neutral80 }}
+                  title={isRevealed ? text : undefined}
+                >
+                  {isRevealed ? text : MASK}
+                </span>
+                <span className="flex items-center gap-0.5 shrink-0">
                   <button
                     type="button"
+                    className={iconButtonClasses}
+                    style={{ color: theme.colors.neutral60 }}
                     onClick={() => setRevealed((prev) => ({ ...prev, [key]: !prev[key] }))}
-                    style={{ ...smallButtonStyles, cursor: "pointer", opacity: 1 }}
+                    aria-label={isRevealed ? `Hide ${key}` : `Reveal ${key}`}
+                    title={isRevealed ? "Hide" : "Reveal"}
                   >
-                    {revealed[key] ? "Hide" : "Reveal"}
+                    {isRevealed ? (
+                      <IoEyeOffOutline className="h-3.5 w-3.5" />
+                    ) : (
+                      <IoEyeOutline className="h-3.5 w-3.5" />
+                    )}
                   </button>
                   <button
                     type="button"
-                    onClick={() => copy(key, text)}
-                    style={{ ...smallButtonStyles, cursor: "pointer", opacity: 1 }}
+                    className={iconButtonClasses}
+                    style={{ color: copied === key ? theme.colors.primary : theme.colors.neutral60 }}
+                    onClick={() => copyToClipboard(key, text)}
+                    aria-label={`Copy ${key}`}
+                    title={copied === key ? "Copied!" : "Copy"}
                   >
-                    {copiedKey === key ? "Copied" : "Copy"}
+                    {copied === key ? (
+                      <IoCheckmarkOutline className="h-3.5 w-3.5" />
+                    ) : (
+                      <IoCopyOutline className="h-3.5 w-3.5" />
+                    )}
                   </button>
-                </div>
-              )
-            })}
-          </div>
-          <p style={helperTextStyles}>
-            These are plaintext credentials fetched server-side for this demo. Don&apos;t expose them
-            in a real app.
-          </p>
-        </>
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <p className="text-xs leading-normal" style={{ color: theme.colors.neutral50 }}>
+          Plaintext credentials, fetched server-side for this demo. Don&apos;t expose them in a real
+          app.
+        </p>
       )}
     </div>
   )

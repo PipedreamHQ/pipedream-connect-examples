@@ -158,13 +158,33 @@ export const getAccountCredentials = async (opts: GetAccountCredentialsOpts) => 
 
 // Same lookup, but reports failures as data so client components can render them
 // instead of hitting an unhandled server action rejection.
+//
+// SECURITY: this returns plaintext credentials for whatever externalUserId the
+// caller passes, and there is no session to authorize that against. Server
+// actions are public POST endpoints, so the production guard below is the only
+// thing standing between this and a credential dump on the deployed demo. It is
+// checked server-side on purpose — gating the UI alone would not stop a
+// hand-crafted request.
 export const fetchAccountCredentials = async (
   opts: GetAccountCredentialsOpts
 ): Promise<ActionResult<AccountCredentials>> => {
+  if (env.PIPEDREAM_PROJECT_ENVIRONMENT === "production") {
+    console.warn("[accounts.list] credentials request refused in production", { accountId: opts.accountId })
+    return {
+      error: { message: "Viewing account credentials is disabled in the production environment." },
+    }
+  }
+
   console.log("[accounts.list] credentials requested", { externalUserId: opts.externalUserId, accountId: opts.accountId })
   try {
     const credentials = await _lookupAccountCredentials(opts)
-    return { data: toSerializableResult("accounts.list", credentials ?? {}) }
+    // Deliberately NOT toSerializableResult: that logs the payload, which would
+    // write plaintext secrets to the server log. Same JSON round-trip (to strip
+    // undefined and class instances for the server action boundary), but only
+    // the field names are logged.
+    const serialized: AccountCredentials = JSON.parse(JSON.stringify(credentials ?? {}))
+    console.log("[accounts.list] credentials returned", { fields: Object.keys(serialized) })
+    return { data: serialized }
   } catch (error: any) {
     return { error: toActionError("accounts.list", error) }
   }
