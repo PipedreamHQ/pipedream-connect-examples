@@ -5,6 +5,9 @@ import { proxyRequest } from "@/app/actions/backendClient"
 import { useSDKLogger } from "@/lib/sdk-logger"
 import type { Account } from "@pipedream/sdk"
 import { SDKError } from "@/lib/types/pipedream"
+import { CredentialsViewer } from "./CredentialsViewer"
+
+const enableCredentialsViewer = process.env.NEXT_PUBLIC_ENABLE_CREDENTIALS_VIEWER === 'true'
 
 const HTTP_METHODS = [
   "GET",
@@ -398,6 +401,17 @@ export function ProxyRequestBuilder({
           </div>
         )}
       </div>
+
+      {/* Credentials Section — opt-in, and refused server-side in production */}
+      {process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT === 'development' &&
+        enableCredentialsViewer && accountId?.trim() && (editableExternalUserId || externalUserId) && (
+        <CredentialsViewer
+          externalUserId={editableExternalUserId || externalUserId}
+          accountId={accountId}
+          app={selectedApp?.nameSlug}
+          accountName={accounts.find((a) => a.id === accountId)?.name}
+        />
+      )}
 
       <form onSubmit={handleSubmit} style={containerStyles}>
         {/* URL + Method Section */}
