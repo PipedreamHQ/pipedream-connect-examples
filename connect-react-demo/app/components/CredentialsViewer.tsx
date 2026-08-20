@@ -21,11 +21,8 @@ interface CredentialsViewerProps {
   accountName?: string
 }
 
-// Fixed-width mask: doesn't leak value length, and keeps the value column aligned.
 const MASK = "•".repeat(20)
 
-// Credential values are arbitrary JSON, so render non-strings as JSON rather
-// than letting React stringify an object to "[object Object]".
 const asText = (value: unknown) =>
   typeof value === "string" ? value : JSON.stringify(value)
 
@@ -44,7 +41,7 @@ export function CredentialsViewer({
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
 
-  // Never carry one account's credentials over to another
+
   useEffect(() => {
     setCredentials(null)
     setError(null)

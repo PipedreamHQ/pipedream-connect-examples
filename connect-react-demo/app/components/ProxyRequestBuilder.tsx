@@ -7,8 +7,6 @@ import type { Account } from "@pipedream/sdk"
 import { SDKError } from "@/lib/types/pipedream"
 import { CredentialsViewer } from "./CredentialsViewer"
 
-// Off by default: the credentials action returns plaintext secrets, so opt in
-// explicitly. Matches the NEXT_PUBLIC_ENABLE_PROXY_INPUT pattern in ConfigPanel.
 const enableCredentialsViewer = process.env.NEXT_PUBLIC_ENABLE_CREDENTIALS_VIEWER === 'true'
 
 const HTTP_METHODS = [
@@ -405,7 +403,7 @@ export function ProxyRequestBuilder({
       </div>
 
       {/* Credentials Section — opt-in, and refused server-side in production */}
-      {process.env.PIPEDREAM_PROJECT_ENVIRONMENT === 'development' &&
+      {process.env.NEXT_PUBLIC_PIPEDREAM_PROJECT_ENVIRONMENT === 'development' &&
         enableCredentialsViewer && accountId?.trim() && (editableExternalUserId || externalUserId) && (
         <CredentialsViewer
           externalUserId={editableExternalUserId || externalUserId}
