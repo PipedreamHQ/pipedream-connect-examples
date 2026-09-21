@@ -188,10 +188,21 @@ export const ConfigPanel = () => {
     setAccountId,
     selectedScopeProfile,
     setSelectedScopeProfile,
+    selectedOauthAppId,
+    setSelectedOauthAppId,
   } = useAppState()
   
   // Check if proxy input editing is enabled via environment variable
   const enableProxyInput = process.env.NEXT_PUBLIC_ENABLE_PROXY_INPUT === 'true'
+
+  // Only surface local-testing-only controls (e.g. custom oauthAppId) when this is
+  // actually running on localhost — NODE_ENV isn't reliable here since a local
+  // `pnpm build && pnpm start` still reports "production".
+  const [isLocalhost, setIsLocalhost] = useState(false)
+  useEffect(() => {
+    setIsLocalhost(["localhost", "127.0.0.1"].includes(window.location.hostname))
+  }, [])
+
   const id1 = useId();
   const id2 = useId();
   const id3 = useId();
@@ -361,6 +372,21 @@ export const ConfigPanel = () => {
           />
         </CustomizeProvider>
       </PropertyItem>
+      {isLocalhost && selectedApp?.authType === "oauth" && (
+        <PropertyItem
+          name="oauthAppId"
+          type="string"
+          description="Local only. Connect with a custom OAuth client instead of Pipedream's default. The accounts list is filtered to this OAuth app."
+          required={false}
+        >
+          <input
+            value={selectedOauthAppId || ""}
+            onChange={(e) => setSelectedOauthAppId(e.target.value || undefined)}
+            placeholder="oa_xxxxxxx (optional)"
+            className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </PropertyItem>
+      )}
       {selectedComponentType !== "proxy" && (
         <PropertyItem
           name={selectedComponentType === ComponentType.Action ? "actionId" : "triggerId"}
