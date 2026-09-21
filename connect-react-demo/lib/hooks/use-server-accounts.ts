@@ -8,10 +8,11 @@ import { SDKLoggerContext } from "@/lib/sdk-logger"
 type Opts = {
   externalUserId: string
   app?: string
+  oauthAppId?: string
   enabled?: boolean
 }
 
-export function useServerAccounts({ externalUserId, app, enabled = true }: Opts) {
+export function useServerAccounts({ externalUserId, app, oauthAppId, enabled = true }: Opts) {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const logger = useContext(SDKLoggerContext) // undefined outside SDKLoggerProvider — that's fine
@@ -20,7 +21,7 @@ export function useServerAccounts({ externalUserId, app, enabled = true }: Opts)
     if (!enabled || !externalUserId) return
     setIsLoading(true)
 
-    const request = { externalUserId, ...(app && { app }) }
+    const request = { externalUserId, ...(app && { app }), ...(oauthAppId && { oauthAppId }) }
     const startTime = Date.now()
     const callId = logger?.addCall({ method: "accounts.list", timestamp: new Date(), request, status: "pending" })
 
@@ -39,7 +40,7 @@ export function useServerAccounts({ externalUserId, app, enabled = true }: Opts)
     }
 
     setIsLoading(false)
-  }, [externalUserId, app, enabled, logger])
+  }, [externalUserId, app, oauthAppId, enabled, logger])
 
   useEffect(() => { refetch() }, [refetch])
 

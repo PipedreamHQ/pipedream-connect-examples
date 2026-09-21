@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { ComponentFormContainer, CustomizeProvider, useFrontendClient, useCustomize, type FormContext } from "@pipedream/connect-react"
 import type { AppScopeProfilesItemName, ConfigurableProps, DynamicProps, App } from "@pipedream/sdk"
 import { useAppState } from "@/lib/app-state"
@@ -15,6 +15,7 @@ import { runAction, deployTrigger } from "@/app/actions/backendClient"
 function ProxyConnectFlow({
   selectedApp,
   selectedScopeProfile,
+  oauthAppId,
   frontendClient,
   externalUserId,
   setAccountId,
@@ -24,6 +25,7 @@ function ProxyConnectFlow({
 }: {
   selectedApp: App | null
   selectedScopeProfile: string | undefined
+  oauthAppId?: string
   frontendClient: ReturnType<typeof useFrontendClient>
   externalUserId: string
   setAccountId: (id: string) => void
@@ -37,6 +39,7 @@ function ProxyConnectFlow({
   const { accounts, isLoading: isLoadingAccounts, refetch: refetchAccounts } = useServerAccounts({
     externalUserId,
     app: selectedApp?.nameSlug,
+    oauthAppId,
     enabled: !!selectedApp,
   })
 
@@ -45,6 +48,7 @@ function ProxyConnectFlow({
     try {
       await frontendClient.connectAccount({
         app: selectedApp.nameSlug,
+        ...(oauthAppId && { oauthAppId }),
         ...(selectedScopeProfile && {
           oauthScopeProfile: selectedScopeProfile as AppScopeProfilesItemName,
         }),
@@ -103,6 +107,7 @@ export const DemoPanel = () => {
     setWebhookUrlValidationAttempted,
     selectedApp,
     selectedScopeProfile,
+    selectedOauthAppId,
     setAccountId,
     setEditableExternalUserId,
   } = useAppState()
@@ -111,12 +116,10 @@ export const DemoPanel = () => {
   const [dynamicPropsId, setDynamicPropsId] = useState<string | undefined>()
   const [sdkErrors, setSdkErrors] = useState<SDKError | undefined>()
 
-  // Define OAuth app ID mappings for testing
-  // const oauthAppConfig = useMemo(() => ({
-  //   'github': 'oa_abc1234',
-  //   'google_sheets': 'oa_def4567',
-  //   'slack': 'oa_1234567',
-  // }), [])
+  const oauthAppConfig = useMemo(
+    () => (selectedOauthAppId && selectedApp ? { [selectedApp.nameSlug]: selectedOauthAppId } : undefined),
+    [selectedOauthAppId, selectedApp],
+  )
 
   // Debounce propNames to prevent cascading render issues with app props
   const [debouncedPropNames, setDebouncedPropNames] = useState(propNames)
@@ -245,6 +248,7 @@ export const DemoPanel = () => {
                     <ProxyConnectFlow
                       selectedApp={selectedApp}
                       selectedScopeProfile={selectedScopeProfile}
+                      oauthAppId={selectedOauthAppId}
                       frontendClient={frontendClient}
                       externalUserId={externalUserId}
                       setAccountId={setAccountId}
@@ -270,7 +274,7 @@ export const DemoPanel = () => {
                         {...(selectedScopeProfile && {
                           oauthScopeProfile: selectedScopeProfile as AppScopeProfilesItemName,
                         })}
-                      // oauthAppConfig={oauthAppConfig}
+                        oauthAppConfig={oauthAppConfig}
                       />
                     )}
                   </CustomizeProvider>

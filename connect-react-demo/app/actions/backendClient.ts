@@ -202,13 +202,14 @@ export const deployTrigger = async (opts: DeployTriggerOpts): Promise<ActionResu
   }
 }
 
-export const listAccounts = async (opts: { externalUserId: string; app?: string }): Promise<ActionResult<any>> => {
+export const listAccounts = async (opts: { externalUserId: string; app?: string; oauthAppId?: string }): Promise<ActionResult<any>> => {
   const serverClient = backendClient()
-  console.log("[accounts.list] called", { externalUserId: opts.externalUserId, app: opts.app })
+  console.log("[accounts.list] called", { externalUserId: opts.externalUserId, app: opts.app, oauthAppId: opts.oauthAppId })
   try {
     const page = await serverClient.accounts.list({
       externalUserId: opts.externalUserId,
       ...(opts.app && { app: opts.app }),
+      ...(opts.oauthAppId && { oauthAppId: opts.oauthAppId }),
     })
     return { data: toSerializableResult("accounts.list", page.data) }
   } catch (error: any) {

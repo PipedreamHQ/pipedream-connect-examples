@@ -99,6 +99,7 @@ const useAppStateProviderValue = () => {
       setQueryParams([
         { key: "component", value: undefined },
         { key: "scopeProfile", value: undefined },
+        { key: "oauthAppId", value: undefined },
         { key: "app", value },
       ])
       resetProxyState()
@@ -109,6 +110,7 @@ const useAppStateProviderValue = () => {
       setQueryParams([
         { key: "component", value: undefined },
         { key: "scopeProfile", value: undefined },
+        { key: "oauthAppId", value: undefined },
         { key: "app", value: undefined },
       ])
       resetProxyState()
@@ -118,6 +120,10 @@ const useAppStateProviderValue = () => {
   const selectedScopeProfile = queryParams.scopeProfile || undefined
   const setSelectedScopeProfile = (value: string | undefined) =>
     setQueryParam("scopeProfile", value || undefined)
+
+  const selectedOauthAppId = queryParams.oauthAppId || undefined
+  const setSelectedOauthAppId = (value: string | undefined) =>
+    setQueryParam("oauthAppId", value || undefined)
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
   const { app: fetchedApp } = useApp(selectedAppSlug || "", {
@@ -218,8 +224,8 @@ export function MyPage() {
         \{...customization\}`
         : ""
       }
-        // Optional: specify OAuth app ID for app-specific account connections
-        // oauthAppId="your-oauth-app-id"
+        // Optional: connect with a custom OAuth client, keyed by app nameSlug
+        // oauthAppConfig={{ ${selectedApp?.nameSlug ?? "app_slug"}: "oa_xxxxxxx" }}
       />
     </FrontendClientProvider>
   )
@@ -260,6 +266,9 @@ export function MyPage() {
 
     selectedScopeProfile,
     setSelectedScopeProfile,
+
+    selectedOauthAppId,
+    setSelectedOauthAppId,
 
     showStressTest,
 
