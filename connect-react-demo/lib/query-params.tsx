@@ -10,6 +10,7 @@ export const enableDebugging = z.string().optional();
 export const tab = z.string().optional();
 export const scopeProfile = z.string().optional();
 export const oauthAppId = z.string().optional();
+export const appOverrideId = z.string().optional();
 
 export const queryParamSchema = z.object({
   app: appSlug,
@@ -21,4 +22,5 @@ export const queryParamSchema = z.object({
   tab,
   scopeProfile,
   oauthAppId,
+  appOverrideId,
 });

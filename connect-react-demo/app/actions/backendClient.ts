@@ -2,7 +2,17 @@
 
 import { env } from "@/lib/env";
 import { backendClient } from "@/lib/backend-client";
-import type { RunActionOpts, DeployTriggerOpts } from "@pipedream/sdk";
+import { headers } from "next/headers";
+import type {
+  RunActionOpts,
+  DeployTriggerOpts,
+  AppOverride,
+  CreateAppOverrideOpts,
+  UpdateAppOverrideOpts,
+  OauthApp,
+  CreateOauthAppOpts,
+  UpdateOauthAppOpts,
+} from "@pipedream/sdk";
 
 export type FetchTokenOpts = {
   externalUserId: string
@@ -218,6 +228,116 @@ export const listAccounts = async (opts: { externalUserId: string; app?: string;
 }
 
 export const getProjectId = async () => env.PIPEDREAM_PROJECT_ID
+
+// App overrides — local dev only. These mutate project config (overrides, OAuth
+// clients), so refuse unless the request itself came to localhost. The client-side
+// hostname check only hides the UI; this is what actually blocks a deployed build.
+async function assertLocalhost(prefix: string): Promise<ActionError | undefined> {
+  const host = ((await headers()).get("host") ?? "").split(":")[0]
+  if (!["localhost", "127.0.0.1"].includes(host)) {
+    return { message: `${prefix} is only available on localhost`, status: 403 }
+  }
+}
+
+export type AppCustomField = {
+  name: string
+  label?: string
+  description?: string
+  type?: string
+  optional?: boolean | null
+  default?: unknown
+}
+
+export const getAppOverridesContext = async (app: string): Promise<ActionResult<{
+  app: { nameSlug: string; name: string; authType?: string; customFields: AppCustomField[] }
+  overrides: AppOverride[]
+  oauthApps: OauthApp[]
+}>> => {
+  const denied = await assertLocalhost("appOverrides.context")
+  if (denied) return { error: denied }
+  const serverClient = backendClient()
+  try {
+    const [appResp, overrides, oauthApps] = await Promise.all([
+      serverClient.apps.retrieve(app),
+      serverClient.appOverrides.list({ app, limit: 100 }),
+      serverClient.oauthApps.list({ app, limit: 100 }),
+    ])
+    let customFields: AppCustomField[] = []
+    try {
+      customFields = JSON.parse(appResp.data.customFieldsJson || "[]")
+    } catch {
+      // Malformed customFieldsJson — treat as no custom fields
+    }
+    return {
+      data: toSerializableResult("appOverrides.context", {
+        app: {
+          nameSlug: appResp.data.nameSlug,
+          name: appResp.data.name,
+          authType: appResp.data.authType,
+          customFields,
+        },
+        overrides: overrides.data,
+        oauthApps: oauthApps.data,
+      }),
+    }
+  } catch (error: any) {
+    return { error: toActionError("appOverrides.context", error) }
+  }
+}
+
+export const createAppOverride = async (opts: CreateAppOverrideOpts): Promise<ActionResult<AppOverride>> => {
+  const denied = await assertLocalhost("appOverrides.create")
+  if (denied) return { error: denied }
+  try {
+    return { data: toSerializableResult("appOverrides.create", await backendClient().appOverrides.create(opts)) }
+  } catch (error: any) {
+    return { error: toActionError("appOverrides.create", error) }
+  }
+}
+
+export const updateAppOverride = async (id: string, opts: UpdateAppOverrideOpts): Promise<ActionResult<AppOverride>> => {
+  const denied = await assertLocalhost("appOverrides.update")
+  if (denied) return { error: denied }
+  try {
+    return { data: toSerializableResult("appOverrides.update", await backendClient().appOverrides.update(id, opts)) }
+  } catch (error: any) {
+    return { error: toActionError("appOverrides.update", error) }
+  }
+}
+
+export const deleteAppOverride = async (id: string): Promise<ActionResult<true>> => {
+  const denied = await assertLocalhost("appOverrides.delete")
+  if (denied) return { error: denied }
+  try {
+    await backendClient().appOverrides.delete(id)
+    return { data: true }
+  } catch (error: any) {
+    return { error: toActionError("appOverrides.delete", error) }
+  }
+}
+
+// Creates the client with blank credentials so its redirect URI exists before the
+// user registers it with the provider; credentials are set later via updateOauthApp.
+export const createOauthApp = async (opts: Pick<CreateOauthAppOpts, "app" | "name">): Promise<ActionResult<OauthApp>> => {
+  const denied = await assertLocalhost("oauthApps.create")
+  if (denied) return { error: denied }
+  try {
+    const oauthApp = await backendClient().oauthApps.create({ ...opts, clientId: "", clientSecret: "" })
+    return { data: toSerializableResult("oauthApps.create", oauthApp) }
+  } catch (error: any) {
+    return { error: toActionError("oauthApps.create", error) }
+  }
+}
+
+export const updateOauthApp = async (id: string, opts: UpdateOauthAppOpts): Promise<ActionResult<OauthApp>> => {
+  const denied = await assertLocalhost("oauthApps.update")
+  if (denied) return { error: denied }
+  try {
+    return { data: toSerializableResult("oauthApps.update", await backendClient().oauthApps.update(id, opts)) }
+  } catch (error: any) {
+    return { error: toActionError("oauthApps.update", error) }
+  }
+}
 
 export type PostCallbackOpts = {
   callbackUri: string

@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 // @ts-ignore
 import darkThemeCode from "raw-loader!@/app/components/customization-select/dark-theme.ts"
 import { useQueryParams } from "./use-query-params"
+import { setActiveAppOverride } from "./app-override-store"
 import { ComponentType } from "@pipedream/sdk"
 
 const customizationOptions = [
@@ -100,6 +101,7 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "scopeProfile", value: undefined },
         { key: "oauthAppId", value: undefined },
+        { key: "appOverrideId", value: undefined },
         { key: "app", value },
       ])
       resetProxyState()
@@ -111,6 +113,7 @@ const useAppStateProviderValue = () => {
         { key: "component", value: undefined },
         { key: "scopeProfile", value: undefined },
         { key: "oauthAppId", value: undefined },
+        { key: "appOverrideId", value: undefined },
         { key: "app", value: undefined },
       ])
       resetProxyState()
@@ -124,6 +127,25 @@ const useAppStateProviderValue = () => {
   const selectedOauthAppId = queryParams.oauthAppId || undefined
   const setSelectedOauthAppId = (value: string | undefined) =>
     setQueryParam("oauthAppId", value || undefined)
+
+  const selectedAppOverrideId = queryParams.appOverrideId || undefined
+  // The override's own OAuth client applies, so selecting one clears oauthAppId
+  // (in the same update — separate setQueryParam calls would clobber each other)
+  const setSelectedAppOverrideId = (value: string | undefined) =>
+    setQueryParams([
+      { key: "appOverrideId", value: value || undefined },
+      ...(value ? [{ key: "oauthAppId" as const, value: undefined }] : []),
+    ])
+
+  // Every connectAccount call for this app (including connect-react's own
+  // account picker) picks up the selected override via the wrapped client.
+  useEffect(() => {
+    setActiveAppOverride(
+      selectedAppOverrideId && selectedAppSlug
+        ? { app: selectedAppSlug, appOverrideId: selectedAppOverrideId }
+        : undefined
+    )
+  }, [selectedAppOverrideId, selectedAppSlug])
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
   const { app: fetchedApp } = useApp(selectedAppSlug || "", {
@@ -269,6 +291,9 @@ export function MyPage() {
 
     selectedOauthAppId,
     setSelectedOauthAppId,
+
+    selectedAppOverrideId,
+    setSelectedAppOverrideId,
 
     showStressTest,
 

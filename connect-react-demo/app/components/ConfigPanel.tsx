@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/collapsible"
 import { BooleanToggle } from "./ui/boolean-toggle"
 import { ComponentTypeSelector } from "./ComponentTypeSelector"
+import { AppOverrideSelect } from "./AppOverrideSelect"
 import { useAppState } from "@/lib/app-state"
 import { cn, isValidUrl } from "@/lib/utils"
 import Select from "react-select"
@@ -190,6 +191,8 @@ export const ConfigPanel = () => {
     setSelectedScopeProfile,
     selectedOauthAppId,
     setSelectedOauthAppId,
+    selectedAppOverrideId,
+    setSelectedAppOverrideId,
   } = useAppState()
   
   // Check if proxy input editing is enabled via environment variable
@@ -382,8 +385,23 @@ export const ConfigPanel = () => {
           <input
             value={selectedOauthAppId || ""}
             onChange={(e) => setSelectedOauthAppId(e.target.value || undefined)}
-            placeholder="oa_xxxxxxx (optional)"
+            placeholder={selectedAppOverrideId ? "Set by the selected app override" : "oa_xxxxxxx (optional)"}
+            disabled={!!selectedAppOverrideId}
             className="w-full px-3 py-1.5 text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </PropertyItem>
+      )}
+      {isLocalhost && selectedApp && (
+        <PropertyItem
+          name="appOverrideId"
+          type="string"
+          description="Local only. Connect new accounts with this app override (pre-defined custom fields and, for OAuth apps, its custom OAuth client). Use Manage to create or edit overrides."
+          required={false}
+        >
+          <AppOverrideSelect
+            appSlug={selectedApp.nameSlug}
+            value={selectedAppOverrideId}
+            onChange={setSelectedAppOverrideId}
           />
         </PropertyItem>
       )}

@@ -11,6 +11,7 @@ import {
 } from "@pipedream/sdk/browser"
 import { fetchToken, type FetchTokenOpts } from "../actions/backendClient"
 import { SDKLoggerProvider, useSDKLogger, createLoggedFrontendClient } from "@/lib/sdk-logger"
+import { withAppOverride } from "@/lib/app-override-store"
 import Demo from "./Demo"
 function DemoWithLoading({ isLoading }: { isLoading: boolean }) {
   return <Demo isLoading={isLoading} />
@@ -41,14 +42,14 @@ const ClientProviderWithLogger = () => {
   const client = useMemo(() => {
     if (!externalUserId) return null
     return createLoggedFrontendClient(
-      createFrontendClient({
+      withAppOverride(createFrontendClient({
         ...(frontendHost && { frontendHost }),
         ...(baseUrl && { baseUrl }),
         ...(environment && { environment }),
         ...(projectEnvironment && { projectEnvironment }),
         tokenCallback: deferredTokenCallback,
         externalUserId,
-      }),
+      })),
       logger
     )
   }, [externalUserId, frontendHost, baseUrl, environment, projectEnvironment, logger])
