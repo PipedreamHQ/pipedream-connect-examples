@@ -11,7 +11,7 @@ import {
 } from "@pipedream/sdk/browser"
 import { fetchToken, type FetchTokenOpts } from "../actions/backendClient"
 import { SDKLoggerProvider, useSDKLogger, createLoggedFrontendClient } from "@/lib/sdk-logger"
-import { withAppOverride } from "@/lib/app-override-store"
+import { withAppOverride } from "@/lib/with-app-override"
 import Demo from "./Demo"
 function DemoWithLoading({ isLoading }: { isLoading: boolean }) {
   return <Demo isLoading={isLoading} />

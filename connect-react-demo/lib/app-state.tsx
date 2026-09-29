@@ -9,7 +9,6 @@ import { useSearchParams } from "next/navigation";
 // @ts-ignore
 import darkThemeCode from "raw-loader!@/app/components/customization-select/dark-theme.ts"
 import { useQueryParams } from "./use-query-params"
-import { setActiveAppOverride } from "./app-override-store"
 import { ComponentType } from "@pipedream/sdk"
 
 const customizationOptions = [
@@ -94,14 +93,15 @@ const useAppStateProviderValue = () => {
     setActionRunOutput(undefined)
   }
 
+  // Params that only make sense for the current app; cleared when it changes
+  const appScopedParamResets = (["component", "scopeProfile", "oauthAppId", "appOverrideId"] as const)
+    .map((key) => ({ key, value: undefined }))
+
   const selectedAppSlug = queryParams.app || "slack_v2"
   const setSelectedAppSlug = (value: string) => {
     updateStateAsync(() => {
       setQueryParams([
-        { key: "component", value: undefined },
-        { key: "scopeProfile", value: undefined },
-        { key: "oauthAppId", value: undefined },
-        { key: "appOverrideId", value: undefined },
+        ...appScopedParamResets,
         { key: "app", value },
       ])
       resetProxyState()
@@ -110,10 +110,7 @@ const useAppStateProviderValue = () => {
   const removeSelectedAppSlug = () => {
     updateStateAsync(() => {
       setQueryParams([
-        { key: "component", value: undefined },
-        { key: "scopeProfile", value: undefined },
-        { key: "oauthAppId", value: undefined },
-        { key: "appOverrideId", value: undefined },
+        ...appScopedParamResets,
         { key: "app", value: undefined },
       ])
       resetProxyState()
@@ -136,16 +133,6 @@ const useAppStateProviderValue = () => {
       { key: "appOverrideId", value: value || undefined },
       ...(value ? [{ key: "oauthAppId" as const, value: undefined }] : []),
     ])
-
-  // Every connectAccount call for this app (including connect-react's own
-  // account picker) picks up the selected override via the wrapped client.
-  useEffect(() => {
-    setActiveAppOverride(
-      selectedAppOverrideId && selectedAppSlug
-        ? { app: selectedAppSlug, appOverrideId: selectedAppOverrideId }
-        : undefined
-    )
-  }, [selectedAppOverrideId, selectedAppSlug])
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
   const { app: fetchedApp } = useApp(selectedAppSlug || "", {

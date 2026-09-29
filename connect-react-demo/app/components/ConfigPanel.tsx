@@ -17,7 +17,7 @@ import { BooleanToggle } from "./ui/boolean-toggle"
 import { ComponentTypeSelector } from "./ComponentTypeSelector"
 import { AppOverrideSelect } from "./AppOverrideSelect"
 import { useAppState } from "@/lib/app-state"
-import { cn, isValidUrl } from "@/lib/utils"
+import { cn, isValidUrl, isLocalHostname } from "@/lib/utils"
 import Select from "react-select"
 import { IoChevronDown, IoSettingsOutline } from "react-icons/io5"
 import type { CSSObjectWithLabel } from "react-select"
@@ -198,12 +198,10 @@ export const ConfigPanel = () => {
   // Check if proxy input editing is enabled via environment variable
   const enableProxyInput = process.env.NEXT_PUBLIC_ENABLE_PROXY_INPUT === 'true'
 
-  // Only surface local-testing-only controls (e.g. custom oauthAppId) when this is
-  // actually running on localhost — NODE_ENV isn't reliable here since a local
-  // `pnpm build && pnpm start` still reports "production".
+  // Only surface local-testing-only controls (e.g. custom oauthAppId) on localhost
   const [isLocalhost, setIsLocalhost] = useState(false)
   useEffect(() => {
-    setIsLocalhost(["localhost", "127.0.0.1"].includes(window.location.hostname))
+    setIsLocalhost(isLocalHostname(window.location.hostname))
   }, [])
 
   const id1 = useId();

@@ -18,10 +18,9 @@ import {
   deleteAppOverride,
   createOauthApp,
   updateOauthApp,
-  type AppCustomField,
+  type AppOverridesContext as Context,
 } from "@/app/actions/backendClient"
-
-type Context = NonNullable<Awaited<ReturnType<typeof getAppOverridesContext>>["data"]>
+import { useCopyToClipboard } from "@/lib/hooks/use-copy-to-clipboard"
 
 type FormState = {
   name: string
@@ -33,6 +32,7 @@ const emptyForm: FormState = { name: "", oauthAppId: "", cfmap: {} }
 
 const inputClass =
   "w-full px-3 py-1.5 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+const monoInputClass = `${inputClass} font-mono`
 
 function formFromOverride(o: AppOverride): FormState {
   return {
@@ -82,7 +82,7 @@ export function AppOverrideSelect({
     <div className="space-y-1">
       <div className="flex gap-2">
         <select
-          className={`${inputClass} font-mono`}
+          className={monoInputClass}
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value || undefined)}
           disabled={!ctx}
@@ -95,6 +95,7 @@ export function AppOverrideSelect({
           ))}
         </select>
         <AppOverridesDialog
+          key={appSlug}
           appSlug={appSlug}
           ctx={ctx}
           loading={loading}
@@ -127,20 +128,9 @@ function AppOverridesDialog({
   const [form, setForm] = useState<FormState>(emptyForm)
   const [saving, setSaving] = useState(false)
 
-  // Reset to list view when the app changes
-  useEffect(() => {
-    setEditing(undefined)
-  }, [appSlug])
-
-  const startCreate = () => {
-    setForm(emptyForm)
-    setEditing(null)
-    setError(undefined)
-  }
-
-  const startEdit = (o: AppOverride) => {
-    setForm(formFromOverride(o))
-    setEditing(o)
+  const openForm = (o?: AppOverride) => {
+    setForm(o ? formFromOverride(o) : emptyForm)
+    setEditing(o ?? null)
     setError(undefined)
   }
 
@@ -182,7 +172,7 @@ function AppOverridesDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) reload() }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" className="h-auto">Manage</Button>
       </DialogTrigger>
@@ -206,8 +196,8 @@ function AppOverridesDialog({
           <OverrideList
             ctx={ctx}
             loading={loading}
-            onCreate={startCreate}
-            onEdit={startEdit}
+            onCreate={() => openForm()}
+            onEdit={openForm}
             onDelete={remove}
           />
         )}
@@ -271,13 +261,7 @@ function OverrideList({
               <div className="font-medium text-sm">{o.name}</div>
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <code className="font-mono">{o.id}</code>
-                <button
-                  type="button"
-                  className="text-blue-600 hover:underline"
-                  onClick={() => navigator.clipboard.writeText(o.id)}
-                >
-                  copy
-                </button>
+                <CopyButton text={o.id} />
                 <span className="px-1.5 py-0.5 rounded bg-gray-100">
                   {o.ownerId.startsWith("o_") ? "workspace" : "project"}
                 </span>
@@ -354,10 +338,10 @@ function OverrideForm({
         {fields.length === 0 && (
           <div className="text-xs text-gray-500">This app has no custom fields you can pre-define.</div>
         )}
-        {fields.map((f: AppCustomField) => (
+        {fields.map((f) => (
           <Field key={f.name} label={f.label || f.name} hint={f.name} description={f.description}>
             <input
-              className={`${inputClass} font-mono`}
+              className={monoInputClass}
               value={form.cfmap[f.name] ?? ""}
               onChange={(e) =>
                 setForm((s) => ({ ...s, cfmap: { ...s.cfmap, [f.name]: e.target.value } }))
@@ -399,22 +383,6 @@ function OauthClientPicker({
   const selected = oauthApps.find((oa) => oa.id === value)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
-  const [editingCreds, setEditingCreds] = useState(false)
-  const [draft, setDraft] = useState({ clientId: "", clientSecret: "", scopes: "" })
-
-  // Clients created here start without credentials; prompt for them until set
-  const needsCreds = !!selected && !selected.clientId
-  const showCreds = needsCreds || editingCreds
-
-  useEffect(() => {
-    setEditingCreds(false)
-    setError(undefined)
-    setDraft({
-      clientId: selected?.clientId ?? "",
-      clientSecret: "",
-      scopes: (selected?.scopes ?? []).join(" "),
-    })
-  }, [selected?.id, selected?.clientId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const createClient = async () => {
     setBusy(true)
@@ -425,24 +393,6 @@ function OauthClientPicker({
     } else if (res.data.id) {
       await onChanged()
       onChange(res.data.id)
-    }
-    setBusy(false)
-  }
-
-  const saveCreds = async () => {
-    if (!selected?.id) return
-    setBusy(true)
-    setError(undefined)
-    const res = await updateOauthApp(selected.id, {
-      clientId: draft.clientId,
-      // Blank secret keeps the existing one
-      ...(draft.clientSecret && { clientSecret: draft.clientSecret }),
-      scopes: draft.scopes.split(/[\s,]+/).filter(Boolean),
-    })
-    if (res.error) setError(res.error.message)
-    else {
-      setEditingCreds(false)
-      await onChanged()
     }
     setBusy(false)
   }
@@ -473,78 +423,122 @@ function OauthClientPicker({
 
       {error && <div className="text-xs text-red-700 break-words">{error}</div>}
 
-      {selected && (
-        <div className="border rounded p-3 space-y-2 bg-gray-50 text-xs">
-          <div className="space-y-1">
-            <div className="text-gray-600">Redirect URI — register this with the provider:</div>
-            <div className="flex items-center gap-2">
-              <code className="font-mono break-all">{selected.redirectUri}</code>
-              {selected.redirectUri && (
-                <button
-                  type="button"
-                  className="text-blue-600 hover:underline shrink-0"
-                  onClick={() => navigator.clipboard.writeText(selected.redirectUri!)}
-                >
-                  copy
-                </button>
-              )}
-            </div>
+      {selected?.id && (
+        // Keyed so the draft resets when the selection or its saved credentials change
+        <OauthClientCredentials
+          key={`${selected.id}:${selected.clientId ?? ""}`}
+          oauthApp={selected}
+          onSaved={onChanged}
+        />
+      )}
+    </div>
+  )
+}
+
+function OauthClientCredentials({
+  oauthApp,
+  onSaved,
+}: {
+  oauthApp: OauthApp
+  onSaved: () => Promise<void>
+}) {
+  // Clients created here start without credentials; prompt for them until set
+  const needsCreds = !oauthApp.clientId
+  const [editing, setEditing] = useState(needsCreds)
+  const [draft, setDraft] = useState({
+    clientId: oauthApp.clientId ?? "",
+    clientSecret: "",
+    scopes: (oauthApp.scopes ?? []).join(" "),
+  })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string>()
+
+  const save = async () => {
+    setBusy(true)
+    setError(undefined)
+    const res = await updateOauthApp(oauthApp.id!, {
+      clientId: draft.clientId,
+      // Blank secret keeps the existing one
+      ...(draft.clientSecret && { clientSecret: draft.clientSecret }),
+      scopes: draft.scopes.split(/[\s,]+/).filter(Boolean),
+    })
+    setBusy(false)
+    if (res.error) setError(res.error.message)
+    else await onSaved()
+  }
+
+  return (
+    <div className="border rounded p-3 space-y-2 bg-gray-50 text-xs">
+      <div className="space-y-1">
+        <div className="text-gray-600">Redirect URI — register this with the provider:</div>
+        <div className="flex items-center gap-2">
+          <code className="font-mono break-all">{oauthApp.redirectUri}</code>
+          {oauthApp.redirectUri && <CopyButton text={oauthApp.redirectUri} />}
+        </div>
+      </div>
+
+      {!editing && (
+        <div className="flex items-center gap-2">
+          <span className="text-gray-600">Client ID:</span>
+          <code className="font-mono break-all">{oauthApp.clientId}</code>
+          <button
+            type="button"
+            className="text-blue-600 hover:underline"
+            onClick={() => setEditing(true)}
+          >
+            edit credentials
+          </button>
+        </div>
+      )}
+
+      {editing && (
+        <div className="space-y-2 pt-1">
+          {error && <div className="text-red-700 break-words">{error}</div>}
+          <input
+            className={monoInputClass}
+            placeholder="Client ID"
+            value={draft.clientId}
+            onChange={(e) => setDraft((d) => ({ ...d, clientId: e.target.value }))}
+          />
+          <input
+            className={monoInputClass}
+            type="password"
+            placeholder={needsCreds ? "Client secret" : "Client secret (blank keeps current)"}
+            value={draft.clientSecret}
+            onChange={(e) => setDraft((d) => ({ ...d, clientSecret: e.target.value }))}
+          />
+          <input
+            className={monoInputClass}
+            placeholder="Scopes, space or comma separated (optional)"
+            value={draft.scopes}
+            onChange={(e) => setDraft((d) => ({ ...d, scopes: e.target.value }))}
+          />
+          <div className="flex justify-end gap-2">
+            {!needsCreds && (
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={busy}>
+                Cancel
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={save}
+              disabled={busy || !draft.clientId || (needsCreds && !draft.clientSecret)}
+            >
+              {busy ? "Saving…" : "Save credentials"}
+            </Button>
           </div>
-
-          {!showCreds && (
-            <div className="flex items-center gap-2">
-              <span className="text-gray-600">Client ID:</span>
-              <code className="font-mono break-all">{selected.clientId}</code>
-              <button
-                type="button"
-                className="text-blue-600 hover:underline"
-                onClick={() => setEditingCreds(true)}
-              >
-                edit credentials
-              </button>
-            </div>
-          )}
-
-          {showCreds && (
-            <div className="space-y-2 pt-1">
-              <input
-                className={`${inputClass} font-mono`}
-                placeholder="Client ID"
-                value={draft.clientId}
-                onChange={(e) => setDraft((d) => ({ ...d, clientId: e.target.value }))}
-              />
-              <input
-                className={`${inputClass} font-mono`}
-                type="password"
-                placeholder={needsCreds ? "Client secret" : "Client secret (blank keeps current)"}
-                value={draft.clientSecret}
-                onChange={(e) => setDraft((d) => ({ ...d, clientSecret: e.target.value }))}
-              />
-              <input
-                className={`${inputClass} font-mono`}
-                placeholder="Scopes, space or comma separated (optional)"
-                value={draft.scopes}
-                onChange={(e) => setDraft((d) => ({ ...d, scopes: e.target.value }))}
-              />
-              <div className="flex justify-end gap-2">
-                {!needsCreds && (
-                  <Button size="sm" variant="outline" onClick={() => setEditingCreds(false)} disabled={busy}>
-                    Cancel
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  onClick={saveCreds}
-                  disabled={busy || !draft.clientId || (needsCreds && !draft.clientSecret)}
-                >
-                  {busy ? "Saving…" : "Save credentials"}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
+  )
+}
+
+function CopyButton({ text }: { text: string }) {
+  const { copied, copy } = useCopyToClipboard()
+  return (
+    <button type="button" className="text-blue-600 hover:underline shrink-0" onClick={() => copy(text)}>
+      {copied ? "copied" : "copy"}
+    </button>
   )
 }
 
