@@ -93,13 +93,15 @@ const useAppStateProviderValue = () => {
     setActionRunOutput(undefined)
   }
 
+  // Params that only make sense for the current app; cleared when it changes
+  const appScopedParamResets = (["component", "scopeProfile", "oauthAppId", "appOverrideId"] as const)
+    .map((key) => ({ key, value: undefined }))
+
   const selectedAppSlug = queryParams.app || "slack_v2"
   const setSelectedAppSlug = (value: string) => {
     updateStateAsync(() => {
       setQueryParams([
-        { key: "component", value: undefined },
-        { key: "scopeProfile", value: undefined },
-        { key: "oauthAppId", value: undefined },
+        ...appScopedParamResets,
         { key: "app", value },
       ])
       resetProxyState()
@@ -108,9 +110,7 @@ const useAppStateProviderValue = () => {
   const removeSelectedAppSlug = () => {
     updateStateAsync(() => {
       setQueryParams([
-        { key: "component", value: undefined },
-        { key: "scopeProfile", value: undefined },
-        { key: "oauthAppId", value: undefined },
+        ...appScopedParamResets,
         { key: "app", value: undefined },
       ])
       resetProxyState()
@@ -124,6 +124,15 @@ const useAppStateProviderValue = () => {
   const selectedOauthAppId = queryParams.oauthAppId || undefined
   const setSelectedOauthAppId = (value: string | undefined) =>
     setQueryParam("oauthAppId", value || undefined)
+
+  const selectedAppOverrideId = queryParams.appOverrideId || undefined
+  // The override's own OAuth client applies, so selecting one clears oauthAppId
+  // (in the same update — separate setQueryParam calls would clobber each other)
+  const setSelectedAppOverrideId = (value: string | undefined) =>
+    setQueryParams([
+      { key: "appOverrideId", value: value || undefined },
+      ...(value ? [{ key: "oauthAppId" as const, value: undefined }] : []),
+    ])
 
   // Use useApp when we have a URL parameter, otherwise let SelectApp manage its own state
   const { app: fetchedApp } = useApp(selectedAppSlug || "", {
@@ -269,6 +278,9 @@ export function MyPage() {
 
     selectedOauthAppId,
     setSelectedOauthAppId,
+
+    selectedAppOverrideId,
+    setSelectedAppOverrideId,
 
     showStressTest,
 

@@ -2,7 +2,18 @@
 
 import { env } from "@/lib/env";
 import { backendClient } from "@/lib/backend-client";
-import type { RunActionOpts, DeployTriggerOpts } from "@pipedream/sdk";
+import { isLocalHostname } from "@/lib/utils";
+import { headers } from "next/headers";
+import type {
+  RunActionOpts,
+  DeployTriggerOpts,
+  AppOverride,
+  CreateAppOverrideOpts,
+  UpdateAppOverrideOpts,
+  OauthApp,
+  CreateOauthAppOpts,
+  UpdateOauthAppOpts,
+} from "@pipedream/sdk";
 
 export type FetchTokenOpts = {
   externalUserId: string
@@ -218,6 +229,76 @@ export const listAccounts = async (opts: { externalUserId: string; app?: string;
 }
 
 export const getProjectId = async () => env.PIPEDREAM_PROJECT_ID
+
+// App overrides — local dev only. These mutate project config (overrides, OAuth
+// clients), so refuse unless the request itself came to localhost. The client-side
+// hostname check only hides the UI; this is what actually blocks a deployed build.
+async function localOnly<T>(prefix: string, fn: () => Promise<T>): Promise<ActionResult<T>> {
+  const host = ((await headers()).get("host") ?? "").split(":")[0]
+  if (!isLocalHostname(host)) {
+    return { error: { message: `${prefix} is only available on localhost`, status: 403 } }
+  }
+  try {
+    return { data: toSerializableResult(prefix, await fn()) }
+  } catch (error: any) {
+    return { error: toActionError(prefix, error) }
+  }
+}
+
+export type AppCustomField = {
+  name: string
+  label?: string
+  description?: string
+  type?: string
+  optional?: boolean | null
+  default?: unknown
+}
+
+export type AppOverridesContext = {
+  app: { nameSlug: string; name: string; authType?: string; customFields: AppCustomField[] }
+  overrides: AppOverride[]
+  oauthApps: OauthApp[]
+}
+
+export const getAppOverridesContext = async (app: string) =>
+  localOnly("appOverrides.context", async (): Promise<AppOverridesContext> => {
+    const serverClient = backendClient()
+    const [appResp, overrides, oauthApps] = await Promise.all([
+      serverClient.apps.retrieve(app),
+      serverClient.appOverrides.list({ app, limit: 100 }),
+      serverClient.oauthApps.list({ app, limit: 100 }),
+    ])
+    let customFields: AppCustomField[] = []
+    try {
+      customFields = JSON.parse(appResp.data.customFieldsJson || "[]")
+    } catch {
+      // Malformed customFieldsJson — treat as no custom fields
+    }
+    const { nameSlug, name, authType } = appResp.data
+    return {
+      app: { nameSlug, name, authType, customFields },
+      overrides: overrides.data,
+      oauthApps: oauthApps.data,
+    }
+  })
+
+export const createAppOverride = async (opts: CreateAppOverrideOpts) =>
+  localOnly("appOverrides.create", () => backendClient().appOverrides.create(opts))
+
+export const updateAppOverride = async (id: string, opts: UpdateAppOverrideOpts) =>
+  localOnly("appOverrides.update", () => backendClient().appOverrides.update(id, opts))
+
+export const deleteAppOverride = async (id: string) =>
+  localOnly("appOverrides.delete", () => backendClient().appOverrides.delete(id).then(() => true))
+
+// Creates the client with blank credentials so its redirect URI exists before the
+// user registers it with the provider; credentials are set later via updateOauthApp.
+export const createOauthApp = async (opts: Pick<CreateOauthAppOpts, "app" | "name">) =>
+  localOnly("oauthApps.create", () =>
+    backendClient().oauthApps.create({ ...opts, clientId: "", clientSecret: "" }))
+
+export const updateOauthApp = async (id: string, opts: UpdateOauthAppOpts) =>
+  localOnly("oauthApps.update", () => backendClient().oauthApps.update(id, opts))
 
 export type PostCallbackOpts = {
   callbackUri: string

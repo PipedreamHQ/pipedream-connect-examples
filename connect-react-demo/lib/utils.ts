@@ -16,3 +16,9 @@ export function isValidUrl(url: string): boolean {
     return false
   }
 }
+
+// Local-dev-only features are gated on the hostname rather than NODE_ENV, since a
+// local `pnpm build && pnpm start` still reports "production".
+export function isLocalHostname(hostname: string): boolean {
+  return ["localhost", "127.0.0.1"].includes(hostname)
+}
