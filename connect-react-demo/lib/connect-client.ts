@@ -4,6 +4,7 @@ import {
   type PipedreamClientOpts,
   type StartConnectOpts,
 } from "@pipedream/sdk/browser"
+import { validateConnectToken } from "@/app/actions/backendClient"
 
 const WORKDAY_FRONTEND_HOST =
   process.env.NEXT_PUBLIC_PIPEDREAM_WORKDAY_FRONTEND_HOST || "cdn.api.myworkday.com"
@@ -23,7 +24,8 @@ export function createConnectClient(opts: PipedreamClientOpts): PipedreamClient 
     const token =
       connectOpts.token ||
       (await opts.tokenCallback({ externalUserId: opts.externalUserId })).token
-    const validation = await client.tokens.validate(token, {
+    const validation = await validateConnectToken({
+      token,
       appId: connectOpts.app,
       oauthAppId: connectOpts.oauthAppId,
       appOverrideId: connectOpts.appOverrideId,

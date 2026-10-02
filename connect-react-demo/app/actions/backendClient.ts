@@ -123,10 +123,17 @@ const _proxyRequest = async (opts: ProxyRequestOpts): Promise<ActionResult<any>>
 
 export const proxyRequest = _proxyRequest
 
-export const validateConnectToken = async (opts: { token: string; appId: string }) => {
+export const validateConnectToken = async (opts: {
+  token: string
+  appId: string
+  oauthAppId?: string
+  appOverrideId?: string
+}) => {
   const serverClient = backendClient()
   return serverClient.tokens.validate(opts.token, {
     appId: opts.appId,
+    oauthAppId: opts.oauthAppId,
+    appOverrideId: opts.appOverrideId,
   })
 }
 
