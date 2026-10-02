@@ -5,13 +5,13 @@ import { AppStateProvider } from "@/lib/app-state"
 import { useStableUuid } from "@/lib/stable-uuid"
 import { FrontendClientProvider } from "@pipedream/connect-react"
 import {
-  createFrontendClient,
   type PipedreamEnvironment,
   type ProjectEnvironment
 } from "@pipedream/sdk/browser"
 import { fetchToken, type FetchTokenOpts } from "../actions/backendClient"
 import { SDKLoggerProvider, useSDKLogger, createLoggedFrontendClient } from "@/lib/sdk-logger"
 import { withAppOverride } from "@/lib/with-app-override"
+import { createConnectClient } from "@/lib/connect-client"
 import Demo from "./Demo"
 function DemoWithLoading({ isLoading }: { isLoading: boolean }) {
   return <Demo isLoading={isLoading} />
@@ -42,7 +42,7 @@ const ClientProviderWithLogger = () => {
   const client = useMemo(() => {
     if (!externalUserId) return null
     return createLoggedFrontendClient(
-      withAppOverride(createFrontendClient({
+      withAppOverride(createConnectClient({
         ...(frontendHost && { frontendHost }),
         ...(baseUrl && { baseUrl }),
         ...(environment && { environment }),
