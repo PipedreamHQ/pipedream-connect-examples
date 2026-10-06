@@ -1,5 +1,5 @@
 <a href="https://pipedream.com/connect">
-  <img alt="Pipedream Connect" src="https://res.cloudinary.com/pipedreamin/image/upload/v1756328952/connect-image_ygqjeq.png">
+  <img alt="Pipedream Connect" src="images/connect-image.png">
   <h1 align="center">Pipedream Connect Examples</h1>
 </a>
 
