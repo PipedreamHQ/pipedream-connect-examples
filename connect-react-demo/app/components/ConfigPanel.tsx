@@ -73,7 +73,7 @@ const PropertyItem = ({
   })
 
   return (
-    <div className="grid grid-cols-[120px_1fr] gap-3 items-center py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+    <div className="grid grid-cols-[150px_1fr] gap-3 items-center py-2 pl-4 pr-2 hover:bg-zinc-50/50">
       <div className="flex items-center">
         <TooltipProvider delayDuration={0}>
           <Tooltip>
@@ -303,7 +303,7 @@ export const ConfigPanel = () => {
 
   const basicFormControls = (
     <div>
-      <div className="grid grid-cols-[120px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+      <div className="grid grid-cols-[150px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
         <div className="flex items-start pt-1.5">
           <TooltipProvider delayDuration={0}>
             <Tooltip>
@@ -406,7 +406,7 @@ export const ConfigPanel = () => {
       )}
       {isLocalhost && (
         <PropertyItem
-          name="allowedDomains"
+          name="allowedEmailDomains"
           type="string[]"
           description="Local only. Project setting: new accounts must have an OAuth email on one of these domains. Clear to remove the check."
           required={false}
@@ -512,7 +512,7 @@ export const ConfigPanel = () => {
         )}
       </PropertyItem>
       {selectedApp && (
-        <div className="grid grid-cols-[120px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
+        <div className="grid grid-cols-[150px_1fr] gap-3 py-2 pl-4 pr-2 hover:bg-zinc-50/50">
           <div className="flex items-start pt-1.5">
             <TooltipProvider delayDuration={0}>
               <Tooltip>
