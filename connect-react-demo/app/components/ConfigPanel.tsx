@@ -16,6 +16,7 @@ import {
 import { BooleanToggle } from "./ui/boolean-toggle"
 import { ComponentTypeSelector } from "./ComponentTypeSelector"
 import { AppOverrideSelect } from "./AppOverrideSelect"
+import { AllowedEmailDomains } from "./AllowedEmailDomains"
 import { useAppState } from "@/lib/app-state"
 import { cn, isValidUrl, isLocalHostname } from "@/lib/utils"
 import Select from "react-select"
@@ -77,7 +78,7 @@ const PropertyItem = ({
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <label className="text-[13px] font-semibold text-neutral-500 border-b border-dotted border-neutral-300 cursor-help">
+              <label className="text-[13px] font-semibold text-neutral-500 [overflow-wrap:anywhere] border-b border-dotted border-neutral-300 cursor-help">
                 {name}
               </label>
             </TooltipTrigger>
@@ -401,6 +402,16 @@ export const ConfigPanel = () => {
             value={selectedAppOverrideId}
             onChange={setSelectedAppOverrideId}
           />
+        </PropertyItem>
+      )}
+      {isLocalhost && (
+        <PropertyItem
+          name="allowedDomains"
+          type="string[]"
+          description="Local only. Project setting: new accounts must have an OAuth email on one of these domains. Clear to remove the check."
+          required={false}
+        >
+          <AllowedEmailDomains />
         </PropertyItem>
       )}
       {selectedComponentType !== "proxy" && (
