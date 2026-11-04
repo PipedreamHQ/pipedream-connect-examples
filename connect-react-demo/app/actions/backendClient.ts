@@ -307,6 +307,42 @@ export const createOauthApp = async (opts: Pick<CreateOauthAppOpts, "app" | "nam
 export const updateOauthApp = async (id: string, opts: UpdateOauthAppOpts) =>
   localOnly("oauthApps.update", () => backendClient().oauthApps.update(id, opts))
 
+// Project allowed email domains — local dev only, for testing. The SDK doesn't
+// model `allowed_email_domains` yet (projects.update strips unknown keys), so hit
+// the REST API directly. Move to the SDK once it supports the field.
+async function projectRequest(method: "GET" | "PATCH", body?: unknown) {
+  const host = env.PIPEDREAM_API_HOST || "api.pipedream.com"
+  const baseUrl = host.startsWith("http") ? host : `https://${host}`
+  const resp = await fetch(`${baseUrl}/v1/connect/projects/${env.PIPEDREAM_PROJECT_ID}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${await backendClient().rawAccessToken}`,
+      "Content-Type": "application/json",
+      "x-pd-environment": env.PIPEDREAM_PROJECT_ENVIRONMENT,
+    },
+    ...(body !== undefined && { body: JSON.stringify(body) }),
+    cache: "no-store",
+  })
+  const text = await resp.text()
+  let data: any = text
+  try { data = JSON.parse(text) } catch { /* non-JSON body */ }
+  if (!resp.ok) throw { statusCode: resp.status, body: data, message: resp.statusText }
+  // Accept either a bare project or a { data: project } envelope
+  const project = data?.data ?? data
+  return {
+    apiHost: baseUrl,
+    allowedEmailDomains: (project?.allowed_email_domains ?? null) as string[] | null,
+  }
+}
+
+export const getAllowedEmailDomains = async () =>
+  localOnly("projects.allowedEmailDomains.get", () => projectRequest("GET"))
+
+// Pass null to remove the allowlist (no domain check).
+export const setAllowedEmailDomains = async (domains: string[] | null) =>
+  localOnly("projects.allowedEmailDomains.set", () =>
+    projectRequest("PATCH", { allowed_email_domains: domains }))
+
 export type PostCallbackOpts = {
   callbackUri: string
   resourceProvider: string
