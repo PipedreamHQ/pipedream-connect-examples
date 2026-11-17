@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { getAllowedEmailDomains, setAllowedEmailDomains } from "@/app/actions/backendClient"
+import { getAllowedEmailDomains, setAllowedEmailDomains, setSkipMissingEmail } from "@/app/actions/backendClient"
 
 const parseDomains = (input: string) =>
   input.split(/[\s,]+/).map((d) => d.trim().toLowerCase()).filter(Boolean)
@@ -11,6 +11,7 @@ const parseDomains = (input: string) =>
 // Connect accounts whose OAuth email domain isn't on the list are rejected.
 export function AllowedEmailDomains() {
   const [current, setCurrent] = useState<string[] | null>()
+  const [skipMissing, setSkipMissing] = useState<boolean>()
   const [apiHost, setApiHost] = useState<string>()
   const [input, setInput] = useState("")
   const [busy, setBusy] = useState(false)
@@ -24,6 +25,7 @@ export function AllowedEmailDomains() {
     setError(undefined)
     setApiHost(res.data.apiHost)
     setCurrent(res.data.allowedEmailDomains)
+    setSkipMissing(res.data.skipMissingEmail)
     setInput((res.data.allowedEmailDomains ?? []).join(", "))
   }
 
@@ -38,6 +40,12 @@ export function AllowedEmailDomains() {
   const save = async (domains: string[] | null) => {
     setBusy(true)
     apply(await setAllowedEmailDomains(domains))
+    setBusy(false)
+  }
+
+  const toggleSkipMissing = async (skip: boolean) => {
+    setBusy(true)
+    apply(await setSkipMissingEmail(skip))
     setBusy(false)
   }
 
@@ -67,6 +75,17 @@ export function AllowedEmailDomains() {
           Refresh
         </Button>
       </div>
+      <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={!!skipMissing}
+          disabled={busy || skipMissing === undefined}
+          onChange={(e) => toggleSkipMissing(e.target.checked)}
+        />
+        <span>
+          <span className="font-mono">skip_missing_email</span>: allow accounts whose app returns no email
+        </span>
+      </label>
       <div className="text-xs text-gray-500">
         {current === undefined
           ? "Loading…"

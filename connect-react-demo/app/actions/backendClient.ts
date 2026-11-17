@@ -332,6 +332,7 @@ async function projectRequest(method: "GET" | "PATCH", body?: unknown) {
   return {
     apiHost: baseUrl,
     allowedEmailDomains: (project?.allowed_email_domains ?? null) as string[] | null,
+    skipMissingEmail: Boolean(project?.skip_missing_email),
   }
 }
 
@@ -342,6 +343,12 @@ export const getAllowedEmailDomains = async () =>
 export const setAllowedEmailDomains = async (domains: string[] | null) =>
   localOnly("projects.allowedEmailDomains.set", () =>
     projectRequest("PATCH", { allowed_email_domains: domains }))
+
+// When true, accounts whose OAuth response has no email skip the domain check
+// instead of being rejected.
+export const setSkipMissingEmail = async (skip: boolean) =>
+  localOnly("projects.skipMissingEmail.set", () =>
+    projectRequest("PATCH", { skip_missing_email: skip }))
 
 export type PostCallbackOpts = {
   callbackUri: string
